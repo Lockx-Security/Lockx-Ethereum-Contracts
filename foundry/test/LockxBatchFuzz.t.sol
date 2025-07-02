@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
-import {MockERC721} from "../../contracts/mocks/MockERC721.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
+import {MockERC721} from '../../contracts/mocks/MockERC721.sol';
 
 /// @notice Fuzz tests for the `createLockboxWithBatch` flow exercising combinations of ETH, ERC20, and ERC721.
 contract LockxBatchFuzz is Test {
@@ -70,7 +70,7 @@ contract LockxBatchFuzz is Test {
             ids = new uint256[](0);
         }
 
-        bytes32 ref = bytes32("batch");
+        bytes32 ref = bytes32('batch');
 
         vm.prank(alice);
         lockx.createLockboxWithBatch{value: amountEth}(

@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
 
 /// @notice Invariant test ensuring the per-Lockbox signature nonce is monotonically
 ///         non-decreasing across contract interactions.
@@ -19,7 +19,7 @@ contract LockxNonceInvariant is Test {
     address internal key2 = address(0xBEEF2);
     address internal key3 = address(0xBEEF3);
 
-    bytes32 internal refId = bytes32("nonceInv");
+    bytes32 internal refId = bytes32('nonceInv');
 
     // last observed nonce per tokenId
     mapping(uint256 => uint256) private _lastNonce;

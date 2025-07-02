@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
 
 contract LockxERC20Fuzz is Test {
     Lockx internal lockx;
@@ -12,7 +12,7 @@ contract LockxERC20Fuzz is Test {
 
     address internal user = address(0xBEEF);
     address internal lockboxKey = address(0xABBA);
-    bytes32 internal referenceId = bytes32("erc20fuzz");
+    bytes32 internal referenceId = bytes32('erc20fuzz');
 
     function setUp() public {
         vm.deal(user, 100 ether);

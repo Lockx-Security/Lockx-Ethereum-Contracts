@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
-import {MockERC721} from "../../contracts/mocks/MockERC721.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
+import {MockERC721} from '../../contracts/mocks/MockERC721.sol';
 
 contract LockxHarness is Lockx {
     // expose eth balance mapping for invariant checks
@@ -25,7 +25,7 @@ contract LockxInvariant is Test {
     MockERC721 internal mock721;
     address internal user = address(0xABC1);
     address internal lockboxKey = address(0xDEF1);
-    bytes32 internal referenceId = bytes32("inv");
+    bytes32 internal referenceId = bytes32('inv');
 
     function setUp() public {
         lockx = new LockxHarness();

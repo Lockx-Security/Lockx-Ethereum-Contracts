@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {LockxStateHarness} from "../../contracts/mocks/LockxHarness.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
+import {LockxStateHarness} from '../../contracts/mocks/LockxHarness.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
 
 /// @notice Invariant suite covering interactions across three independent lockboxes
 ///         owned by different users. Ensures contract-level ETH / ERC20 balances
@@ -23,7 +23,7 @@ contract LockxMultiUserInvariant is Test {
     address internal key2 = address(0xBBBB);
     address internal key3 = address(0xCCCC);
 
-    bytes32 internal refId = bytes32("multiInv");
+    bytes32 internal refId = bytes32('multiInv');
 
     function setUp() public {
         lockx = new LockxStateHarness();

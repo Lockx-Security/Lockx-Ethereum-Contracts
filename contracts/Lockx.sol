@@ -2,7 +2,7 @@
 pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
-import '@openzeppelin/contracts/security/ReentrancyGuard.sol';
+import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 import './Withdrawals.sol';
@@ -53,7 +53,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
      * @dev Deploys the contract and initializes the EIP-712 domain used for
      *      signature authorization in SignatureVerification.
      */
-    constructor() ERC721('Lockx.io', 'Lockbox') SignatureVerification(address(this)) {}
+    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {}
 
     /* ─────────── Lockbox callback (burn underlying ERC-721) ───────────── */
     function _burnLockboxNFT(uint256 tokenId) internal override {
@@ -243,7 +243,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         bytes32 referenceId,
         uint256 signatureExpiry
     ) external nonReentrant {
-        if (!_exists(tokenId)) revert NonexistentToken();
+        if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         if (ownerOf(tokenId) != msg.sender) revert NotOwner();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
@@ -274,7 +274,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
      * @dev Reverts if neither custom nor default URI is available.
      */
     function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
-        if (!_exists(tokenId)) revert NonexistentToken();
+        if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         string memory custom = _tokenMetadataURIs[tokenId];
         if (bytes(custom).length > 0) return custom;
         if (bytes(_defaultMetadataURI).length > 0) return _defaultMetadataURI;
@@ -290,21 +290,23 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
      * @dev Reverts if token does not exist.
      */
     function locked(uint256 tokenId) external view override returns (bool) {
-        if (!_exists(tokenId)) revert NonexistentToken();
+        if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         return true;
     }
 
-    /// Disable any transfer—soul‐bound enforcement.
-    function _transfer(address, address, uint256) internal pure override {
-        revert TransfersDisabled();
-    }
-
-    /* ─────────────────── ERC-721 standard overrides ────────────────────── */
-
-    /// Clears custom metadata on burn.
-    function _burn(uint256 tokenId) internal override(ERC721) {
-        super._burn(tokenId);
-        delete _tokenMetadataURIs[tokenId];
+    /// Disable any transfer—soul‐bound enforcement and handle metadata cleanup on burn.
+    function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
+        address from = _ownerOf(tokenId);
+        if (from != address(0) && to != address(0)) {
+            revert TransfersDisabled();
+        }
+        
+        // Clear custom metadata on burn (when to == address(0))
+        if (to == address(0)) {
+            delete _tokenMetadataURIs[tokenId];
+        }
+        
+        return super._update(to, tokenId, auth);
     }
 
     function supportsInterface(bytes4 interfaceId) public view override(ERC721) returns (bool) {

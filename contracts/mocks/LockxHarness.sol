@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import {Lockx} from "../Lockx.sol";
+import {Lockx} from '../Lockx.sol';
 
 /// @title LockxHarness – exposes internal state to Foundry tests
 contract LockxStateHarness is Lockx {
@@ -30,5 +30,4 @@ contract LockxStateHarness is Lockx {
     function getErc20Known(uint256 tokenId, address token) external view returns (bool) {
         return _erc20Known[tokenId][token];
     }
-
 }

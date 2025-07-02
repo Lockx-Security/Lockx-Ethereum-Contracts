@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
 
 contract LockxWithdrawETHFuzz is Test {
     Lockx internal lockx;
@@ -13,13 +13,14 @@ contract LockxWithdrawETHFuzz is Test {
     uint256 internal lockboxPrivKey = uint256(0xA11CE);
     address internal lockboxKey;
 
-    bytes32 internal referenceId = bytes32("withdrawfuzz");
+    bytes32 internal referenceId = bytes32('withdrawfuzz');
 
     bytes32 private constant OPERATION_TYPEHASH =
-        keccak256("Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)");
-    bytes32 private constant DOMAIN_TYPEHASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-    );
+        keccak256('Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)');
+    bytes32 private constant DOMAIN_TYPEHASH =
+        keccak256(
+            'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
+        );
 
     function setUp() public {
         lockx = new Lockx();
@@ -32,8 +33,8 @@ contract LockxWithdrawETHFuzz is Test {
             keccak256(
                 abi.encode(
                     DOMAIN_TYPEHASH,
-                    keccak256(bytes("Lockx")),
-                    keccak256(bytes("1")),
+                    keccak256(bytes('Lockx')),
+                    keccak256(bytes('1')),
                     block.chainid,
                     address(lockx)
                 )
@@ -66,7 +67,7 @@ contract LockxWithdrawETHFuzz is Test {
         bytes32 structHash = keccak256(
             abi.encode(OPERATION_TYPEHASH, tokenId, nonce, uint8(1), dataHash)
         );
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", _domainSeparator(), structHash));
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', _domainSeparator(), structHash));
         bytes memory sig = _sign(digest);
 
         // 2. Withdraw ETH back to user

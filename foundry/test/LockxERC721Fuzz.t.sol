@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
-import {MockERC721} from "../../contracts/mocks/MockERC721.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
+import {MockERC721} from '../../contracts/mocks/MockERC721.sol';
 
 contract LockxERC721Fuzz is Test {
     Lockx internal lockx;
@@ -12,7 +12,7 @@ contract LockxERC721Fuzz is Test {
 
     address internal user = address(0xCAFE);
     address internal lockboxKey = address(0xC0DE);
-    bytes32 internal referenceId = bytes32("erc721fuzz");
+    bytes32 internal referenceId = bytes32('erc721fuzz');
 
     function setUp() public {
         lockx = new Lockx();

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
-import {MockERC721} from "../../contracts/mocks/MockERC721.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
+import {MockERC721} from '../../contracts/mocks/MockERC721.sol';
 
 /// @notice Fuzz-tests `batchWithdraw()` covering ETH + two ERC-20s + one ERC-721 in a single call.
 ///         Ensures on-chain balances drop to zero and recipient receives the assets back.
@@ -20,14 +20,15 @@ contract LockxBatchWithdrawFuzz is Test {
     uint256 internal lockboxPrivKey = uint256(0xA11CE);
     address internal lockboxKey;
 
-    bytes32 internal referenceId = bytes32("bwFuzz");
+    bytes32 internal referenceId = bytes32('bwFuzz');
 
     // Constants copied from SignatureVerification for digest creation
     bytes32 private constant OPERATION_TYPEHASH =
-        keccak256("Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)");
-    bytes32 private constant DOMAIN_TYPEHASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-    );
+        keccak256('Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)');
+    bytes32 private constant DOMAIN_TYPEHASH =
+        keccak256(
+            'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
+        );
 
     function setUp() public {
         lockx = new Lockx();
@@ -48,7 +49,13 @@ contract LockxBatchWithdrawFuzz is Test {
     function _domainSeparator() internal view returns (bytes32) {
         return
             keccak256(
-                abi.encode(DOMAIN_TYPEHASH, keccak256(bytes("Lockx")), keccak256(bytes("1")), block.chainid, address(lockx))
+                abi.encode(
+                    DOMAIN_TYPEHASH,
+                    keccak256(bytes('Lockx')),
+                    keccak256(bytes('1')),
+                    block.chainid,
+                    address(lockx)
+                )
             );
     }
 
@@ -118,8 +125,10 @@ contract LockxBatchWithdrawFuzz is Test {
             signatureExpiry
         );
         bytes32 dataHash = keccak256(encoded);
-        bytes32 structHash = keccak256(abi.encode(OPERATION_TYPEHASH, tokenId, nonce, uint8(6), dataHash));
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", _domainSeparator(), structHash));
+        bytes32 structHash = keccak256(
+            abi.encode(OPERATION_TYPEHASH, tokenId, nonce, uint8(6), dataHash)
+        );
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', _domainSeparator(), structHash));
         bytes memory sig = _sign(digest);
 
         // check pre balances (contract holds assets)

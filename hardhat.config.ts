@@ -3,7 +3,6 @@ import '@nomicfoundation/hardhat-toolbox';
 import 'hardhat-gas-reporter';
 import '@typechain/hardhat';
 import 'solidity-coverage';
-import 'hardhat-docgen';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -49,10 +48,6 @@ const config: HardhatUserConfig = {
     outDir: 'typechain-types',
     target: 'ethers-v6',
   },
-  docgen: {
-    path: './docs/api',
-    clear: true,
-  }
 };
 
 export default config;

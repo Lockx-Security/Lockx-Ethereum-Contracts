@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
 
 contract LockxWithdrawERC20Fuzz is Test {
     Lockx internal lockx;
@@ -14,13 +14,14 @@ contract LockxWithdrawERC20Fuzz is Test {
     uint256 internal lockboxPrivKey = uint256(0xB0B0);
     address internal lockboxKey;
 
-    bytes32 internal referenceId = bytes32("w20fuzz");
+    bytes32 internal referenceId = bytes32('w20fuzz');
 
     bytes32 private constant OPERATION_TYPEHASH =
-        keccak256("Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)");
-    bytes32 private constant DOMAIN_TYPEHASH = keccak256(
-        "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
-    );
+        keccak256('Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)');
+    bytes32 private constant DOMAIN_TYPEHASH =
+        keccak256(
+            'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
+        );
 
     function setUp() public {
         lockx = new Lockx();
@@ -34,8 +35,8 @@ contract LockxWithdrawERC20Fuzz is Test {
             keccak256(
                 abi.encode(
                     DOMAIN_TYPEHASH,
-                    keccak256(bytes("Lockx")),
-                    keccak256(bytes("1")),
+                    keccak256(bytes('Lockx')),
+                    keccak256(bytes('1')),
                     block.chainid,
                     address(lockx)
                 )
@@ -63,17 +64,34 @@ contract LockxWithdrawERC20Fuzz is Test {
 
         // Data hash matches contract encoding
         bytes32 dataHash = keccak256(
-            abi.encode(tokenId, address(token), depositAmount, user, referenceId, user, signatureExpiry)
+            abi.encode(
+                tokenId,
+                address(token),
+                depositAmount,
+                user,
+                referenceId,
+                user,
+                signatureExpiry
+            )
         );
         bytes32 structHash = keccak256(
             abi.encode(OPERATION_TYPEHASH, tokenId, nonce, uint8(2), dataHash)
         );
-        bytes32 digest = keccak256(abi.encodePacked("\x19\x01", _domainSeparator(), structHash));
+        bytes32 digest = keccak256(abi.encodePacked('\x19\x01', _domainSeparator(), structHash));
         bytes memory sig = _sign(digest);
 
         // 2. Withdraw tokens back to user
         vm.prank(user);
-        lockx.withdrawERC20(tokenId, digest, sig, address(token), depositAmount, user, referenceId, signatureExpiry);
+        lockx.withdrawERC20(
+            tokenId,
+            digest,
+            sig,
+            address(token),
+            depositAmount,
+            user,
+            referenceId,
+            signatureExpiry
+        );
 
         // 3. Assert balances
         assertEq(token.balanceOf(user), 1_000_000 ether);

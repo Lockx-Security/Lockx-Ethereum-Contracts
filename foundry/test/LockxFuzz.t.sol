@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {Lockx} from "../../contracts/Lockx.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
-import {MockERC721} from "../../contracts/mocks/MockERC721.sol";
+import {Lockx} from '../../contracts/Lockx.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
+import {MockERC721} from '../../contracts/mocks/MockERC721.sol';
 
 contract LockxFuzz is Test {
     Lockx internal lockx;
@@ -14,7 +14,7 @@ contract LockxFuzz is Test {
 
     address internal user = address(0xBEEF);
     address internal lockboxKey = address(0xABCD);
-    bytes32 internal referenceId = bytes32("fuzz");
+    bytes32 internal referenceId = bytes32('fuzz');
 
     function setUp() public {
         vm.deal(user, 100 ether);
@@ -24,7 +24,6 @@ contract LockxFuzz is Test {
         nft = new MockERC721();
 
         token.mint(user, 1_000_000 ether);
-
     }
 
     // Fuzz deposit amounts to ensure ETH balances update correctly

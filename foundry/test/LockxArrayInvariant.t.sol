@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.30;
 
-import "forge-std/Test.sol";
+import 'forge-std/Test.sol';
 
-import {LockxStateHarness} from "../../contracts/mocks/LockxHarness.sol";
-import {MockERC20} from "../../contracts/mocks/MockERC20.sol";
+import {LockxStateHarness} from '../../contracts/mocks/LockxHarness.sol';
+import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
 
 /// @notice Invariants covering the bookkeeping arrays that track ERC-20 deposits.
 contract LockxArrayInvariant is Test {
@@ -13,7 +13,7 @@ contract LockxArrayInvariant is Test {
     MockERC20 internal tknB;
     address internal user = address(0xA11CE);
     address internal key = address(0xBEEF);
-    bytes32 internal ref = bytes32("arr");
+    bytes32 internal ref = bytes32('arr');
 
     function setUp() public {
         lockx = new LockxStateHarness();
