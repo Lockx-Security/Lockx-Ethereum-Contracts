@@ -52,7 +52,7 @@ contract LockxBatchWithdrawFuzz is Test {
                 abi.encode(
                     DOMAIN_TYPEHASH,
                     keccak256(bytes('Lockx')),
-                    keccak256(bytes('1')),
+                    keccak256(bytes('2')),
                     block.chainid,
                     address(lockx)
                 )

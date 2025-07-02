@@ -13,7 +13,7 @@ export async function domain(verifyingContract: string) {
   const { chainId } = await ethers.provider.getNetwork();
   return {
     name: 'Lockx',
-    version: '1',
+    version: '2',
     chainId,
     verifyingContract,
   } as const;

@@ -64,7 +64,7 @@ contract SignatureVerification is EIP712 {
      * @notice Constructor that sets the reference to the ERC721 contract for Lockbox ownership checks.
      * @param erc721Address The address of the ERC721 contract that mints/owns the Lockboxs.
      */
-    constructor(address erc721Address) EIP712('Lockx', '1') {
+    constructor(address erc721Address) EIP712('Lockx', '2') {
         _erc721 = ERC721(erc721Address);
     }
 
