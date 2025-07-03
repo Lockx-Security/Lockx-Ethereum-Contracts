@@ -299,11 +299,9 @@ abstract contract Withdrawals is Deposits {
             if (!success) revert EthTransferFailed();
         }
 
-        // OPTIMIZATION: Cache array lengths and use more efficient loops
         // — ERC-20s —
         mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
-        uint256 erc20Length = tokenAddresses.length;
-        for (uint256 i; i < erc20Length;) {
+        for (uint256 i; i < tokenAddresses.length; ) {
             address tok = tokenAddresses[i];
             uint256 amt = tokenAmounts[i];
             uint256 bal = balMap[tok];
@@ -320,12 +318,13 @@ abstract contract Withdrawals is Deposits {
             }
 
             IERC20(tok).safeTransfer(recipient, amt);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         // — ERC-721s —
-        uint256 nftLength = nftContracts.length;
-        for (uint256 i; i < nftLength;) {
+        for (uint256 i; i < nftContracts.length; ) {
             bytes32 key = keccak256(abi.encodePacked(nftContracts[i], nftTokenIds[i]));
             if (!_nftKnown[tokenId][key]) revert NFTNotFound();
 
@@ -334,7 +333,9 @@ abstract contract Withdrawals is Deposits {
             _removeNFTKey(tokenId, key);
 
             IERC721(nftContracts[i]).safeTransferFrom(address(this), recipient, nftTokenIds[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         emit Withdrawn(tokenId, referenceId);
@@ -496,36 +497,37 @@ abstract contract Withdrawals is Deposits {
 
         lockboxETH = _ethBalances[tokenId];
 
-        // OPTIMIZATION: Cache array lengths to avoid repeated .length calls
         // ERC-20s
         address[] storage tokenAddresses = _erc20TokenAddresses[tokenId];
-        uint256 tokenLength = tokenAddresses.length;
-        erc20Tokens = new erc20Balances[](tokenLength);
-        for (uint256 i; i < tokenLength;) {
-            address tokenAddr = tokenAddresses[i]; // Cache to avoid repeated array access
+        erc20Tokens = new erc20Balances[](tokenAddresses.length);
+        for (uint256 i; i < tokenAddresses.length; ) {
             erc20Tokens[i] = erc20Balances({
-                tokenAddress: tokenAddr,
-                balance: _erc20Balances[tokenId][tokenAddr]
+                tokenAddress: tokenAddresses[i],
+                balance: _erc20Balances[tokenId][tokenAddresses[i]]
             });
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         // ERC-721s
         bytes32[] storage nftList = _nftKeys[tokenId];
-        uint256 nftListLength = nftList.length;
         uint256 count;
-        for (uint256 i; i < nftListLength;) {
+        for (uint256 i; i < nftList.length; ) {
             if (_nftKnown[tokenId][nftList[i]]) count++;
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
         nftContracts = new nftBalances[](count);
         uint256 idx;
-        for (uint256 i; i < nftListLength;) {
-            bytes32 nftKey = nftList[i]; // Cache to avoid repeated array access
-            if (_nftKnown[tokenId][nftKey]) {
-                nftContracts[idx++] = _lockboxNftData[tokenId][nftKey];
+        for (uint256 i; i < nftList.length; ) {
+            if (_nftKnown[tokenId][nftList[i]]) {
+                nftContracts[idx++] = _lockboxNftData[tokenId][nftList[i]];
             }
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
     }
 }

@@ -51,19 +51,6 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     function _requireOwnsLockbox(uint256 tokenId) internal view {
         if (_erc721.ownerOf(tokenId) != msg.sender) revert NotOwner();
     }
-    
-    // OPTIMIZATION 1: Cache owner check to avoid multiple SLOADs
-    function _cacheOwnerAndRequire(uint256 tokenId) internal view returns (address owner) {
-        try _erc721.ownerOf(tokenId) returns (address o) {
-            owner = o;
-        } catch {
-            revert NonexistentToken();
-        }
-        if (owner == address(0)) revert NonexistentToken();
-        if (owner != msg.sender) revert NotOwner();
-        // Returns cached owner to avoid re-reading in calling function
-    }
-    
     function _requireExists(uint256 tokenId) internal view {
         address owner;
         try _erc721.ownerOf(tokenId) returns (address o) {
@@ -227,7 +214,6 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     /*
      * @dev Batch helper with cached lengths & unchecked increments.
      */
-    // OPTIMIZATION 2: Unchecked arithmetic in loops (saves ~200 gas per iteration)
     function _batchDeposit(
         uint256 tokenId,
         uint256 amountETH,
@@ -238,17 +224,20 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     ) internal {
         if (amountETH > 0) _ethBalances[tokenId] += amountETH;
 
-        // Cache array lengths to avoid repeated .length calls
         uint256 tLen = tokenAddresses.length;
-        for (uint256 i; i < tLen;) {
+        for (uint256 i; i < tLen; ) {
             _depositERC20(tokenId, tokenAddresses[i], tokenAmounts[i]);
-            unchecked { ++i; }
+            unchecked {
+                ++i;
+            }
         }
 
         uint256 nLen = nftContracts.length;
-        for (uint256 j; j < nLen;) {
+        for (uint256 j; j < nLen; ) {
             _depositERC721(tokenId, nftContracts[j], nftTokenIds[j]);
-            unchecked { ++j; }
+            unchecked {
+                ++j;
+            }
         }
     }
 
