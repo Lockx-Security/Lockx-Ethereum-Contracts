@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Change Date: January 1, 2029
-// Change License: MIT
+// Copyright © 2025 Lockx. All Rights Reserved.
+// You may use, modify, and share this code for NON-COMMERCIAL purposes only.
+// Commercial use requires written permission from Lockx.
+// Change Date: January 1, 2029 | Change License: MIT
 pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
