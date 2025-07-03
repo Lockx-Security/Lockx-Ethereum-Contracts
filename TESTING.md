@@ -16,17 +16,17 @@ The Lockx smart contracts employ a comprehensive dual-framework testing strategy
 
 ## Current Test Coverage
 
-**Latest coverage metrics (55 tests):**
+**Latest coverage metrics (64 tests):**
 - Statement coverage: **83.77%** - comprehensive coverage maintained
-- Branch coverage: **64.36%** - improved edge case handling (+0.53%)
+- Branch coverage: **65.43%** - enhanced edge case handling (+1.07% improvement)
 - Function coverage: **86.27%** - high function coverage achieved
 - Line coverage: **81.13%** - strong line coverage maintained
 
 **Contract-specific coverage:**
 - `Lockx.sol`: **100% statements** - complete coverage achieved
 - `SignatureVerification.sol`: **100% statements** - complete coverage achieved  
-- `Deposits.sol`: **87.27% statements** - strong coverage (90.54% lines)
-- `Withdrawals.sol`: **72.73% statements** - good coverage with edge cases tested
+- `Deposits.sol`: **87.27% statements** - strong coverage (90.54% lines, 61.36% branches)
+- `Withdrawals.sol`: **72.73% statements** - good coverage (53.13% branches, enhanced edge cases)
 
 **Remaining uncovered lines represent extreme edge cases:**
 - `Deposits.sol` lines 94, 167, 168: Fee-on-transfer tokens with 100% fees
@@ -47,7 +47,7 @@ The Lockx smart contracts employ a comprehensive dual-framework testing strategy
 
 ## Test Suites
 
-### 1. Hardhat Tests (55 tests - All Passing ✅)
+### 1. Hardhat Tests (64 tests - All Passing ✅)
 
 #### `deposits.spec.ts`
 - ✅ ETH deposit functionality and validation
@@ -141,6 +141,24 @@ The Lockx smart contracts employ a comprehensive dual-framework testing strategy
   - Batch withdrawal array length mismatches
   - Complex edge case scenario testing
 
+#### `additional-edge-tests.spec.ts` (9 tests) - branch coverage boost
+- ✅ **Token transfer scenarios**
+  - Zero address validation in token deposits
+  - Fee-on-transfer edge case handling
+  - Duplicate NFT deposit management
+- ✅ **Complex array operations**
+  - Empty array condition testing
+  - Array boundary condition handling
+- ✅ **Key rotation scenarios**
+  - Signature expiry validation
+  - Authentication edge cases
+- ✅ **Withdrawal validation tests**
+  - Complex withdrawal scenario handling
+  - Array mismatch validation
+- ✅ **Edge case boundary tests**
+  - Comprehensive NFT counting logic
+  - Mixed state scenario testing
+
 ### 2. Foundry Invariant Tests (7 tests - All Passing ✅)
 
 #### `LockxInvariant.t.sol`
@@ -201,13 +219,13 @@ internalBalance[token] == actualTokenBalance
 ## Test Execution Metrics
 
 ### Hardhat Tests
-- **55 unit & integration tests** - All passing (+4 targeted line coverage tests)
+- **64 unit & integration tests** - All passing (+9 additional edge tests)
 - **Average execution time**: ~2s
 - **Coverage achievements**:
-  - **+36 additional tests** targeting edge cases and precision line coverage
+  - **+45 additional tests** targeting edge cases and precision line coverage
   - **Two contracts achieved 100% statement coverage** (Lockx.sol, SignatureVerification.sol)
+  - **Enhanced branch coverage** with 65.43% achieved (+1.07% improvement)
   - **Comprehensive edge case testing** for remaining uncovered lines
-  - **Robust branch coverage** with 64.36% achieved
 - **Gas consumption benchmarks**:
   - ETH deposits: 141,431 gas
   - ERC20 deposits: varies by token
