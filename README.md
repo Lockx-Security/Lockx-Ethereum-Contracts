@@ -4,13 +4,13 @@
 [![version](https://img.shields.io/badge/version-2.0.0-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
-Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes with OpenZeppelin v5.3.0 security standards. Features comprehensive testing (215M+ test executions), dual framework support (Hardhat + Foundry), and EIP-712 v2 signature verification.
+Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes with OpenZeppelin v5.3.0 security standards. Features comprehensive testing with dual framework support (Hardhat + Foundry), fuzz testing, and EIP-712 v2 signature verification.
 
 ## Table of contents
 
-1. [Version 2.0.0 highlights](#version-200-highlights)
-2. [Prerequisites](#prerequisites)
-3. [Quick start](#quick-start)
+1. [Overview](#overview)
+2. [Installation](#installation)
+3. [Usage](#usage)
 4. [Testing](#testing)
 5. [Coverage](#coverage)
 6. [Static analysis](#static-analysis)
@@ -21,58 +21,23 @@ Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes
 
 ---
 
-## Version 2.0.0 highlights
+🧪 **Testing framework**
+- **Hardhat testing suite** with TypeScript/Chai
+- **Foundry invariant testing** with 7 property-based tests
+- **Fuzz testing** with 983,040 total test executions
+- Real gas consumption benchmarks and optimization
 
-🔐 **Security upgrades**
-- Upgraded to OpenZeppelin v5.3.0 with enhanced access control
-- EIP-712 domain version upgraded to '2' for improved signature security
-- Modern soul-bound NFT implementation using secure `_update()` patterns
-- Zero vulnerabilities in production dependencies
+📊 **Test coverage**
+- Current coverage: 44.74% statements
+- Target coverage: 80%+ (in progress)
+- Active test development ongoing
 
-🧪 **Comprehensive testing**
-- **215+ million test executions** across Hardhat and Foundry
-- 12 Hardhat unit/integration tests
-- 15 Foundry test suites with extensive fuzz and invariant testing
-- Full coverage of edge cases and error conditions
-
-📊 **Dual framework support**
-- Hardhat for development, deployment, and TypeScript testing
-- Foundry for advanced fuzzing, invariant testing, and gas optimization
-- Cross-framework compatibility ensuring robust validation
-
-See [CHANGELOG.md](CHANGELOG.md) for complete v2.0.0 release notes.
-
----
-
-## Prerequisites
-
-• Node.js ≥ 18 (tested on 20).  
-• npm (ships with Node).  
-• Python 3.10+ (required for Slither).  
-• `pipx` **or** `pip` able to install Python packages globally (Slither).
-
-> Hardhat shows a warning on Node 23 – use an LTS version for production.
-
-## Quick start
-
-```bash
-# install dependencies
-npm install
-
-# copy env template and fill in RPC URL / private key / etherscan key
-cp .env.example .env
-
-# compile contracts
-npx hardhat compile
-```
-
-## Testing
-
-The project features comprehensive testing across two frameworks:
+The project features comprehensive testing with both frameworks:
 
 ### Hardhat testing (TypeScript/Chai)
 ```bash
 npm test         # runs all 12 unit & integration tests
+npm run coverage # generates coverage report
 ```
 
 **Test suites:**
@@ -83,26 +48,45 @@ npm test         # runs all 12 unit & integration tests
 
 ### Foundry testing (Solidity)
 ```bash
-forge test       # runs all 15 Foundry test suites
+forge test       # runs all invariant tests
 forge test -v    # verbose output with gas usage
 ```
 
-**Advanced testing features:**
-- **Fuzz testing**: 8 functions × 256-260 runs = 2,072 executions
-- **Invariant testing**: 7 invariants with 215M+ calls total
-- **Property-based testing**: Validates contract behavior across input ranges
-- **Gas optimization**: Detailed gas consumption analysis
+**Invariant test suites:**
+1. `LockxInvariant.t.sol`
+   - Contract ETH balance matches accounting ✅
+   - Contract ERC20 balance matches accounting ✅
+
+2. `LockxMultiUserInvariant.t.sol`
+   - Total ETH matches across users ✅
+   - Token balances match across users ✅
+
+3. `LockxNonceInvariant.t.sol`
+   - Nonces are monotonically increasing ✅
+
+4. `LockxArrayInvariant.t.sol`
+   - ERC20 token array indices are consistent ✅
+   - No duplicate token addresses ✅
+
+**Test execution metrics:**
+- 7 invariant tests × 256 runs × 3,840 calls = 983,040 total executions
+- All invariant tests passing
+- Fuzz testing with randomized inputs
+- Property-based testing validating core invariants
 
 ### Edge-case tests
 
-Both frameworks include comprehensive edge-case coverage for signature verification, balance validation, and error conditions.
+The test suite includes edge-case coverage for signature verification, balance validation, and error conditions.
 
-## Coverage
+### Coverage improvement plan
 
-```bash
-npm run coverage            # outputs coverage summary in terminal
-open coverage/index.html    # full HTML coverage report
-```
+Current focus areas for improving test coverage:
+1. Adding tests for SignatureVerification.sol
+2. Expanding Deposits.sol test scenarios
+3. Adding more edge cases for Withdrawals.sol
+4. Implementing comprehensive Lockx.sol testing
+
+Target: 80%+ coverage across all contracts
 
 ## Static analysis
 
