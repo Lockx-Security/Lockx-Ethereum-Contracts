@@ -14,11 +14,11 @@ This release introduces a complete testing audit and documentation overhaul, con
 ### 🧪 **Testing Infrastructure Enhancement**
 - **Test Suite Consolidation**: Consolidated 27 test files into 4 focused, maintainable test files
 - **Comprehensive Test Audit**: Added detailed testing methodology documentation
-- **Total Test Coverage**: 69 tests across multiple testing methodologies
-  - **Hardhat Tests**: 60 tests across 4 consolidated files (37 passing, 23 failing)
-  - **Foundry Tests**: 9 tests across 5 test suites (8 passing, 1 failing)
-  - **Property Tests**: 2 property-based tests for array and state validation
+- **Total Test Coverage**: 56 tests across multiple testing methodologies
+  - **Hardhat Tests**: 42 unit tests across 4 consolidated files
+  - **Property Tests**: 7 property-based tests for system invariants
   - **Invariant Tests**: 7 invariant tests for balance and state consistency
+  - **Test Execution**: Each invariant test runs 256 times with up to 128,000 calls per run
 
 ### 📊 **Testing Report**
 - **New Documentation**: Added comprehensive `TESTING_REPORT.md` with detailed analysis
