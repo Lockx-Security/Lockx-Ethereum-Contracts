@@ -22,18 +22,20 @@ Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes
 ---
 
 🧪 **Testing framework**
-- **Hardhat testing suite** with 147 unit tests across 4 test files
-- **Foundry property-based testing** with 702 test functions across 77 files
-- **Fuzz testing** with 63 specialized fuzz test functions
-- **Invariant testing** with 17 invariant test functions
+- **Hardhat testing suite** with 60 unit tests across 4 test files
+- **Foundry testing** with 7 invariant tests across 4 test suites
+  - Each invariant test runs 256 times with ~15 calls per run
+  - Total test executions: 26,880 calls (7 tests × 3,840 calls each)
+- **Core functionality tests**: 14 tests for basic operations
+- **Branch coverage tests**: 19 tests for conditional paths
+- **Edge case tests**: 8 tests for boundary conditions
+- **Mock contract tests**: 19 tests for contract interactions
 - Real gas consumption benchmarks and optimization
 
 📊 **Test coverage**
-- **Total tests**: 849 tests across multiple methodologies
-- **Unit tests**: 147 tests across 4 files (Hardhat + TypeScript)
-- **Property tests**: 702 test functions across 77 files (Foundry + Solidity)
-- **Fuzz tests**: 63 specialized test functions
-- **Invariant tests**: 17 test functions
+- **Total unique tests**: 67 tests across multiple methodologies
+  - 60 Hardhat unit tests (37 passing, 23 failing due to access control changes)
+  - 7 Foundry invariant tests (26,880 total calls)
 - **Branch coverage**: 59 branches tested across 96 total branches
 
 📋 **[Click here for complete testing report →](TESTING_REPORT.md)**
@@ -42,28 +44,23 @@ The project features comprehensive testing with both frameworks:
 
 ### Hardhat testing (TypeScript/Chai)
 ```bash
-npm test         # runs all 147 unit tests across 4 test files
+npm test         # runs all 60 unit tests across 4 test files
 npm run coverage # generates coverage report
 ```
 
 **Test suites:**
-- `core-functionality.spec.ts` - fundamental lockbox operations and happy path scenarios
-- `comprehensive-branch-coverage.spec.ts` - systematic testing of all conditional branches
-- `edge-cases-and-errors.spec.ts` - unusual conditions and error handling
-- `mock-contracts.spec.ts` - mock contract functionality and integration testing
+- `core-functionality.spec.ts` (14 tests) - fundamental lockbox operations and happy path scenarios
+- `comprehensive-branch-coverage.spec.ts` (19 tests) - systematic testing of all conditional branches
+- `edge-cases-and-errors.spec.ts` (8 tests) - unusual conditions and error handling
+- `mock-contracts.spec.ts` (19 tests) - mock contract functionality and integration testing
 
 ### Foundry testing (Solidity)
 ```bash
-forge test       # runs all property-based tests
+forge test       # runs all invariant tests
 forge test -v    # verbose output with gas usage
 ```
 
-**Property-based test suites:**
-- **Regular property tests**: 622 test functions across 77 files
-- **Fuzz tests**: 63 specialized fuzz test functions
-- **Invariant tests**: 17 invariant test functions
-
-**Key invariant validations:**
+**Invariant test suites:**
 - Contract ETH balance matches accounting ✅
 - Contract ERC20 balance matches accounting ✅
 - Nonces are monotonically increasing ✅
