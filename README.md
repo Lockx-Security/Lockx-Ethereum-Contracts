@@ -1,7 +1,7 @@
-# Lockx Smart Contracts v2.0.0
+# Lockx Smart Contracts v2.1.0
 
 [![license](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
-[![version](https://img.shields.io/badge/version-2.0.0-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-2.1.0-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
 Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes with OpenZeppelin v5.3.0 security standards. Features comprehensive testing with dual framework support (Hardhat + Foundry), fuzz testing, and EIP-712 v2 signature verification.
