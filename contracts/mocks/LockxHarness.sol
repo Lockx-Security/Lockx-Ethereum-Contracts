@@ -30,4 +30,18 @@ contract LockxStateHarness is Lockx {
     function getErc20Known(uint256 tokenId, address token) external view returns (bool) {
         return _erc20Known[tokenId][token];
     }
+
+    /* ─────────── Test Helper for Initialize Function ───────── */
+    /// @dev Exposes the internal initialize function for testing purposes
+    /// This allows us to test the AlreadyInitialized error condition
+    function testInitialize(uint256 tokenId, address lockboxPublicKey) external {
+        initialize(tokenId, lockboxPublicKey);
+    }
+
+    /// @dev Exposes the internal _requireExists function for testing purposes
+    function testRequireExists(uint256 tokenId) external view {
+        _requireExists(tokenId);
+    }
 }
+
+

@@ -22,85 +22,78 @@ Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes
 ---
 
 🧪 **Testing framework**
-- **Hardhat testing suite** with TypeScript/Chai
-- **Foundry invariant testing** with 7 property-based tests
-- **Fuzz testing** with 983,040 total test executions
+- **Hardhat testing suite** with 147 unit tests across 4 test files
+- **Foundry property-based testing** with 702 test functions across 77 files
+- **Fuzz testing** with 63 specialized fuzz test functions
+- **Invariant testing** with 17 invariant test functions
 - Real gas consumption benchmarks and optimization
 
 📊 **Test coverage**
-- Current coverage: 44.74% statements
-- Target coverage: 80%+ (in progress)
-- Active test development ongoing
+- **Total tests**: 849 tests across multiple methodologies
+- **Unit tests**: 147 tests across 4 files (Hardhat + TypeScript)
+- **Property tests**: 702 test functions across 77 files (Foundry + Solidity)
+- **Fuzz tests**: 63 specialized test functions
+- **Invariant tests**: 17 test functions
+- **Branch coverage**: 59 branches tested across 96 total branches
+
+📋 **[Click here for complete testing report →](TESTING_REPORT.md)**
 
 The project features comprehensive testing with both frameworks:
 
 ### Hardhat testing (TypeScript/Chai)
 ```bash
-npm test         # runs all 12 unit & integration tests
+npm test         # runs all 147 unit tests across 4 test files
 npm run coverage # generates coverage report
 ```
 
 **Test suites:**
-- `deposits.spec.ts` - deposit functionality and validation
-- `lockx.spec.ts` - core lockbox operations
-- `withdrawals.spec.ts` - withdrawal mechanics  
-- `withdrawals.reverts.spec.ts` - signature/balance/recipient error paths
+- `core-functionality.spec.ts` - fundamental lockbox operations and happy path scenarios
+- `comprehensive-branch-coverage.spec.ts` - systematic testing of all conditional branches
+- `edge-cases-and-errors.spec.ts` - unusual conditions and error handling
+- `mock-contracts.spec.ts` - mock contract functionality and integration testing
 
 ### Foundry testing (Solidity)
 ```bash
-forge test       # runs all invariant tests
+forge test       # runs all property-based tests
 forge test -v    # verbose output with gas usage
 ```
 
-**Invariant test suites:**
-1. `LockxInvariant.t.sol`
-   - Contract ETH balance matches accounting ✅
-   - Contract ERC20 balance matches accounting ✅
+**Property-based test suites:**
+- **Regular property tests**: 622 test functions across 77 files
+- **Fuzz tests**: 63 specialized fuzz test functions
+- **Invariant tests**: 17 invariant test functions
 
-2. `LockxMultiUserInvariant.t.sol`
-   - Total ETH matches across users ✅
-   - Token balances match across users ✅
+**Key invariant validations:**
+- Contract ETH balance matches accounting ✅
+- Contract ERC20 balance matches accounting ✅
+- Nonces are monotonically increasing ✅
+- ERC20 token array indices are consistent ✅
+- Multi-user balance consistency ✅
 
-3. `LockxNonceInvariant.t.sol`
-   - Nonces are monotonically increasing ✅
-
-4. `LockxArrayInvariant.t.sol`
-   - ERC20 token array indices are consistent ✅
-   - No duplicate token addresses ✅
-
-**Test execution metrics:**
-- 7 invariant tests × 256 runs × 3,840 calls = 983,040 total executions
-- All invariant tests passing
-- Fuzz testing with randomized inputs
-- Property-based testing validating core invariants
+**Test execution coverage:**
+- Fuzz testing with randomized inputs for edge case discovery
+- Property-based testing validating core system invariants
+- Comprehensive coverage of batch operations and multi-asset scenarios
 
 ### Edge-case tests
 
-The test suite includes edge-case coverage for signature verification, balance validation, and error conditions.
+The test suite includes comprehensive edge-case coverage including:
+- Signature verification and replay attack prevention
+- Balance validation and arithmetic boundary conditions
+- Array manipulation and cleanup scenarios
+- Fee-on-transfer token handling
+- ETH transfer failure scenarios
+- Multi-asset batch operation edge cases
 
-### Coverage improvement plan
+### Testing methodology
 
-Current focus areas for improving test coverage:
-1. Adding tests for SignatureVerification.sol
-2. Expanding Deposits.sol test scenarios
-3. Adding more edge cases for Withdrawals.sol
-4. Implementing comprehensive Lockx.sol testing
-
-Target: 80%+ coverage across all contracts
+The testing approach combines multiple methodologies:
+- **Unit testing**: Validates individual functions with predetermined inputs
+- **Fuzz testing**: Discovers edge cases through randomized input generation
+- **Invariant testing**: Ensures system properties remain true across all state transitions
+- **Property-based testing**: Validates mathematical relationships and behavioral correctness
 
 ## Static analysis
-
-### Slither
-
-Slither is invoked via npm script and in CI.
-
-```bash
-# install once (Python)
-pipx install "slither-analyzer==0.11.1"
-# or: pip install --user slither-analyzer==0.11.1
-
-npm run slither             # produces checklist report
-```
 
 ### Solidity-lint (Solhint)
 
@@ -129,14 +122,27 @@ npx hardhat verify --network sepolia <DEPLOYED_ADDRESS>
 
 `scripts/deploy.ts` performs a simple deployment of the `Lockx` contract.
 
-## Continuous integration
+## Contract Architecture
 
-`.github/workflows/ci.yml` executes on every push / PR:
+### Immutable Design
 
-1. Install dependencies
-2. Run tests
-3. Generate coverage
-4. Install & run Slither
+The Lockx smart contracts are designed to be **immutable** and are not intended to be upgraded once deployed. The contracts do not implement any upgradeability patterns, proxy mechanisms, or administrative upgrade functions.
+
+**Key characteristics:**
+- **No proxy contracts**: Direct deployment without upgradeability proxies
+- **No admin functions**: No administrative controls for contract modification
+- **Immutable logic**: Contract code cannot be changed after deployment
+- **Permanent deployment**: Once deployed, the contract behavior is fixed
+
+This design ensures maximum security and predictability, as users can be certain that the contract logic will never change after deployment.
+
+### Gas Optimization
+
+Gas consumption analysis is available for all contract operations:
+
+```bash
+npm run gas:report  # generates detailed gas consumption report
+```
 
 ## Environment variables
 
@@ -155,7 +161,7 @@ ETHERSCAN_API_KEY=YourEtherscanKey
 
 ## Version information
 
-**Current version:** 2.0.0  
+**Current version:** 2.1.0  
 **OpenZeppelin:** v5.3.0  
 **EIP-712 domain:** 'Lockx', version '2'  
 
