@@ -1,21 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity ^0.8.30;
 
-import '@openzeppelin/contracts/token/ERC20/ERC20.sol';
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract MockERC20 is ERC20 {
-    bool private initialized;
     string private _name;
     string private _symbol;
-    
+
     constructor() ERC20("", "") {}
-    
+
     function initialize(string memory name_, string memory symbol_) external {
-        require(!initialized, "Already initialized");
-        initialized = true;
+        require(bytes(name()).length == 0, "Already initialized");
         _name = name_;
         _symbol = symbol_;
-        _mint(msg.sender, 1_000_000 ether);
+    }
+
+    function mint(address to, uint256 amount) external {
+        _mint(to, amount);
     }
 
     function name() public view override returns (string memory) {
@@ -25,9 +26,4 @@ contract MockERC20 is ERC20 {
     function symbol() public view override returns (string memory) {
         return _symbol;
     }
-
-    // test helper to mint tokens to any address
-    function mint(address to, uint256 amount) external {
-        _mint(to, amount);
-    }
-}
+} 

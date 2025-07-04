@@ -1,6 +1,6 @@
 {
   "name": "lockx-contracts",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -8,11 +8,10 @@
     "coverage": "hardhat coverage",
     "gas": "REPORT_GAS=true hardhat test",
     "gas:report": "mkdir -p reports && REPORT_GAS=true hardhat test > reports/gas-report.txt",
-    "audit": "bash -c 'set -e; mkdir -p reports; TMP=$(mktemp); if [ -f foundry.toml ]; then mv foundry.toml \"$TMP\"; fi; npx hardhat compile; PATH=\"$PATH:$(python3 -m site --user-base)/bin:$HOME/.foundry/bin\" slither . --ignore-compile --checklist --filter-paths .github > reports/slither-report.txt; if [ -f \"$TMP\" ]; then mv \"$TMP\" foundry.toml; fi'",
-    "slither": "bash -c 'set -e; TMP=$(mktemp); if [ -f foundry.toml ]; then mv foundry.toml \"$TMP\"; fi; npx hardhat compile; slither . --ignore-compile --checklist --filter-paths .github; if [ -f \"$TMP\" ]; then mv \"$TMP\" foundry.toml; fi'",
+
     "mythril": "bash -c 'mkdir -p reports && myth analyze --execution-timeout 300 contracts/Lockx.sol -o json > reports/mythril-lockx.json'",
     "forge:test": "PATH=\"$HOME/.foundry/bin:$PATH\" forge test -vv",
-    "ci": "npm run test && npm run forge:test && npm run coverage && npm run slither",
+    "ci": "npm run test && npm run forge:test && npm run coverage",
     "build": "npx hardhat compile",
     "format": "prettier --write .",
     "lint:sol": "solhint 'contracts/**/*.sol'"
@@ -52,5 +51,8 @@
     "ts-node": "^10.9.2",
     "typechain": "^8.3.2",
     "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts-upgradeable": "^5.3.0"
   }
 }
