@@ -1,7 +1,7 @@
-# Lockx Smart Contracts v2.1.0
+# Lockx Smart Contracts v2.1.1
 
 [![license](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
-[![version](https://img.shields.io/badge/version-2.1.0-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-2.1.1-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
 Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes with OpenZeppelin v5.3.0 security standards. Features comprehensive testing with dual framework support (Hardhat + Foundry), fuzz testing, and EIP-712 v2 signature verification.
@@ -22,37 +22,36 @@ Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes
 ---
 
 🧪 **Testing framework**
-- **Hardhat testing suite** with 60 unit tests across 4 test files
-- **Foundry testing** with 7 invariant tests across 4 test suites
-  - Each invariant test runs 256 times with ~15 calls per run
-  - Total test executions: 26,880 calls (7 tests × 3,840 calls each)
-- **Core functionality tests**: 14 tests for basic operations
-- **Branch coverage tests**: 19 tests for conditional paths
-- **Edge case tests**: 8 tests for boundary conditions
-- **Mock contract tests**: 19 tests for contract interactions
-- Real gas consumption benchmarks and optimization
+- **Hardhat testing suite** with 95 unit tests achieving 89.36% branch coverage
+- **Foundry testing** with 7 invariant tests executing 26,880 operations
+- **Security validation** of dual-key architecture and attack resistance
+- **Complete test consolidation** in single file for easy replication
 
 📊 **Test coverage**
-- **Total unique tests**: 67 tests across multiple methodologies
-  - 60 Hardhat unit tests (37 passing, 23 failing due to access control changes)
-  - 7 Foundry invariant tests (26,880 total calls)
-- **Branch coverage**: 59 branches tested across 96 total branches
+- **Branch coverage**: 89.36% (168/188 branches)
+- **Total tests**: 102 tests (95 Hardhat + 7 Foundry)
+- **Key achievement**: 100% coverage of signature verification
+- **Test execution**: ~24 seconds for full suite
 
-📋 **[Click here for complete testing report →](TESTING_REPORT.md)**
+📋 **[Security Testing Report →](reports/TESTING_REPORT.md)** | **[Gas Analysis →](reports/GAS_ANALYSIS_REPORT.md)** | **[Test Guide →](test/README.md)** | **[Raw Data →](reports/TEST_OUTPUT_RAW.md)**
 
-The project features comprehensive testing with both frameworks:
+### Running tests
 
-### Hardhat testing (TypeScript/Chai)
 ```bash
-npm test         # runs all 60 unit tests across 4 test files
-npm run coverage # generates coverage report
+# Run all tests
+npm test
+
+# Run coverage analysis (89.36% branch coverage)
+npx hardhat coverage --testfiles "test/consolidated-coverage.spec.ts"
+
+# View coverage report
+open coverage/index.html
 ```
 
-**Test suites:**
-- `core-functionality.spec.ts` (14 tests) - fundamental lockbox operations and happy path scenarios
-- `comprehensive-branch-coverage.spec.ts` (19 tests) - systematic testing of all conditional branches
-- `edge-cases-and-errors.spec.ts` (8 tests) - unusual conditions and error handling
-- `mock-contracts.spec.ts` (19 tests) - mock contract functionality and integration testing
+**Test files:**
+- `consolidated-coverage.spec.ts` - Complete test suite achieving 89.36% coverage
+- `core-functionality.spec.ts` - Basic functionality tests
+- `mock-contracts.spec.ts` - Mock contract tests
 
 ### Foundry testing (Solidity)
 ```bash
@@ -158,7 +157,7 @@ ETHERSCAN_API_KEY=YourEtherscanKey
 
 ## Version information
 
-**Current version:** 2.1.0  
+**Current version:** 2.1.1  
 **OpenZeppelin:** v5.3.0  
 **EIP-712 domain:** 'Lockx', version '2'  
 

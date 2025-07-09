@@ -12,11 +12,12 @@ describe('Core Functionality Tests', () => {
   let nft: MockERC721;
 
   const OPERATION_TYPE = {
+    ROTATE_KEY: 0,
     WITHDRAW_ETH: 1,
     WITHDRAW_ERC20: 2,
     WITHDRAW_NFT: 3,
     BURN_LOCKBOX: 4,
-    ROTATE_KEY: 5,
+    SET_TOKEN_URI: 5,
     BATCH_WITHDRAW: 6,
   };
 
@@ -78,8 +79,8 @@ describe('Core Functionality Tests', () => {
       const tokenId = 0;
       expect(await lockx.ownerOf(tokenId)).to.equal(user.address);
       
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.ethBalance).to.equal(ethers.parseEther('1'));
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.lockboxETH).to.equal(ethers.parseEther('1'));
     });
 
     it('should create lockbox with ERC20', async () => {
@@ -94,9 +95,10 @@ describe('Core Functionality Tests', () => {
       );
 
       const tokenId = 0;
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.erc20Tokens[0]).to.equal(await erc20.getAddress());
-      expect(lockboxData.erc20Balances[0]).to.equal(ethers.parseEther('1000'));
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.erc20Tokens.length).to.equal(1);
+      expect(lockboxData.erc20Tokens[0].tokenAddress).to.equal(await erc20.getAddress());
+      expect(lockboxData.erc20Tokens[0].balance).to.equal(ethers.parseEther('1000'));
     });
 
     it('should create lockbox with ERC721', async () => {
@@ -111,9 +113,10 @@ describe('Core Functionality Tests', () => {
       );
 
       const tokenId = 0;
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.nftContracts[0]).to.equal(await nft.getAddress());
-      expect(lockboxData.nftTokenIds[0]).to.equal(1);
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.nftContracts.length).to.equal(1);
+      expect(lockboxData.nftContracts[0].nftContract).to.equal(await nft.getAddress());
+      expect(lockboxData.nftContracts[0].nftTokenId).to.equal(1);
     });
 
     it('should create lockbox with batch assets', async () => {
@@ -132,10 +135,12 @@ describe('Core Functionality Tests', () => {
       );
 
       const tokenId = 0;
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.ethBalance).to.equal(ethers.parseEther('5'));
-      expect(lockboxData.erc20Tokens[0]).to.equal(await erc20.getAddress());
-      expect(lockboxData.nftContracts[0]).to.equal(await nft.getAddress());
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.lockboxETH).to.equal(ethers.parseEther('5'));
+      expect(lockboxData.erc20Tokens.length).to.equal(1);
+      expect(lockboxData.erc20Tokens[0].tokenAddress).to.equal(await erc20.getAddress());
+      expect(lockboxData.nftContracts.length).to.equal(1);
+      expect(lockboxData.nftContracts[0].nftContract).to.equal(await nft.getAddress());
     });
   });
 
@@ -157,24 +162,26 @@ describe('Core Functionality Tests', () => {
     it('should deposit ETH', async () => {
       await lockx.connect(user).depositETH(tokenId, ethers.ZeroHash, { value: ethers.parseEther('2') });
       
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.ethBalance).to.equal(ethers.parseEther('3'));
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.lockboxETH).to.equal(ethers.parseEther('3'));
     });
 
     it('should deposit ERC20', async () => {
       await lockx.connect(user).depositERC20(tokenId, await erc20.getAddress(), ethers.parseEther('500'), ethers.ZeroHash);
       
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.erc20Tokens[0]).to.equal(await erc20.getAddress());
-      expect(lockboxData.erc20Balances[0]).to.equal(ethers.parseEther('500'));
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.erc20Tokens.length).to.equal(1);
+      expect(lockboxData.erc20Tokens[0].tokenAddress).to.equal(await erc20.getAddress());
+      expect(lockboxData.erc20Tokens[0].balance).to.equal(ethers.parseEther('500'));
     });
 
     it('should deposit ERC721', async () => {
       await lockx.connect(user).depositERC721(tokenId, await nft.getAddress(), 5, ethers.ZeroHash);
       
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.nftContracts[0]).to.equal(await nft.getAddress());
-      expect(lockboxData.nftTokenIds[0]).to.equal(5);
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.nftContracts.length).to.equal(1);
+      expect(lockboxData.nftContracts[0].nftContract).to.equal(await nft.getAddress());
+      expect(lockboxData.nftContracts[0].nftTokenId).to.equal(5);
     });
 
     it('should batch deposit', async () => {
@@ -189,10 +196,12 @@ describe('Core Functionality Tests', () => {
         { value: ethers.parseEther('3') }
       );
 
-      const lockboxData = await lockx.getFullLockbox(tokenId);
-      expect(lockboxData.ethBalance).to.equal(ethers.parseEther('4')); // 1 + 3
-      expect(lockboxData.erc20Tokens[0]).to.equal(await erc20.getAddress());
-      expect(lockboxData.nftContracts[0]).to.equal(await nft.getAddress());
+      const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
+      expect(lockboxData.lockboxETH).to.equal(ethers.parseEther('4')); // 1 + 3
+      expect(lockboxData.erc20Tokens.length).to.equal(1);
+      expect(lockboxData.erc20Tokens[0].tokenAddress).to.equal(await erc20.getAddress());
+      expect(lockboxData.nftContracts.length).to.equal(1);
+      expect(lockboxData.nftContracts[0].nftContract).to.equal(await nft.getAddress());
     });
   });
 
@@ -220,7 +229,7 @@ describe('Core Functionality Tests', () => {
       const nonce = await lockx.connect(user).getNonce(tokenId);
       const data = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, ethers.parseEther('2'), user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 3600]
+        [tokenId, ethers.parseEther('2'), user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 36000]
       );
       const dataHash = ethers.keccak256(data);
       const opStruct = { tokenId, nonce, opType: OPERATION_TYPE.WITHDRAW_ETH, dataHash };
@@ -229,7 +238,7 @@ describe('Core Functionality Tests', () => {
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, opStruct);
 
       const balanceBefore = await ethers.provider.getBalance(user.address);
-      await lockx.connect(user).withdrawETH(tokenId, messageHash, signature, ethers.parseEther('2'), user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 3600);
+      await lockx.connect(user).withdrawETH(tokenId, messageHash, signature, ethers.parseEther('2'), user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 36000);
       const balanceAfter = await ethers.provider.getBalance(user.address);
 
       expect(balanceAfter).to.be.greaterThan(balanceBefore);
@@ -239,7 +248,7 @@ describe('Core Functionality Tests', () => {
       const nonce = await lockx.connect(user).getNonce(tokenId);
       const data = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await erc20.getAddress(), ethers.parseEther('1000'), user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 3600]
+        [tokenId, await erc20.getAddress(), ethers.parseEther('1000'), user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 36000]
       );
       const dataHash = ethers.keccak256(data);
       const opStruct = { tokenId, nonce, opType: OPERATION_TYPE.WITHDRAW_ERC20, dataHash };
@@ -248,7 +257,7 @@ describe('Core Functionality Tests', () => {
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, opStruct);
 
       const balanceBefore = await erc20.balanceOf(user.address);
-      await lockx.connect(user).withdrawERC20(tokenId, messageHash, signature, await erc20.getAddress(), ethers.parseEther('1000'), user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 3600);
+      await lockx.connect(user).withdrawERC20(tokenId, messageHash, signature, await erc20.getAddress(), ethers.parseEther('1000'), user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 36000);
       const balanceAfter = await erc20.balanceOf(user.address);
 
       expect(balanceAfter).to.equal(balanceBefore + ethers.parseEther('1000'));
@@ -258,7 +267,7 @@ describe('Core Functionality Tests', () => {
       const nonce = await lockx.connect(user).getNonce(tokenId);
       const data = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await nft.getAddress(), 1, user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 3600]
+        [tokenId, await nft.getAddress(), 1, user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 36000]
       );
       const dataHash = ethers.keccak256(data);
       const opStruct = { tokenId, nonce, opType: OPERATION_TYPE.WITHDRAW_NFT, dataHash };
@@ -266,7 +275,7 @@ describe('Core Functionality Tests', () => {
       const signature = await lockboxKeyWallet.signTypedData(domain, types, opStruct);
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, opStruct);
 
-      await lockx.connect(user).withdrawERC721(tokenId, messageHash, signature, await nft.getAddress(), 1, user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 3600);
+      await lockx.connect(user).withdrawERC721(tokenId, messageHash, signature, await nft.getAddress(), 1, user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 36000);
       
       expect(await nft.ownerOf(1)).to.equal(user.address);
     });
@@ -275,7 +284,7 @@ describe('Core Functionality Tests', () => {
       const nonce = await lockx.connect(user).getNonce(tokenId);
       const data = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'uint256', 'address[]', 'uint256[]', 'address[]', 'uint256[]', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, ethers.parseEther('1'), [await erc20.getAddress()], [ethers.parseEther('500')], [await nft.getAddress()], [1], user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 3600]
+        [tokenId, ethers.parseEther('1'), [await erc20.getAddress()], [ethers.parseEther('500')], [await nft.getAddress()], [1], user.address, ethers.ZeroHash, user.address, Math.floor(Date.now() / 1000) + 36000]
       );
       const dataHash = ethers.keccak256(data);
       const opStruct = { tokenId, nonce, opType: OPERATION_TYPE.BATCH_WITHDRAW, dataHash };
@@ -283,7 +292,7 @@ describe('Core Functionality Tests', () => {
       const signature = await lockboxKeyWallet.signTypedData(domain, types, opStruct);
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, opStruct);
 
-      await lockx.connect(user).batchWithdraw(tokenId, messageHash, signature, ethers.parseEther('1'), [await erc20.getAddress()], [ethers.parseEther('500')], [await nft.getAddress()], [1], user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 3600);
+      await lockx.connect(user).batchWithdraw(tokenId, messageHash, signature, ethers.parseEther('1'), [await erc20.getAddress()], [ethers.parseEther('500')], [await nft.getAddress()], [1], user.address, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 36000);
       
       expect(await nft.ownerOf(1)).to.equal(user.address);
     });
@@ -346,7 +355,7 @@ describe('Core Functionality Tests', () => {
 
       await lockx.connect(user).burnLockbox(tokenId, messageHash, signature, ethers.ZeroHash, Math.floor(Date.now() / 1000) + 36000);
       
-      await expect(lockx.ownerOf(tokenId)).to.be.revertedWithCustomError(lockx, 'NonexistentToken');
+      await expect(lockx.ownerOf(tokenId)).to.be.revertedWithCustomError(lockx, 'ERC721NonexistentToken');
     });
   });
 }); 

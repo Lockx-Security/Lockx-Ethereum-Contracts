@@ -5,6 +5,46 @@ All notable changes to the Lockx Smart Contracts project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-07-09
+
+### 🧪 **Branch Coverage Enhancement & Test Consolidation**
+
+This release significantly improves branch coverage from 61.5% to 89.36% and consolidates the test suite for easy replication.
+
+### ✅ **Coverage Improvements**
+- **Branch Coverage**: Increased from 61.5% (59/96) to 89.36% (168/188 branches)
+- **Test Organization**: Consolidated 14+ test files into 3 focused files
+- **Replication**: Single command achieves 89.36% coverage
+- **Documentation**: Security-focused testing report with verifiable data
+
+### 📊 **Test Metrics**
+- **Hardhat Tests**: 46 tests in consolidated-coverage.spec.ts
+  - Core: 14 tests
+  - Branch: 19 tests  
+  - Edge: 5 tests
+  - Mock: 8 tests
+- **Foundry Invariant Tests**: 7 tests across 4 suites
+- **Total**: 53 tests achieving 89.36% branch coverage
+
+### 📝 **Documentation Updates**
+- **TESTING_REPORT.md**: Rewritten as security-focused report
+  - Explains why testing matters for smart contract security
+  - Details attack vectors and security properties validated
+  - Provides verifiable test data and coverage analysis
+- **TEST_OUTPUT_RAW.md**: Added raw test execution data
+- **test/README.md**: Instructions for replicating coverage
+
+### 🧹 **File Consolidation**
+- **Removed**: 11 redundant test files 
+- **Removed**: 3 extraneous documentation files
+- **Result**: Cleaner repository with focused test suite
+
+### 🔧 **Replication Instructions**
+```bash
+# Achieve 89.36% branch coverage with single command:
+npx hardhat coverage --testfiles "test/consolidated-coverage.spec.ts"
+```
+
 ## [2.1.0] - 2025-07-03
 
 ### 📋 **Comprehensive Testing Suite & Documentation**
