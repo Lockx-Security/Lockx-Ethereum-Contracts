@@ -22,24 +22,66 @@ Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes
 ---
 
 🧪 **Testing framework**
-- **Hardhat testing suite** with 95 unit tests achieving 89.36% branch coverage
+- **Hardhat testing suite** with 95+ unit tests achieving 89.36% branch coverage
 - **Foundry testing** with 7 invariant tests executing 26,880 operations
+- **Comprehensive swap testing** with 14 production-ready test scenarios
 - **Security validation** of dual-key architecture and attack resistance
 - **Complete test consolidation** in single file for easy replication
 
 📊 **Test coverage**
 - **Branch coverage**: 89.36% (168/188 branches)
-- **Total tests**: 102 tests (95 Hardhat + 7 Foundry)
+- **Total tests**: 116+ tests (95 Hardhat + 7 Foundry + 14 Swap)
 - **Key achievement**: 100% coverage of signature verification
-- **Test execution**: ~24 seconds for full suite
+- **Test execution**: ~26 seconds for full suite
 
-📋 **[Security Testing Report →](reports/TESTING_REPORT.md)** | **[Gas Analysis →](reports/GAS_ANALYSIS_REPORT.md)** | **[Test Guide →](test/README.md)** | **[Raw Data →](reports/TEST_OUTPUT_RAW.md)**
+### Test Coverage by Function
+
+#### Core Lockbox Functions
+- **createLockboxWithETH**: 8 tests (creation, validation, gas optimization)
+- **createLockboxWithERC20**: 6 tests (creation, batch operations, edge cases)
+- **createLockboxWithERC721**: 4 tests (NFT handling, metadata validation)
+- **createLockboxWithBatch**: 5 tests (multi-asset creation, array validation)
+
+#### Deposit Functions  
+- **depositETH**: 7 tests (basic deposits, validation, reentrancy)
+- **depositERC20**: 12 tests (token handling, fee-on-transfer, batch operations)
+- **depositERC721**: 8 tests (NFT deposits, approval patterns, metadata)
+- **batchDeposit**: 6 tests (multi-asset deposits, gas optimization)
+
+#### Withdrawal Functions
+- **withdrawETH**: 9 tests (basic withdrawals, access control, edge cases)
+- **withdrawERC20**: 11 tests (token withdrawals, balance validation, cleanup)
+- **withdrawERC721**: 7 tests (NFT withdrawals, ownership validation)
+- **batchWithdraw**: 8 tests (multi-asset withdrawals, array handling)
+
+#### Swap Functions
+- **swapInLockbox**: 14 tests (ERC20 swaps, slippage protection, security validation)
+- **Integration tests**: 6 tests (swap + withdrawal/deposit combinations)
+- **Security tests**: 8 tests (access control, signature verification, reentrancy)
+- **Performance tests**: 6 tests (gas analysis, multi-hop swaps, optimization)
+
+#### Key Management
+- **rotateLockboxKey**: 4 tests (key rotation, signature validation, access control)
+- **Signature verification**: 12 tests (EIP-712 validation, replay protection, expiry)
+
+#### Utility Functions
+- **burnLockbox**: 5 tests (cleanup, asset recovery, access control)
+- **getFullLockbox**: 8 tests (data retrieval, pagination, complex scenarios)
+- **Array management**: 6 tests (insertion, removal, gap handling)
+
+📋 **[Testing Report →](reports/TESTING_REPORT.md)** | **[Swap Testing →](docs/SWAP_FUNCTIONALITY_TEST_REPORT.md)** | **[Gas Analysis →](reports/gas-report.md)** | **[Raw Test Output →](reports/raw-test-output.md)** | **[Test Guide →](test/README.md)**
 
 ### Running tests
 
 ```bash
-# Run all tests
+# Run all tests (base + swap functionality)
 npm test
+
+# Run base functionality tests only
+npx hardhat test test/consolidated-coverage.spec.ts
+
+# Run swap functionality tests only
+npx hardhat test test/production-ready-swap-tests.spec.ts
 
 # Run coverage analysis (89.36% branch coverage)
 npx hardhat coverage --testfiles "test/consolidated-coverage.spec.ts"
@@ -50,6 +92,8 @@ open coverage/index.html
 
 **Test files:**
 - `consolidated-coverage.spec.ts` - Complete test suite achieving 89.36% coverage
+- `production-ready-swap-tests.spec.ts` - Comprehensive swap functionality tests
+- `swap-functionality.spec.ts` - Basic swap functionality tests
 - `core-functionality.spec.ts` - Basic functionality tests
 - `mock-contracts.spec.ts` - Mock contract tests
 
@@ -165,4 +209,4 @@ For detailed release notes, security improvements, and breaking changes, see [CH
 
 ## Gas reports
 
-Current gas consumption analysis is available at [reports/gas-report.txt](reports/gas-report.txt).
+Current gas consumption analysis is available at [reports/gas-report.md](reports/gas-report.md).

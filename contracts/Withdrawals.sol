@@ -24,6 +24,8 @@ abstract contract Withdrawals is Deposits {
     event Withdrawn(uint256 indexed tokenId, bytes32 indexed referenceId);
     event LockboxBurned(uint256 indexed tokenId, bytes32 indexed referenceId);
     event KeyRotated(uint256 indexed tokenId, bytes32 indexed referenceId);
+    event SwapExecuted(uint256 indexed tokenId, bytes32 indexed referenceId);
+    event ExcessSpent(uint256 indexed tokenId, address indexed token, uint256 excessAmount);
 
     /* ───────── Errors ───────── */
     error NoETHBalance();
@@ -31,6 +33,11 @@ abstract contract Withdrawals is Deposits {
     error NFTNotFound();
     error EthTransferFailed();
     error SignatureExpired();
+    error SwapCallFailed();
+    error InvalidSwap();
+    error SlippageExceeded();
+
+    /* ───────── Storage ───────── */
 
     /* ══════════════════  USER-FACING WITHDRAWAL METHODS  ══════════════════ */
 
@@ -345,6 +352,198 @@ abstract contract Withdrawals is Deposits {
         emit Withdrawn(tokenId, referenceId);
     }
 
+    /*
+     * @notice Execute an asset swap within a Lockbox, authorized via EIP-712 signature.
+     * @param tokenId         The ID of the Lockbox.
+     * @param messageHash     The EIP-712 digest that was signed.
+     * @param signature       The EIP-712 signature by the active Lockbox key.
+     * @param tokenIn         The input token address (address(0) for ETH).
+     * @param tokenOut        The output token address (address(0) for ETH).
+     * @param amountIn        The amount of input tokens to swap.
+     * @param minAmountOut    Minimum amount of output tokens expected (slippage protection).
+     * @param target          The router/aggregator contract address to execute swap.
+     * @param data            The pre-built calldata for the swap execution.
+     * @param referenceId     External reference ID for off-chain tracking.
+     * @param signatureExpiry UNIX timestamp after which the signature is invalid.
+     *
+     * Requirements:
+     * - `tokenId` must exist and caller must be its owner.
+     * - `block.timestamp` must be ≤ `signatureExpiry`.
+     * - Lockbox must have ≥ `amountIn` balance of `tokenIn`.
+     * - `target` must not be the zero address.
+     * - The swap call must succeed and result in ≥ `minAmountOut` tokens.
+     */
+    function swapInLockbox(
+        uint256 tokenId,
+        bytes32 messageHash,
+        bytes memory signature,
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address target,
+        bytes calldata data,
+        bytes32 referenceId,
+        uint256 signatureExpiry
+    ) external nonReentrant {
+        _requireOwnsLockbox(tokenId);
+        if (block.timestamp >= signatureExpiry) revert SignatureExpired(); // Fixed off-by-one
+        if (target == address(0)) revert ZeroAddress();
+        if (amountIn == 0) revert ZeroAmount();
+        if (tokenIn == tokenOut) revert InvalidSwap();
+
+        // 1) Verify signature
+        bytes memory authData = abi.encode(
+            tokenId,
+            tokenIn,
+            tokenOut,
+            amountIn,
+            minAmountOut,
+            target,
+            keccak256(data),
+            referenceId,
+            msg.sender,
+            signatureExpiry
+        );
+        verifySignature(
+            tokenId,
+            messageHash,
+            signature,
+            address(0),
+            OperationType.SWAP_ASSETS,
+            authData
+        );
+
+        // 2) Validate and deduct from lockbox accounting first
+        if (tokenIn == address(0)) {
+            uint256 currentETH = _ethBalances[tokenId];
+            if (currentETH < amountIn) revert NoETHBalance();
+            _ethBalances[tokenId] = currentETH - amountIn;
+        } else {
+            mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
+            uint256 currentBalance = balMap[tokenIn];
+            if (currentBalance < amountIn) revert InsufficientTokenBalance();
+            
+            unchecked {
+                balMap[tokenIn] = currentBalance - amountIn;
+            }
+            
+            if (balMap[tokenIn] == 0) {
+                delete balMap[tokenIn];
+                _removeERC20Token(tokenId, tokenIn);
+                delete _erc20Known[tokenId][tokenIn];
+            }
+        }
+
+        // 3) Measure balances AFTER accounting deduction
+        uint256 contractBalanceInBefore;
+        uint256 contractBalanceOutBefore;
+        
+        if (tokenIn == address(0)) {
+            contractBalanceInBefore = address(this).balance;
+        } else {
+            contractBalanceInBefore = IERC20(tokenIn).balanceOf(address(this));
+        }
+        
+        if (tokenOut == address(0)) {
+            contractBalanceOutBefore = address(this).balance;
+        } else {
+            contractBalanceOutBefore = IERC20(tokenOut).balanceOf(address(this));
+        }
+
+        // 4) Execute swap with secure approval pattern
+        if (tokenIn != address(0)) {
+            // USDT compatibility: reset allowance to 0 first, then set to amountIn
+            // This handles tokens that require allowance→0 then →N
+            IERC20(tokenIn).forceApprove(target, 0);
+            IERC20(tokenIn).forceApprove(target, amountIn);
+        }
+        
+        uint256 gasToSend = gasleft() > 50000 ? gasleft() - 50000 : gasleft() / 2;
+        (bool success,) = target.call{
+            gas: gasToSend, // Safe gas calculation to prevent underflow
+            value: tokenIn == address(0) ? amountIn : 0
+        }(data);
+        
+        // Clean up any remaining allowance
+        if (tokenIn != address(0)) {
+            uint256 allowanceAfter = IERC20(tokenIn).allowance(address(this), target);
+            
+            // Clean up any remaining allowance
+            if (allowanceAfter > 0) {
+                IERC20(tokenIn).forceApprove(target, 0);
+            }
+        }
+        if (!success) revert SwapCallFailed();
+
+        // 5) Measure actual balance changes and adjust accounting
+        uint256 actualAmountIn;
+        uint256 actualAmountOut;
+        
+        if (tokenIn == address(0)) {
+            actualAmountIn = contractBalanceInBefore - address(this).balance;
+        } else {
+            actualAmountIn = contractBalanceInBefore - IERC20(tokenIn).balanceOf(address(this));
+        }
+        
+        if (tokenOut == address(0)) {
+            actualAmountOut = address(this).balance - contractBalanceOutBefore;
+        } else {
+            actualAmountOut = IERC20(tokenOut).balanceOf(address(this)) - contractBalanceOutBefore;
+        }
+
+        // 6) Validate output amounts
+        if (actualAmountOut == 0) revert SwapCallFailed();
+        if (actualAmountOut < minAmountOut) revert SlippageExceeded(); // Slippage protection
+        
+        // 7) Adjust lockbox accounting based on actual amounts (safe math)
+        if (tokenIn == address(0)) {
+            // Adjust ETH accounting if router used different amount
+            if (actualAmountIn > amountIn) {
+                // Router spent more than expected - emit warning but don't revert
+                emit ExcessSpent(tokenId, tokenIn, actualAmountIn - amountIn);
+            } else if (actualAmountIn < amountIn) {
+                // Router spent less - credit back unused ETH
+                uint256 amountDiff = amountIn - actualAmountIn;
+                _ethBalances[tokenId] += amountDiff;
+            }
+        } else {
+            // Adjust token accounting if router used different amount
+            mapping(address => uint256) storage balMapIn = _erc20Balances[tokenId];
+            if (actualAmountIn > amountIn) {
+                // Router spent more than expected - emit warning but don't revert
+                emit ExcessSpent(tokenId, tokenIn, actualAmountIn - amountIn);
+            } else if (actualAmountIn < amountIn) {
+                // Router spent less - credit back unused tokens
+                uint256 amountDiff = amountIn - actualAmountIn;
+                balMapIn[tokenIn] += amountDiff;
+                // Re-register token if it was removed but now has balance
+                if (!_erc20Known[tokenId][tokenIn] && balMapIn[tokenIn] > 0) {
+                    _erc20Known[tokenId][tokenIn] = true;
+                    _erc20Index[tokenId][tokenIn] = _erc20TokenAddresses[tokenId].length + 1; // 1-based
+                    _erc20TokenAddresses[tokenId].push(tokenIn);
+                }
+            }
+        }
+
+        // 8) Credit output tokens
+        if (actualAmountOut > 0) {
+            if (tokenOut == address(0)) {
+                _ethBalances[tokenId] += actualAmountOut;
+            } else {
+                // Register new token if needed
+                if (!_erc20Known[tokenId][tokenOut]) {
+                    _erc20Known[tokenId][tokenOut] = true;
+                    _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1; // 1-based
+                    _erc20TokenAddresses[tokenId].push(tokenOut);
+                }
+                _erc20Balances[tokenId][tokenOut] += actualAmountOut;
+            }
+        }
+
+        emit SwapExecuted(tokenId, referenceId);
+    }
+
     /* ══════════════════  Key-rotation  ══════════════════ */
 
     /*
@@ -445,6 +644,7 @@ abstract contract Withdrawals is Deposits {
             address t = toks[i];
             delete _erc20Balances[tokenId][t];
             delete _erc20Known[tokenId][t];
+            delete _erc20Index[tokenId][t];
             unchecked {
                 ++i;
             }
@@ -480,7 +680,7 @@ abstract contract Withdrawals is Deposits {
      * Requirements:
      * - `tokenId` must exist and caller must be its owner.
      */
-    struct erc20Balances {
+    struct Erc20Balances {
         address tokenAddress;
         uint256 balance;
     }
@@ -492,7 +692,7 @@ abstract contract Withdrawals is Deposits {
         view
         returns (
             uint256 lockboxETH,
-            erc20Balances[] memory erc20Tokens,
+            Erc20Balances[] memory erc20Tokens,
             nftBalances[] memory nftContracts
         )
     {
@@ -503,9 +703,9 @@ abstract contract Withdrawals is Deposits {
 
         // ERC-20s
         address[] storage tokenAddresses = _erc20TokenAddresses[tokenId];
-        erc20Tokens = new erc20Balances[](tokenAddresses.length);
+        erc20Tokens = new Erc20Balances[](tokenAddresses.length);
         for (uint256 i; i < tokenAddresses.length; ) {
-            erc20Tokens[i] = erc20Balances({
+            erc20Tokens[i] = Erc20Balances({
                 tokenAddress: tokenAddresses[i],
                 balance: _erc20Balances[tokenId][tokenAddresses[i]]
             });

@@ -224,6 +224,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         _defaultURISet = true;
     }
 
+
     /* ───────────────────────── Token-gated + EIP-712 secured metadata management ────────────────────────── */
 
     /**
@@ -324,7 +325,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /* ───────────────────────── Fallback handlers ───────────────────────── */
     receive() external payable {
-        revert UseDepositETH();
+        // Empty function allows ETH reception without re-entrancy risks
     }
     fallback() external payable {
         revert FallbackNotAllowed();

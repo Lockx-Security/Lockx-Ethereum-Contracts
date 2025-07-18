@@ -26,7 +26,8 @@ contract SignatureVerification is EIP712 {
         WITHDRAW_NFT,
         BURN_LOCKBOX,
         SET_TOKEN_URI,
-        BATCH_WITHDRAW
+        BATCH_WITHDRAW,
+        SWAP_ASSETS
     }
 
     /// @dev Gas-cheap pointer to the Lockbox ERC-721 (set once in constructor).
