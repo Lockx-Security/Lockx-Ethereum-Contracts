@@ -387,7 +387,7 @@ abstract contract Withdrawals is Deposits {
         uint256 signatureExpiry
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
-        if (block.timestamp >= signatureExpiry) revert SignatureExpired(); // Fixed off-by-one
+        if (block.timestamp >= signatureExpiry) revert SignatureExpired();
         if (target == address(0)) revert ZeroAddress();
         if (amountIn == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
@@ -680,7 +680,7 @@ abstract contract Withdrawals is Deposits {
      * Requirements:
      * - `tokenId` must exist and caller must be its owner.
      */
-    struct Erc20Balances {
+    struct erc20Balances {
         address tokenAddress;
         uint256 balance;
     }
@@ -692,7 +692,7 @@ abstract contract Withdrawals is Deposits {
         view
         returns (
             uint256 lockboxETH,
-            Erc20Balances[] memory erc20Tokens,
+            erc20Balances[] memory erc20Tokens,
             nftBalances[] memory nftContracts
         )
     {
@@ -703,9 +703,9 @@ abstract contract Withdrawals is Deposits {
 
         // ERC-20s
         address[] storage tokenAddresses = _erc20TokenAddresses[tokenId];
-        erc20Tokens = new Erc20Balances[](tokenAddresses.length);
+        erc20Tokens = new erc20Balances[](tokenAddresses.length);
         for (uint256 i; i < tokenAddresses.length; ) {
-            erc20Tokens[i] = Erc20Balances({
+            erc20Tokens[i] = erc20Balances({
                 tokenAddress: tokenAddresses[i],
                 balance: _erc20Balances[tokenId][tokenAddresses[i]]
             });
