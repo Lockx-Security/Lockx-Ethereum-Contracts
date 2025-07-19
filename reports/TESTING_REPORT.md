@@ -245,24 +245,38 @@ When ETH transfers fail (e.g., to contracts rejecting ETH), the system reverts s
 ### Array Management
 Dynamic arrays are managed correctly even when elements are removed in random order, preventing gaps from corrupting data.
 
-## Testing Infrastructure
+## Testing Infrastructure & Consolidation
 
 ### Test Suite Organization
 ```
 test/
-├── consolidated-coverage.spec.ts  # All tests for 89.36% coverage
-├── core-functionality.spec.ts     # Basic functionality tests  
-├── mock-contracts.spec.ts         # Mock contract tests
+├── ultimate-coverage.spec.ts      # Primary maximum coverage suite (10 tests)
+├── targeted-branch-fixes.spec.ts  # Specific branch targeting (9 tests)
+├── production-ready-swap-tests.spec.ts # Swap functionality tests
+├── consolidated-coverage.spec.ts  # Legacy comprehensive suite
 └── README.md                      # Detailed test documentation
 ```
 
+### Strategic Test Consolidation (v2.2.1)
+
+**Achievement**: Reduced 20+ redundant test files to 4 focused, high-impact test suites while maintaining comprehensive coverage.
+
+**Benefits**:
+- ✅ Faster test execution
+- ✅ Easier maintenance and updates  
+- ✅ Clear testing strategy and purpose
+- ✅ Professional development workflow
+
 ### Replicating Results
 ```bash
-# Run complete test suite
-npx hardhat test test/consolidated-coverage.spec.ts
+# Run maximum coverage tests (recommended)
+npx hardhat test test/ultimate-coverage.spec.ts test/targeted-branch-fixes.spec.ts
 
 # Generate coverage report
-npx hardhat coverage --testfiles "test/consolidated-coverage.spec.ts"
+npx hardhat coverage --testfiles "test/ultimate-coverage.spec.ts,test/targeted-branch-fixes.spec.ts"
+
+# Run complete legacy test suite
+npx hardhat test test/consolidated-coverage.spec.ts
 ```
 
 ### Continuous Validation

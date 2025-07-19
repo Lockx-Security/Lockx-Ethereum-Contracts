@@ -46,7 +46,8 @@ describe('🚀 PRODUCTION-READY SWAP TESTS - COMPLETE COVERAGE', () => {
 
     const domain = await buildDomain(await lockx.getAddress());
     const nonce = await lockx.connect(signer).getNonce(tokenId);
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const currentBlock = await ethers.provider.getBlock('latest');
+    const signatureExpiry = currentBlock!.timestamp + 3600;
 
     const dataHash = ethers.keccak256(
       ethers.AbiCoder.defaultAbiCoder().encode(
@@ -281,7 +282,8 @@ describe('🚀 PRODUCTION-READY SWAP TESTS - COMPLETE COVERAGE', () => {
 
       const domain = await buildDomain(await lockx.getAddress());
       const nonce = await lockx.connect(user).getNonce(tokenId);
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const currentBlock = await ethers.provider.getBlock('latest');
+      const signatureExpiry = currentBlock!.timestamp + 3600;
 
       const dataHash = ethers.keccak256(
         ethers.AbiCoder.defaultAbiCoder().encode(
@@ -327,7 +329,8 @@ describe('🚀 PRODUCTION-READY SWAP TESTS - COMPLETE COVERAGE', () => {
       // Then withdraw
       const domain = await buildDomain(await lockx.getAddress());
       const nonce = await lockx.connect(user).getNonce(tokenId);
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const currentBlock = await ethers.provider.getBlock('latest');
+      const signatureExpiry = currentBlock!.timestamp + 3600;
 
       const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
