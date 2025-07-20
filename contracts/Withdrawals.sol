@@ -24,8 +24,7 @@ abstract contract Withdrawals is Deposits {
     event Withdrawn(uint256 indexed tokenId, bytes32 indexed referenceId);
     event LockboxBurned(uint256 indexed tokenId, bytes32 indexed referenceId);
     event KeyRotated(uint256 indexed tokenId, bytes32 indexed referenceId);
-    event SwapExecuted(uint256 indexed tokenId, bytes32 indexed referenceId);
-    event ExcessSpent(uint256 indexed tokenId, address indexed token, uint256 excessAmount);
+    event SwapExecuted(uint256 indexed tokenId, address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut, bytes32 referenceId);
 
     /* ───────── Errors ───────── */
     error NoETHBalance();
@@ -368,10 +367,10 @@ abstract contract Withdrawals is Deposits {
      *
      * Requirements:
      * - `tokenId` must exist and caller must be its owner.
-     * - `block.timestamp` must be ≤ `signatureExpiry`.
+     * - `block.timestamp` must be < `signatureExpiry`.
      * - Lockbox must have ≥ `amountIn` balance of `tokenIn`.
      * - `target` must not be the zero address.
-     * - The swap call must succeed and result in ≥ `minAmountOut` tokens.
+     * - The swap must return ≥ `minAmountOut` tokens.
      */
     function swapInLockbox(
         uint256 tokenId,
@@ -387,7 +386,7 @@ abstract contract Withdrawals is Deposits {
         uint256 signatureExpiry
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
-        if (block.timestamp >= signatureExpiry) revert SignatureExpired();
+        if (block.timestamp > signatureExpiry) revert SignatureExpired();
         if (target == address(0)) revert ZeroAddress();
         if (amountIn == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
@@ -414,134 +413,94 @@ abstract contract Withdrawals is Deposits {
             authData
         );
 
-        // 2) Validate and deduct from lockbox accounting first
+        // 2) Check balance sufficiency (but don't deduct yet - industry standard)
         if (tokenIn == address(0)) {
-            uint256 currentETH = _ethBalances[tokenId];
-            if (currentETH < amountIn) revert NoETHBalance();
-            _ethBalances[tokenId] = currentETH - amountIn;
+            if (_ethBalances[tokenId] < amountIn) revert NoETHBalance();
         } else {
-            mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
-            uint256 currentBalance = balMap[tokenIn];
-            if (currentBalance < amountIn) revert InsufficientTokenBalance();
+            if (_erc20Balances[tokenId][tokenIn] < amountIn) revert InsufficientTokenBalance();
+        }
+
+        // 3) Measure balances before swap
+        uint256 balanceInBefore;
+        if (tokenIn == address(0)) {
+            balanceInBefore = address(this).balance;
+        } else {
+            balanceInBefore = IERC20(tokenIn).balanceOf(address(this));
+        }
+        
+        uint256 balanceOutBefore;
+        if (tokenOut == address(0)) {
+            balanceOutBefore = address(this).balance;
+        } else {
+            balanceOutBefore = IERC20(tokenOut).balanceOf(address(this));
+        }
+
+        // 4) Execute swap with USDT-safe approval pattern
+        if (tokenIn != address(0)) {
+            IERC20(tokenIn).forceApprove(target, 0);         // Reset first for USDT
+            IERC20(tokenIn).forceApprove(target, amountIn);
+        }
+        
+        (bool success,) = target.call{value: tokenIn == address(0) ? amountIn : 0}(data);
+        
+        // Clean up approval
+        if (tokenIn != address(0)) {
+            IERC20(tokenIn).forceApprove(target, 0);
+        }
+        
+        if (!success) revert SwapCallFailed();
+
+        // 5) Measure actual amounts transferred
+        uint256 balanceInAfter;
+        if (tokenIn == address(0)) {
+            balanceInAfter = address(this).balance;
+        } else {
+            balanceInAfter = IERC20(tokenIn).balanceOf(address(this));
+        }
+        
+        uint256 balanceOutAfter;
+        if (tokenOut == address(0)) {
+            balanceOutAfter = address(this).balance;
+        } else {
+            balanceOutAfter = IERC20(tokenOut).balanceOf(address(this));
+        }
+        
+        // Calculate actual amounts (handles fee-on-transfer tokens)
+        uint256 actualAmountIn = balanceInBefore - balanceInAfter;
+        uint256 amountOut = balanceOutAfter - balanceOutBefore;
+
+        // 6) Validate slippage
+        if (amountOut < minAmountOut) revert SlippageExceeded();
+
+        // 7) Update accounting with actual amounts (handles fee-on-transfer)
+        // Deduct actual input amount
+        if (tokenIn == address(0)) {
+            _ethBalances[tokenId] -= actualAmountIn;
+        } else {
+            _erc20Balances[tokenId][tokenIn] -= actualAmountIn;
             
-            unchecked {
-                balMap[tokenIn] = currentBalance - amountIn;
-            }
-            
-            if (balMap[tokenIn] == 0) {
-                delete balMap[tokenIn];
+            // Clean up if balance is now 0
+            if (_erc20Balances[tokenId][tokenIn] == 0) {
+                delete _erc20Balances[tokenId][tokenIn];
                 _removeERC20Token(tokenId, tokenIn);
                 delete _erc20Known[tokenId][tokenIn];
             }
         }
-
-        // 3) Measure balances AFTER accounting deduction
-        uint256 contractBalanceInBefore;
-        uint256 contractBalanceOutBefore;
         
-        if (tokenIn == address(0)) {
-            contractBalanceInBefore = address(this).balance;
-        } else {
-            contractBalanceInBefore = IERC20(tokenIn).balanceOf(address(this));
-        }
-        
+        // Credit output
         if (tokenOut == address(0)) {
-            contractBalanceOutBefore = address(this).balance;
+            _ethBalances[tokenId] += amountOut;
         } else {
-            contractBalanceOutBefore = IERC20(tokenOut).balanceOf(address(this));
-        }
-
-        // 4) Execute swap with secure approval pattern
-        if (tokenIn != address(0)) {
-            // USDT compatibility: reset allowance to 0 first, then set to amountIn
-            // This handles tokens that require allowance→0 then →N
-            IERC20(tokenIn).forceApprove(target, 0);
-            IERC20(tokenIn).forceApprove(target, amountIn);
-        }
-        
-        uint256 gasToSend = gasleft() > 50000 ? gasleft() - 50000 : gasleft() / 2;
-        (bool success,) = target.call{
-            gas: gasToSend, // Safe gas calculation to prevent underflow
-            value: tokenIn == address(0) ? amountIn : 0
-        }(data);
-        
-        // Clean up any remaining allowance
-        if (tokenIn != address(0)) {
-            uint256 allowanceAfter = IERC20(tokenIn).allowance(address(this), target);
-            
-            // Clean up any remaining allowance
-            if (allowanceAfter > 0) {
-                IERC20(tokenIn).forceApprove(target, 0);
+            // Register token if new
+            if (!_erc20Known[tokenId][tokenOut]) {
+                _erc20Known[tokenId][tokenOut] = true;
+                _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1;
+                _erc20TokenAddresses[tokenId].push(tokenOut);
             }
-        }
-        if (!success) revert SwapCallFailed();
-
-        // 5) Measure actual balance changes and adjust accounting
-        uint256 actualAmountIn;
-        uint256 actualAmountOut;
-        
-        if (tokenIn == address(0)) {
-            actualAmountIn = contractBalanceInBefore - address(this).balance;
-        } else {
-            actualAmountIn = contractBalanceInBefore - IERC20(tokenIn).balanceOf(address(this));
-        }
-        
-        if (tokenOut == address(0)) {
-            actualAmountOut = address(this).balance - contractBalanceOutBefore;
-        } else {
-            actualAmountOut = IERC20(tokenOut).balanceOf(address(this)) - contractBalanceOutBefore;
+            _erc20Balances[tokenId][tokenOut] += amountOut;
         }
 
-        // 6) Validate output amounts
-        if (actualAmountOut == 0) revert SwapCallFailed();
-        if (actualAmountOut < minAmountOut) revert SlippageExceeded(); // Slippage protection
-        
-        // 7) Adjust lockbox accounting based on actual amounts (safe math)
-        if (tokenIn == address(0)) {
-            // Adjust ETH accounting if router used different amount
-            if (actualAmountIn > amountIn) {
-                // Router spent more than expected - emit warning but don't revert
-                emit ExcessSpent(tokenId, tokenIn, actualAmountIn - amountIn);
-            } else if (actualAmountIn < amountIn) {
-                // Router spent less - credit back unused ETH
-                uint256 amountDiff = amountIn - actualAmountIn;
-                _ethBalances[tokenId] += amountDiff;
-            }
-        } else {
-            // Adjust token accounting if router used different amount
-            mapping(address => uint256) storage balMapIn = _erc20Balances[tokenId];
-            if (actualAmountIn > amountIn) {
-                // Router spent more than expected - emit warning but don't revert
-                emit ExcessSpent(tokenId, tokenIn, actualAmountIn - amountIn);
-            } else if (actualAmountIn < amountIn) {
-                // Router spent less - credit back unused tokens
-                uint256 amountDiff = amountIn - actualAmountIn;
-                balMapIn[tokenIn] += amountDiff;
-                // Re-register token if it was removed but now has balance
-                if (!_erc20Known[tokenId][tokenIn] && balMapIn[tokenIn] > 0) {
-                    _erc20Known[tokenId][tokenIn] = true;
-                    _erc20Index[tokenId][tokenIn] = _erc20TokenAddresses[tokenId].length + 1; // 1-based
-                    _erc20TokenAddresses[tokenId].push(tokenIn);
-                }
-            }
-        }
-
-        // 8) Credit output tokens
-        if (actualAmountOut > 0) {
-            if (tokenOut == address(0)) {
-                _ethBalances[tokenId] += actualAmountOut;
-            } else {
-                // Register new token if needed
-                if (!_erc20Known[tokenId][tokenOut]) {
-                    _erc20Known[tokenId][tokenOut] = true;
-                    _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1; // 1-based
-                    _erc20TokenAddresses[tokenId].push(tokenOut);
-                }
-                _erc20Balances[tokenId][tokenOut] += actualAmountOut;
-            }
-        }
-
-        emit SwapExecuted(tokenId, referenceId);
+        emit SwapExecuted(tokenId, tokenIn, tokenOut, actualAmountIn, amountOut, referenceId);
     }
 
     /* ══════════════════  Key-rotation  ══════════════════ */
