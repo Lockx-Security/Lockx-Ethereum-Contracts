@@ -38,7 +38,6 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     // ERC-20 bookkeeping
     mapping(uint256 => mapping(address => uint256)) internal _erc20Balances;
     mapping(uint256 => address[]) internal _erc20TokenAddresses;
-    mapping(uint256 => mapping(address => bool)) internal _erc20Known;
     mapping(uint256 => mapping(address => uint256)) internal _erc20Index;
 
     // ERC-721 bookkeeping
@@ -48,7 +47,6 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     }
     mapping(uint256 => bytes32[]) internal _nftKeys;
     mapping(uint256 => mapping(bytes32 => nftBalances)) internal _lockboxNftData;
-    mapping(uint256 => mapping(bytes32 => bool)) internal _nftKnown;
     mapping(uint256 => mapping(bytes32 => uint256)) internal _nftIndex;
 
     /* ───────── Guards ───────── */
@@ -189,9 +187,8 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         uint256 received = t.balanceOf(address(this)) - before;
         if (received == 0) revert ZeroAmount();
 
-        // Register new token with index
-        if (!_erc20Known[tokenId][token]) {
-            _erc20Known[tokenId][token] = true;
+        // Register new token with index (check balance instead of _erc20Known)
+        if (_erc20Balances[tokenId][token] == 0) {
             _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length + 1;
             _erc20TokenAddresses[tokenId].push(token);
         }
@@ -205,8 +202,8 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     function _depositERC721(uint256 tokenId, address nftContract, uint256 nftTokenId) internal {
         bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
 
-        if (!_nftKnown[tokenId][key]) {
-            _nftKnown[tokenId][key] = true;
+        // Check if NFT is new by seeing if nftContract is zero
+        if (_lockboxNftData[tokenId][key].nftContract == address(0)) {
             _nftIndex[tokenId][key] = _nftKeys[tokenId].length + 1;
             _nftKeys[tokenId].push(key);
         }
