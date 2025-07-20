@@ -44,7 +44,6 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /* ───────────────────────── Metadata storage ────────────────────────── */
     string private _defaultMetadataURI;
-    bool private _defaultURISet;
     mapping(uint256 => string) private _tokenMetadataURIs;
 
     /// Emitted whenever a per-token metadata URI is set/updated.
@@ -216,12 +215,11 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
      * @dev Can only be called by the contract owner, and only once.
      *
      * Requirements:
-     * - `_defaultURISet` must be false.
+     * - Default URI must not be already set.
      */
     function setDefaultMetadataURI(string memory newDefaultURI) external onlyOwner {
-        if (_defaultURISet) revert DefaultURIAlreadySet();
+        if (bytes(_defaultMetadataURI).length > 0) revert DefaultURIAlreadySet();
         _defaultMetadataURI = newDefaultURI;
-        _defaultURISet = true;
     }
 
 

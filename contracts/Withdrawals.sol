@@ -35,6 +35,8 @@ abstract contract Withdrawals is Deposits {
     error SwapCallFailed();
     error InvalidSwap();
     error SlippageExceeded();
+    error RouterOverspent();
+    error DuplicateEntry();
 
     /* ───────── Storage ───────── */
 
@@ -162,7 +164,6 @@ abstract contract Withdrawals is Deposits {
             // Full storage refund for setting slot from non-zero → zero
             delete balMap[tokenAddress];
             _removeERC20Token(tokenId, tokenAddress);
-            delete _erc20Known[tokenId][tokenAddress];
         }
 
         // 3) Interaction
@@ -222,11 +223,10 @@ abstract contract Withdrawals is Deposits {
         );
 
         bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
-        if (!_nftKnown[tokenId][key]) revert NFTNotFound();
+        if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
 
         // 2) Effects
         delete _lockboxNftData[tokenId][key];
-        _nftKnown[tokenId][key] = false;
         _removeNFTKey(tokenId, key);
 
         // 3) Interaction
@@ -311,6 +311,15 @@ abstract contract Withdrawals is Deposits {
 
         // — ERC-20s —
         mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
+        // Check for duplicates first
+        for (uint256 i; i < tokenAddresses.length; ) {
+            for (uint256 j = i + 1; j < tokenAddresses.length; ) {
+                if (tokenAddresses[i] == tokenAddresses[j]) revert DuplicateEntry();
+                unchecked { ++j; }
+            }
+            unchecked { ++i; }
+        }
+        
         for (uint256 i; i < tokenAddresses.length; ) {
             address tok = tokenAddresses[i];
             uint256 amt = tokenAmounts[i];
@@ -324,7 +333,6 @@ abstract contract Withdrawals is Deposits {
             if (balMap[tok] == 0) {
                 delete balMap[tok];
                 _removeERC20Token(tokenId, tok);
-                delete _erc20Known[tokenId][tok];
             }
 
             IERC20(tok).safeTransfer(recipient, amt);
@@ -334,12 +342,22 @@ abstract contract Withdrawals is Deposits {
         }
 
         // — ERC-721s —
+        // Check for duplicate NFTs first
+        for (uint256 i; i < nftContracts.length; ) {
+            for (uint256 j = i + 1; j < nftContracts.length; ) {
+                if (nftContracts[i] == nftContracts[j] && nftTokenIds[i] == nftTokenIds[j]) {
+                    revert DuplicateEntry();
+                }
+                unchecked { ++j; }
+            }
+            unchecked { ++i; }
+        }
+        
         for (uint256 i; i < nftContracts.length; ) {
             bytes32 key = keccak256(abi.encodePacked(nftContracts[i], nftTokenIds[i]));
-            if (!_nftKnown[tokenId][key]) revert NFTNotFound();
+            if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
 
             delete _lockboxNftData[tokenId][key];
-            _nftKnown[tokenId][key] = false;
             _removeNFTKey(tokenId, key);
 
             IERC721(nftContracts[i]).safeTransferFrom(address(this), recipient, nftTokenIds[i]);
@@ -437,7 +455,11 @@ abstract contract Withdrawals is Deposits {
 
         // 4) Execute swap with USDT-safe approval pattern
         if (tokenIn != address(0)) {
-            IERC20(tokenIn).forceApprove(target, 0);         // Reset first for USDT
+            // Only reset to 0 if there's an existing approval to save gas
+            uint256 currentAllowance = IERC20(tokenIn).allowance(address(this), target);
+            if (currentAllowance != 0) {
+                IERC20(tokenIn).forceApprove(target, 0);     // Reset first for USDT
+            }
             IERC20(tokenIn).forceApprove(target, amountIn);
         }
         
@@ -469,8 +491,9 @@ abstract contract Withdrawals is Deposits {
         uint256 actualAmountIn = balanceInBefore - balanceInAfter;
         uint256 amountOut = balanceOutAfter - balanceOutBefore;
 
-        // 6) Validate slippage
+        // 6) Validate slippage and overspend protection
         if (amountOut < minAmountOut) revert SlippageExceeded();
+        if (actualAmountIn > amountIn) revert RouterOverspent(); // Router took more than authorized
 
         // 7) Update accounting with actual amounts (handles fee-on-transfer)
         // Deduct actual input amount
@@ -483,7 +506,6 @@ abstract contract Withdrawals is Deposits {
             if (_erc20Balances[tokenId][tokenIn] == 0) {
                 delete _erc20Balances[tokenId][tokenIn];
                 _removeERC20Token(tokenId, tokenIn);
-                delete _erc20Known[tokenId][tokenIn];
             }
         }
         
@@ -491,9 +513,8 @@ abstract contract Withdrawals is Deposits {
         if (tokenOut == address(0)) {
             _ethBalances[tokenId] += amountOut;
         } else {
-            // Register token if new
-            if (!_erc20Known[tokenId][tokenOut]) {
-                _erc20Known[tokenId][tokenOut] = true;
+            // Register token if new (check balance instead of _erc20Known)
+            if (_erc20Balances[tokenId][tokenOut] == 0) {
                 _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1;
                 _erc20TokenAddresses[tokenId].push(tokenOut);
             }
@@ -599,10 +620,11 @@ abstract contract Withdrawals is Deposits {
 
         /* ---- ERC-20 balances ---- */
         address[] storage toks = _erc20TokenAddresses[tokenId];
-        for (uint256 i; i < toks.length; ) {
-            address t = toks[i];
+        // Cache array in memory to avoid repeated SLOADs
+        address[] memory toksCached = toks;
+        for (uint256 i; i < toksCached.length; ) {
+            address t = toksCached[i];
             delete _erc20Balances[tokenId][t];
-            delete _erc20Known[tokenId][t];
             delete _erc20Index[tokenId][t];
             unchecked {
                 ++i;
@@ -612,10 +634,11 @@ abstract contract Withdrawals is Deposits {
 
         /* ---- ERC-721 bookkeeping ---- */
         bytes32[] storage keys = _nftKeys[tokenId];
-        for (uint256 i; i < keys.length; ) {
-            bytes32 k = keys[i];
+        // Cache array in memory to avoid repeated SLOADs
+        bytes32[] memory keysCached = keys;
+        for (uint256 i; i < keysCached.length; ) {
+            bytes32 k = keysCached[i];
             delete _lockboxNftData[tokenId][k];
-            delete _nftKnown[tokenId][k];
             unchecked {
                 ++i;
             }
@@ -677,7 +700,7 @@ abstract contract Withdrawals is Deposits {
         bytes32[] storage nftList = _nftKeys[tokenId];
         uint256 count;
         for (uint256 i; i < nftList.length; ) {
-            if (_nftKnown[tokenId][nftList[i]]) count++;
+            if (_lockboxNftData[tokenId][nftList[i]].nftContract != address(0)) count++;
             unchecked {
                 ++i;
             }
@@ -685,7 +708,7 @@ abstract contract Withdrawals is Deposits {
         nftContracts = new nftBalances[](count);
         uint256 idx;
         for (uint256 i; i < nftList.length; ) {
-            if (_nftKnown[tokenId][nftList[i]]) {
+            if (_lockboxNftData[tokenId][nftList[i]].nftContract != address(0)) {
                 nftContracts[idx++] = _lockboxNftData[tokenId][nftList[i]];
             }
             unchecked {

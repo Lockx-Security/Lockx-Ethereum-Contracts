@@ -28,7 +28,8 @@ contract LockxStateHarness is Lockx {
     }
 
     function getErc20Known(uint256 tokenId, address token) external view returns (bool) {
-        return _erc20Known[tokenId][token];
+        // Now we check if token has a balance instead of using _erc20Known mapping
+        return _erc20Balances[tokenId][token] > 0;
     }
 
     /* ─────────── Test Helper for Initialize Function ───────── */
