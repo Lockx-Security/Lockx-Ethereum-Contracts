@@ -1,30 +1,56 @@
 # Lockx Test Suite Documentation
 
-This directory contains the complete test suite for the Lockx smart contract system, achieving **near-maximum branch coverage** through systematic testing.
+This directory contains the complete test suite for the Lockx smart contract system, achieving **87.19% branch coverage** through systematic testing with **56 comprehensive tests** across 9 focused test files.
 
 ## Test Organization
 
-### Clean Test Structure (4 focused files)
+### Clean Test Structure (9 focused files)
 
-1. **ultimate-coverage.spec.ts** (461 lines) - **PRIMARY COVERAGE SUITE**
+1. **ultimate-coverage.spec.ts** - **PRIMARY COVERAGE SUITE**
    - 10 systematic tests targeting maximum achievable branches
    - Comprehensive array mismatch testing and error conditions
    - Interface support verification and multi-user scenarios
    - **Use this file for achieving maximum branch coverage**
 
-2. **targeted-branch-fixes.spec.ts** (444 lines) - **SPECIFIC BRANCH TARGETING**
-   - 9 focused tests hitting known uncovered branches
+2. **targeted-branch-fixes.spec.ts** - **SPECIFIC BRANCH TARGETING**
+   - 11 focused tests hitting known uncovered branches
    - Array operations, error validations, and edge cases
    - Avoids complex signature verification that requires intricate implementations
 
-3. **production-ready-swap-tests.spec.ts** - **SWAP FUNCTIONALITY FOCUS**
-   - Asset swapping and DEX integration testing
-   - Production-ready swap scenarios and edge cases
+3. **coverage-boost-simple.spec.ts** - **MISSING BRANCH TARGETING**
+   - 7 tests targeting specific missing branches
+   - SelfMintOnly, ZeroKey, and signature expiry branches
+   - Simple edge case coverage improvements
 
-4. **consolidated-coverage.spec.ts** - **LEGACY COMPREHENSIVE SUITE**
-   - Original consolidated test suite with extensive coverage
-   - Contains all branch coverage tests by contract
-   - Backup comprehensive testing (maintained for reference)
+4. **easy-coverage-wins.spec.ts** - **EDGE CASE COVERAGE**
+   - 12 tests for easy-to-reach edge cases
+   - Interface support, metadata handling, soulbound mechanics
+   - Simple branch coverage wins
+
+5. **systematic-branch-coverage.spec.ts** - **PRECISE BRANCH TARGETING**
+   - 5 systematic tests for precise branch targeting
+   - Input validation and error condition branches
+   - High-priority missing branch coverage
+
+6. **signature-expiry-coverage.spec.ts** - **SIGNATURE EXPIRY EDGE CASES**
+   - 3 tests targeting signature expiry branches
+   - Withdrawal function signature expiry paths
+   - Complete expiry validation coverage
+
+7. **malicious-edge-case-coverage.spec.ts** - **DUPLICATE DETECTION**
+   - 2 tests for duplicate entry detection edge cases
+   - Batch operation duplicate prevention
+   - Edge case malicious input handling
+
+8. **malicious-router-coverage.spec.ts** - **ADVANCED ROUTER EDGE CASES**
+   - 4 tests for complex router interaction edge cases
+   - Allowance cleanup, ETH transfer failures, balance cleanup
+   - Advanced DeFi integration testing
+
+9. **signature-verification-final-branch.spec.ts** - **COMPLETE SIGNATUREVERIFICATION COVERAGE**
+   - 2 tests for 100% SignatureVerification.sol coverage
+   - AlreadyInitialized error path testing
+   - Perfect signature verification branch coverage
 
 ## Running Tests
 
@@ -38,9 +64,9 @@ npx hardhat test test/ultimate-coverage.spec.ts
 npx hardhat test test/targeted-branch-fixes.spec.ts
 ```
 
-### Run All Core Tests
+### Run All Core Tests (87.19% Branch Coverage)
 ```bash
-npx hardhat test test/ultimate-coverage.spec.ts test/targeted-branch-fixes.spec.ts test/production-ready-swap-tests.spec.ts
+npx hardhat test test/ultimate-coverage.spec.ts test/targeted-branch-fixes.spec.ts test/coverage-boost-simple.spec.ts test/easy-coverage-wins.spec.ts test/systematic-branch-coverage.spec.ts test/signature-expiry-coverage.spec.ts test/malicious-edge-case-coverage.spec.ts test/malicious-router-coverage.spec.ts test/signature-verification-final-branch.spec.ts
 ```
 
 ### Run Complete Test Suite
@@ -53,23 +79,23 @@ npx hardhat test
 npx hardhat coverage
 ```
 
-### Run with Coverage for Specific Files
+### Run with Coverage for Specific Files (87.19% Branch Coverage)
 ```bash
-npx hardhat coverage --testfiles "test/ultimate-coverage.spec.ts,test/targeted-branch-fixes.spec.ts"
+npx hardhat coverage --testfiles "test/ultimate-coverage.spec.ts,test/targeted-branch-fixes.spec.ts,test/coverage-boost-simple.spec.ts,test/easy-coverage-wins.spec.ts,test/systematic-branch-coverage.spec.ts,test/signature-expiry-coverage.spec.ts,test/malicious-edge-case-coverage.spec.ts,test/malicious-router-coverage.spec.ts,test/signature-verification-final-branch.spec.ts"
 ```
 
 ## Coverage Metrics
 
-### Current Achievement: Near-Maximum Branch Coverage
+### Current Achievement: 87.19% Branch Coverage
 
-| Contract | Achievable Branches | Covered | Coverage % |
-|----------|-------------------|---------|------------|
-| Lockx.sol | ~66 branches | ~61 | ~92%+ |
-| Deposits.sol | ~44 branches | ~39 | ~89%+ |
-| Withdrawals.sol | ~64 branches | ~43 | ~67%+ |
-| SignatureVerification.sol | ~14 branches | ~14 | ~100% |
+| Contract | Total Branches | Covered | Coverage % |
+|----------|----------------|---------|------------|
+| Lockx.sol | 66 branches | 60 | 90.91% |
+| Deposits.sol | 44 branches | 37 | 84.09% |
+| Withdrawals.sol | 118 branches | 100 | 84.75% |
+| SignatureVerification.sol | 14 branches | 14 | 100% |
 
-**Overall System Coverage: ~85%+ of achievable branches**
+**Overall System Coverage: 87.19% (211/242 branches)**
 
 ### Viewing Coverage Report
 
@@ -140,7 +166,16 @@ describe('Contract/Feature Name', () => {
 - Metadata management
 - Interface support
 
-### 6. Edge Cases
+### 6. Swap Recipient Functionality (NEW - v2.3.0)
+- ERC20→ERC20 swaps with external recipient
+- ETH→ERC20 swaps with external recipient  
+- ERC20→ETH swaps with external recipient
+- Multiple recipients in consecutive swaps
+- Backward compatibility (address(0) credits lockbox)
+- Event emission validation (privacy-preserving)
+- Signature tampering prevention
+
+### 7. Edge Cases
 - Fee-on-transfer tokens
 - ETH transfer failures
 - Array gaps handling
@@ -173,11 +208,11 @@ These do not indicate security vulnerabilities but rather comprehensive defensiv
 
 ## Replicating Maximum Coverage
 
-### Quick Start (Recommended)
+### Quick Start (Recommended) - 87.19% Branch Coverage
 ```bash
 npm install
-npx hardhat test test/ultimate-coverage.spec.ts test/targeted-branch-fixes.spec.ts
-npx hardhat coverage --testfiles "test/ultimate-coverage.spec.ts,test/targeted-branch-fixes.spec.ts"
+npx hardhat test test/ultimate-coverage.spec.ts test/targeted-branch-fixes.spec.ts test/coverage-boost-simple.spec.ts test/easy-coverage-wins.spec.ts test/systematic-branch-coverage.spec.ts test/signature-expiry-coverage.spec.ts test/malicious-edge-case-coverage.spec.ts test/malicious-router-coverage.spec.ts test/signature-verification-final-branch.spec.ts
+npx hardhat coverage --testfiles "test/ultimate-coverage.spec.ts,test/targeted-branch-fixes.spec.ts,test/coverage-boost-simple.spec.ts,test/easy-coverage-wins.spec.ts,test/systematic-branch-coverage.spec.ts,test/signature-expiry-coverage.spec.ts,test/malicious-edge-case-coverage.spec.ts,test/malicious-router-coverage.spec.ts,test/signature-verification-final-branch.spec.ts"
 ```
 
 ### Comprehensive Coverage Analysis
@@ -188,8 +223,15 @@ open coverage/index.html
 
 ### Expected Results
 - **Ultimate Coverage Suite**: 10 tests, all passing
-- **Targeted Branch Fixes**: 9 tests, systematic branch coverage
-- **Combined Coverage**: 85%+ of practically achievable branches
+- **Targeted Branch Fixes**: 11 tests, systematic branch coverage  
+- **Coverage Boost Simple**: 7 tests, missing branch targeting
+- **Easy Coverage Wins**: 12 tests, edge case coverage
+- **Systematic Branch Coverage**: 5 tests, precise branch targeting
+- **Signature Expiry Coverage**: 3 tests, expiry validation
+- **Malicious Edge Case Coverage**: 2 tests, duplicate detection
+- **Malicious Router Coverage**: 4 tests, advanced router edge cases
+- **SignatureVerification Final Branch**: 2 tests, complete coverage
+- **Combined Coverage**: 56 tests total, 87.19% branch coverage
 
 ## Foundry Tests
 
