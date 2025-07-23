@@ -4,11 +4,9 @@ import { SignerWithAddress } from '@nomicfoundation/hardhat-ethers/signers';
 import { MockERC20, MockERC721 } from '../typechain-types';
 
 /**
- * ULTIMATE COVERAGE - MAXIMUM ACHIEVABLE BRANCHES
- * 
- * This file targets only the easily achievable branches without complex signatures
+ * Primary coverage tests targeting easily achievable branches
  */
-describe('🏆 ULTIMATE COVERAGE - MAXIMUM ACHIEVABLE', () => {
+describe('Primary Coverage Tests', () => {
   let lockx: any;
   let owner: SignerWithAddress;
   let user: SignerWithAddress;
@@ -57,7 +55,7 @@ describe('🏆 ULTIMATE COVERAGE - MAXIMUM ACHIEVABLE', () => {
     await nft.connect(user2).setApprovalForAll(await lockx.getAddress(), true);
   });
 
-  describe('🎯 SYSTEMATIC BRANCH COVERAGE', () => {
+  describe('🎯 BRANCH COVERAGE', () => {
     it('Array mismatch branches - both types in createLockboxWithBatch', async () => {
       const key = ethers.Wallet.createRandom();
       
@@ -393,7 +391,7 @@ describe('🏆 ULTIMATE COVERAGE - MAXIMUM ACHIEVABLE', () => {
   });
 
   describe('🏆 FINAL VERIFICATION', () => {
-    it('Maximum achievable branch coverage verification', async () => {
+    it('Branch coverage verification', async () => {
       // Create comprehensive test scenario hitting as many branches as possible
       const key = ethers.Wallet.createRandom();
       

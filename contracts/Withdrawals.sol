@@ -24,7 +24,7 @@ abstract contract Withdrawals is Deposits {
     event Withdrawn(uint256 indexed tokenId, bytes32 indexed referenceId);
     event LockboxBurned(uint256 indexed tokenId, bytes32 indexed referenceId);
     event KeyRotated(uint256 indexed tokenId, bytes32 indexed referenceId);
-    event SwapExecuted(uint256 indexed tokenId, address indexed tokenIn, address indexed tokenOut, uint256 amountIn, uint256 amountOut, bytes32 referenceId);
+    event SwapExecuted(uint256 indexed tokenId, bytes32 indexed referenceId);
 
     /* ───────── Errors ───────── */
     error NoETHBalance();
@@ -382,6 +382,7 @@ abstract contract Withdrawals is Deposits {
      * @param data            The pre-built calldata for the swap execution.
      * @param referenceId     External reference ID for off-chain tracking.
      * @param signatureExpiry UNIX timestamp after which the signature is invalid.
+     * @param recipient       The recipient address for swap output. Use address(0) to credit lockbox.
      *
      * Requirements:
      * - `tokenId` must exist and caller must be its owner.
@@ -389,6 +390,7 @@ abstract contract Withdrawals is Deposits {
      * - Lockbox must have ≥ `amountIn` balance of `tokenIn`.
      * - `target` must not be the zero address.
      * - The swap must return ≥ `minAmountOut` tokens.
+     * - If `recipient` is address(0), output is credited to lockbox, otherwise sent to recipient.
      */
     function swapInLockbox(
         uint256 tokenId,
@@ -401,7 +403,8 @@ abstract contract Withdrawals is Deposits {
         address target,
         bytes calldata data,
         bytes32 referenceId,
-        uint256 signatureExpiry
+        uint256 signatureExpiry,
+        address recipient
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -420,7 +423,8 @@ abstract contract Withdrawals is Deposits {
             keccak256(data),
             referenceId,
             msg.sender,
-            signatureExpiry
+            signatureExpiry,
+            recipient
         );
         verifySignature(
             tokenId,
@@ -509,19 +513,30 @@ abstract contract Withdrawals is Deposits {
             }
         }
         
-        // Credit output
-        if (tokenOut == address(0)) {
-            _ethBalances[tokenId] += amountOut;
-        } else {
-            // Register token if new (check balance instead of _erc20Known)
-            if (_erc20Balances[tokenId][tokenOut] == 0) {
-                _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1;
-                _erc20TokenAddresses[tokenId].push(tokenOut);
+        // Credit output - either to recipient or lockbox
+        if (recipient != address(0)) {
+            // Send directly to external recipient
+            if (tokenOut == address(0)) {
+                (bool ethSuccess, ) = payable(recipient).call{value: amountOut}('');
+                if (!ethSuccess) revert EthTransferFailed();
+            } else {
+                IERC20(tokenOut).safeTransfer(recipient, amountOut);
             }
-            _erc20Balances[tokenId][tokenOut] += amountOut;
+        } else {
+            // Credit to lockbox (original behavior)
+            if (tokenOut == address(0)) {
+                _ethBalances[tokenId] += amountOut;
+            } else {
+                // Register token if new (check balance instead of _erc20Known)
+                if (_erc20Balances[tokenId][tokenOut] == 0) {
+                    _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1;
+                    _erc20TokenAddresses[tokenId].push(tokenOut);
+                }
+                _erc20Balances[tokenId][tokenOut] += amountOut;
+            }
         }
 
-        emit SwapExecuted(tokenId, tokenIn, tokenOut, actualAmountIn, amountOut, referenceId);
+        emit SwapExecuted(tokenId, referenceId);
     }
 
     /* ══════════════════  Key-rotation  ══════════════════ */

@@ -18,16 +18,31 @@ contract MockSwapRouter {
         uint256 amountIn,
         uint256 minAmountOut,
         address recipient
-    ) external {
-        // Pull tokenIn from caller
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
-        
-        // Calculate output (95% rate for testing)
-        uint256 amountOut = (amountIn * 95) / 100;
-        require(amountOut >= minAmountOut, "Slippage");
-        
-        // Send tokenOut to recipient
-        IERC20(tokenOut).transfer(recipient, amountOut);
+    ) external payable {
+        if (tokenIn == address(0)) {
+            // ETH to token swap
+            require(msg.value == amountIn, "ETH amount mismatch");
+            // Calculate output (950 tokens per ETH for testing)
+            uint256 amountOut = amountIn * 950;
+            require(amountOut >= minAmountOut, "Slippage");
+            IERC20(tokenOut).transfer(recipient, amountOut);
+        } else if (tokenOut == address(0)) {
+            // Token to ETH swap
+            IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+            // Calculate output (0.0009 ETH per token for testing)
+            uint256 amountOut = (amountIn * 9) / 10000;
+            require(amountOut >= minAmountOut, "Slippage");
+            require(address(this).balance >= amountOut, "Insufficient ETH");
+            (bool success,) = payable(recipient).call{value: amountOut}("");
+            require(success, "ETH transfer failed");
+        } else {
+            // Token to token swap
+            IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+            // Calculate output (95% rate for testing)
+            uint256 amountOut = (amountIn * 95) / 100;
+            require(amountOut >= minAmountOut, "Slippage");
+            IERC20(tokenOut).transfer(recipient, amountOut);
+        }
     }
     
     function swapETHForTokens(
