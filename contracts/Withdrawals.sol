@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Copyright © 2025 Lockx. All Rights Reserved.
-// You may use, modify, and share this code for NON-COMMERCIAL purposes only.
-// Commercial use requires written permission from Lockx.
-// Change Date: January 1, 2029 | Change License: MIT
+// Copyright © 2025 Lockx. All rights reserved.
+// This software is licensed under the Business Source License 1.1 (BUSL-1.1).
+// You may use, modify, and distribute this code for non-commercial purposes only.
+// For commercial use, you must obtain a license from Lockx.io.
+// On or after January 1, 2029, this code will be made available under the MIT License.
 pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol';
@@ -13,18 +14,18 @@ import './Deposits.sol';
 
 /**
  * @title Withdrawals
- * @dev Signature-gated withdraw, burn, key-rotation, plus view helpers.
+ * @dev Signature-gated withdraw, swap, and view helpers.
  *      Inherits Deposits for storage & deposit helpers, and
  *      SignatureVerification for EIP-712 auth.
  */
 abstract contract Withdrawals is Deposits {
     using SafeERC20 for IERC20;
 
+
     /* ───────── Events ───────── */
     event Withdrawn(uint256 indexed tokenId, bytes32 indexed referenceId);
-    event LockboxBurned(uint256 indexed tokenId, bytes32 indexed referenceId);
-    event KeyRotated(uint256 indexed tokenId, bytes32 indexed referenceId);
     event SwapExecuted(uint256 indexed tokenId, bytes32 indexed referenceId);
+    
 
     /* ───────── Errors ───────── */
     error NoETHBalance();
@@ -38,9 +39,8 @@ abstract contract Withdrawals is Deposits {
     error RouterOverspent();
     error DuplicateEntry();
 
-    /* ───────── Storage ───────── */
 
-    /* ══════════════════  USER-FACING WITHDRAWAL METHODS  ══════════════════ */
+    /* ─────────────────── Lockbox withdrawals ───────────────────── */
 
     /*
      * @notice Withdraw ETH from a Lockbox, authorized via EIP-712 signature.
@@ -539,133 +539,8 @@ abstract contract Withdrawals is Deposits {
         emit SwapExecuted(tokenId, referenceId);
     }
 
-    /* ══════════════════  Key-rotation  ══════════════════ */
 
-    /*
-     * @notice Rotate the off-chain authorization key for a Lockbox.
-     * @param tokenId         The ID of the Lockbox.
-     * @param messageHash     The EIP-712 digest that was signed.
-     * @param signature       The EIP-712 signature by the active Lockbox key.
-     * @param newPublicKey    The new authorized Lockbox public key.
-     * @param referenceId     External reference ID for off-chain tracking.
-     * @param signatureExpiry UNIX timestamp after which the signature is invalid.
-     *
-     * Requirements:
-     * - `tokenId` must exist and caller must be its owner.
-     * - `block.timestamp` must be ≤ `signatureExpiry`.
-     */
-    function rotateLockboxKey(
-        uint256 tokenId,
-        bytes32 messageHash,
-        bytes memory signature,
-        address newPublicKey,
-        bytes32 referenceId,
-        uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
-        if (block.timestamp > signatureExpiry) revert SignatureExpired();
-
-        bytes memory data = abi.encode(
-            tokenId,
-            newPublicKey,
-            referenceId,
-            msg.sender,
-            signatureExpiry
-        );
-        verifySignature(
-            tokenId,
-            messageHash,
-            signature,
-            newPublicKey,
-            OperationType.ROTATE_KEY,
-            data
-        );
-        emit KeyRotated(tokenId, referenceId);
-    }
-
-    /* ══════════════════  Burn  ══════════════════ */
-
-    /* abstract hook for Lockbox to burn its own ERC-721 */
-    function _burnLockboxNFT(uint256 id) internal virtual;
-
-    /*
-     * @notice Authenticated burn of a Lockbox, clearing all assets and burning the NFT.
-     * @param tokenId         The ID of the Lockbox.
-     * @param messageHash     The EIP-712 digest that was signed.
-     * @param signature       The EIP-712 signature by the active Lockbox key.
-     * @param referenceId     External reference ID for off-chain tracking.
-     * @param signatureExpiry UNIX timestamp after which the signature is invalid.
-     *
-     * Requirements:
-     * - `tokenId` must exist and caller must be its owner.
-     * - `block.timestamp` must be ≤ `signatureExpiry`.
-     */
-    function burnLockbox(
-        uint256 tokenId,
-        bytes32 messageHash,
-        bytes memory signature,
-        bytes32 referenceId,
-        uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
-        if (block.timestamp > signatureExpiry) revert SignatureExpired();
-
-        bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
-        verifySignature(
-            tokenId,
-            messageHash,
-            signature,
-            address(0),
-            OperationType.BURN_LOCKBOX,
-            data
-        );
-
-        _finalizeBurn(tokenId);
-        emit LockboxBurned(tokenId, referenceId);
-    }
-
-    /**
-     * @dev Internal helper called by `burnLockbox`.
-     *      - Wipes all ETH / ERC20 / ERC721 bookkeeping for the Lockbox.
-     *      - Delegates the actual ERC-721 burn to `_burnLockboxNFT` (implemented in Lockbox).
-     */
-    function _finalizeBurn(uint256 tokenId) internal {
-        /* ---- ETH ---- */
-        delete _ethBalances[tokenId];
-
-        /* ---- ERC-20 balances ---- */
-        address[] storage toks = _erc20TokenAddresses[tokenId];
-        // Cache array in memory to avoid repeated SLOADs
-        address[] memory toksCached = toks;
-        for (uint256 i; i < toksCached.length; ) {
-            address t = toksCached[i];
-            delete _erc20Balances[tokenId][t];
-            delete _erc20Index[tokenId][t];
-            unchecked {
-                ++i;
-            }
-        }
-        delete _erc20TokenAddresses[tokenId];
-
-        /* ---- ERC-721 bookkeeping ---- */
-        bytes32[] storage keys = _nftKeys[tokenId];
-        // Cache array in memory to avoid repeated SLOADs
-        bytes32[] memory keysCached = keys;
-        for (uint256 i; i < keysCached.length; ) {
-            bytes32 k = keysCached[i];
-            delete _lockboxNftData[tokenId][k];
-            unchecked {
-                ++i;
-            }
-        }
-        delete _nftKeys[tokenId];
-
-        /* ---- finally burn the NFT itself ---- */
-        _burnLockboxNFT(tokenId);
-        _purgeAuth(tokenId);
-    }
-
-    /* ══════════════════  View helper  ══════════════════ */
+    /* ─────────────────── View helpers ──────────────────── */
 
     /*
      * @notice Returns the full contents of a Lockbox: ETH, ERC-20 balances, and ERC-721s.

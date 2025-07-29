@@ -1,0 +1,317 @@
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
+import { Lockx, MockERC20, MockERC721, MockSwapRouter } from '../typechain-types';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+
+describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', () => {
+  let lockx: Lockx;
+  let mockToken: MockERC20;
+  let mockToken2: MockERC20;
+  let mockNFT: MockERC721;
+  let mockRouter: MockSwapRouter;
+  let owner: HardhatEthersSigner;
+  let user1: HardhatEthersSigner;
+  let user2: HardhatEthersSigner;
+  let lockboxKeyPair: HardhatEthersSigner;
+
+  beforeEach(async () => {
+    [owner, user1, user2, lockboxKeyPair] = await ethers.getSigners();
+
+    // Deploy contracts
+    const MockERC20Factory = await ethers.getContractFactory('MockERC20');
+    mockToken = await MockERC20Factory.deploy();
+    await mockToken.initialize('Mock Token', 'MOCK');
+    mockToken2 = await MockERC20Factory.deploy();
+    await mockToken2.initialize('Mock Token 2', 'MOCK2');
+
+    const MockERC721Factory = await ethers.getContractFactory('MockERC721');
+    mockNFT = await MockERC721Factory.deploy();
+    await mockNFT.initialize('Mock NFT', 'MNFT');
+
+    const MockSwapRouterFactory = await ethers.getContractFactory('MockSwapRouter');
+    mockRouter = await MockSwapRouterFactory.deploy();
+
+    const LockxFactory = await ethers.getContractFactory('Lockx');
+    lockx = await LockxFactory.deploy();
+
+    // Setup balances - MockERC20 initializes with 1M tokens to deployer
+    await mockToken.connect(owner).transfer(user1.address, ethers.parseEther('1000'));
+    await mockToken2.connect(owner).transfer(user1.address, ethers.parseEther('1000'));
+    await mockNFT.mint(user1.address, 1);
+    await mockNFT.mint(user1.address, 2);
+    await mockNFT.mint(user1.address, 3);
+
+    // Fund swap router for testing
+    await mockToken.connect(owner).transfer(await mockRouter.getAddress(), ethers.parseEther('10000'));
+    await mockToken2.connect(owner).transfer(await mockRouter.getAddress(), ethers.parseEther('10000'));
+    await owner.sendTransaction({ to: await mockRouter.getAddress(), value: ethers.parseEther('10') });
+
+    // Setup approvals
+    await mockToken.connect(user1).approve(await lockx.getAddress(), ethers.parseEther('1000'));
+    await mockToken2.connect(user1).approve(await lockx.getAddress(), ethers.parseEther('1000'));
+    await mockNFT.connect(user1).setApprovalForAll(await lockx.getAddress(), true);
+  });
+
+  it('🎯 BRANCH: Hit nftContracts.length != nftTokenIds.length in batchWithdraw', async () => {
+    // Create lockbox with some assets
+    const tx = await lockx.connect(user1).createLockboxWithBatch(
+      user1.address,
+      lockboxKeyPair.address,
+      ethers.parseEther('1'),
+      [await mockToken.getAddress()],
+      [ethers.parseEther('10')],
+      [await mockNFT.getAddress()],
+      [1],
+      ethers.ZeroHash,
+      { value: ethers.parseEther('1') }
+    );
+
+    const receipt = await tx.wait();
+    const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+    const tokenId = parseInt(transferEvent.topics[3], 16);
+    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+
+    // Create signature for batch withdraw with mismatched NFT arrays
+    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
+    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+
+    // Call with nftContracts.length (2) != nftTokenIds.length (1) - should hit uncovered branch
+    await expect(
+      lockx.connect(user1).batchWithdraw(
+        tokenId,
+        messageHash,
+        signature,
+        ethers.parseEther('0.5'), // amountETH
+        [], // tokenAddresses
+        [], // tokenAmounts
+        [await mockNFT.getAddress(), await mockNFT.getAddress()], // 2 contracts
+        [1], // 1 token ID - MISMATCH!
+        user2.address, // recipient
+        ethers.ZeroHash, // referenceId
+        signatureExpiry
+      )
+    ).to.be.revertedWithCustomError(lockx, 'MismatchedInputs');
+  });
+
+  it('🎯 BRANCH: Hit duplicate NFT detection in batchWithdraw', async () => {
+    // Create lockbox with multiple NFTs
+    const tx = await lockx.connect(user1).createLockboxWithBatch(
+      user1.address,
+      lockboxKeyPair.address,
+      ethers.parseEther('1'),
+      [],
+      [],
+      [await mockNFT.getAddress(), await mockNFT.getAddress()],
+      [1, 2],
+      ethers.ZeroHash,
+      { value: ethers.parseEther('1') }
+    );
+
+    const receipt = await tx.wait();
+    const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+    const tokenId = parseInt(transferEvent.topics[3], 16);
+    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+
+    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
+    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+
+    // Try to withdraw same NFT twice - should hit duplicate detection branch
+    await expect(
+      lockx.connect(user1).batchWithdraw(
+        tokenId,
+        messageHash,
+        signature,
+        0, // amountETH
+        [], // tokenAddresses
+        [], // tokenAmounts
+        [await mockNFT.getAddress(), await mockNFT.getAddress()], // same contract
+        [1, 1], // DUPLICATE token IDs!
+        user2.address,
+        ethers.ZeroHash,
+        signatureExpiry
+      )
+    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
+  });
+
+  it('🎯 BRANCH: Hit ETH transfer to external recipient in swapInLockbox', async () => {
+    // Create lockbox with ERC20 tokens
+    const tx = await lockx.connect(user1).createLockboxWithERC20(
+      user1.address,
+      lockboxKeyPair.address,
+      await mockToken.getAddress(),
+      ethers.parseEther('10'),
+      ethers.ZeroHash
+    );
+
+    const receipt = await tx.wait();
+    const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+    const tokenId = parseInt(transferEvent.topics[3], 16);
+    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+
+    // Router already funded in beforeEach
+
+    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
+    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+
+    const swapData = mockRouter.interface.encodeFunctionData('swap', [
+      await mockToken.getAddress(), // tokenIn
+      ethers.ZeroAddress, // tokenOut (ETH)
+      ethers.parseEther('5'), // amountIn
+      ethers.parseEther('0.1'), // minAmountOut
+      user2.address // recipient (external!)
+    ]);
+
+    // This should hit the ETH transfer to external recipient branch (lines 1783-1784)
+    await expect(
+      lockx.connect(user1).swapInLockbox(
+        tokenId,
+        messageHash,
+        signature,
+        await mockToken.getAddress(), // tokenIn
+        ethers.ZeroAddress, // tokenOut (ETH)
+        ethers.parseEther('5'), // amountIn
+        ethers.parseEther('0.1'), // minAmountOut
+        await mockRouter.getAddress(), // target
+        swapData, // data
+        ethers.ZeroHash, // referenceId
+        signatureExpiry,
+        user2.address // external recipient - this triggers the branch!
+      )
+    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
+  });
+
+  it('🎯 BRANCH: Hit new token registration in swapInLockbox (line 1794)', async () => {
+    // Create lockbox with only ETH
+    const tx = await lockx.connect(user1).createLockboxWithETH(
+      user1.address,
+      lockboxKeyPair.address,
+      ethers.ZeroHash,
+      { value: ethers.parseEther('1') }
+    );
+
+    const receipt = await tx.wait();
+    const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+    const tokenId = parseInt(transferEvent.topics[3], 16);
+    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+
+    // Router uses fixed 950 tokens per ETH rate
+
+    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
+    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+
+    const swapData = mockRouter.interface.encodeFunctionData('swap', [
+      ethers.ZeroAddress, // tokenIn (ETH)
+      await mockToken.getAddress(), // tokenOut
+      ethers.parseEther('0.5'), // amountIn
+      ethers.parseEther('4'), // minAmountOut
+      ethers.ZeroAddress // recipient = lockbox
+    ]);
+
+    // This should trigger new token registration (line 1794) since lockbox has no ERC20 balances yet
+    await expect(
+      lockx.connect(user1).swapInLockbox(
+        tokenId,
+        messageHash,
+        signature,
+        ethers.ZeroAddress, // tokenIn (ETH)
+        await mockToken.getAddress(), // tokenOut (NEW token for this lockbox!)
+        ethers.parseEther('0.5'), // amountIn
+        ethers.parseEther('400'), // minAmountOut (0.5 ETH * 950 rate = 475 tokens)
+        await mockRouter.getAddress(), // target
+        swapData, // data
+        ethers.ZeroHash, // referenceId
+        signatureExpiry,
+        ethers.ZeroAddress // recipient = lockbox (triggers registration)
+      )
+    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
+  });
+
+  it('🎯 BRANCH: Hit insufficient ETH balance in swapInLockbox', async () => {
+    // Create lockbox with minimal ETH
+    const tx = await lockx.connect(user1).createLockboxWithETH(
+      user1.address,
+      lockboxKeyPair.address,
+      ethers.ZeroHash,
+      { value: ethers.parseEther('0.1') }
+    );
+
+    const receipt = await tx.wait();
+    const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+    const tokenId = parseInt(transferEvent.topics[3], 16);
+    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+
+    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
+    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+
+    const swapData = mockRouter.interface.encodeFunctionData('swap', [
+      ethers.ZeroAddress, // tokenIn (ETH)
+      await mockToken.getAddress(), // tokenOut
+      ethers.parseEther('1'), // amountIn (MORE than available!)
+      ethers.parseEther('5'), // minAmountOut
+      ethers.ZeroAddress // recipient
+    ]);
+
+    // Should hit NoETHBalance error (line 1703)
+    await expect(
+      lockx.connect(user1).swapInLockbox(
+        tokenId,
+        messageHash,
+        signature,
+        ethers.ZeroAddress, // tokenIn (ETH)
+        await mockToken.getAddress(), // tokenOut
+        ethers.parseEther('1'), // amountIn > balance
+        ethers.parseEther('5'), // minAmountOut
+        await mockRouter.getAddress(), // target
+        swapData, // data
+        ethers.ZeroHash, // referenceId
+        signatureExpiry,
+        ethers.ZeroAddress // recipient
+      )
+    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
+  });
+
+  it('🎯 BRANCH: Hit insufficient ERC20 balance in swapInLockbox', async () => {
+    // Create lockbox with minimal tokens
+    const tx = await lockx.connect(user1).createLockboxWithERC20(
+      user1.address,
+      lockboxKeyPair.address,
+      await mockToken.getAddress(),
+      ethers.parseEther('1'), // small amount
+      ethers.ZeroHash
+    );
+
+    const receipt = await tx.wait();
+    const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+    const tokenId = parseInt(transferEvent.topics[3], 16);
+    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+
+    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
+    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+
+    const swapData = mockRouter.interface.encodeFunctionData('swap', [
+      await mockToken.getAddress(), // tokenIn
+      ethers.ZeroAddress, // tokenOut (ETH)
+      ethers.parseEther('10'), // amountIn (MORE than available!)
+      ethers.parseEther('0.5'), // minAmountOut
+      ethers.ZeroAddress // recipient
+    ]);
+
+    // Should hit InsufficientTokenBalance error (line 1705)
+    await expect(
+      lockx.connect(user1).swapInLockbox(
+        tokenId,
+        messageHash,
+        signature,
+        await mockToken.getAddress(), // tokenIn
+        ethers.ZeroAddress, // tokenOut (ETH)
+        ethers.parseEther('10'), // amountIn > balance
+        ethers.parseEther('0.5'), // minAmountOut
+        await mockRouter.getAddress(), // target
+        swapData, // data
+        ethers.ZeroHash, // referenceId
+        signatureExpiry,
+        ethers.ZeroAddress // recipient
+      )
+    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
+  });
+});

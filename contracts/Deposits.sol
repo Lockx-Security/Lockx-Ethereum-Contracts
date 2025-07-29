@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Copyright © 2025 Lockx. All Rights Reserved.
-// You may use, modify, and share this code for NON-COMMERCIAL purposes only.
-// Commercial use requires written permission from Lockx.
-// Change Date: January 1, 2029 | Change License: MIT
+// Copyright © 2025 Lockx. All rights reserved.
+// This software is licensed under the Business Source License 1.1 (BUSL-1.1).
+// You may use, modify, and distribute this code for non-commercial purposes only.
+// For commercial use, you must obtain a license from Lockx.io.
+// On or after January 1, 2029, this code will be made available under the MIT License.
 pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC721/IERC721.sol';
@@ -20,8 +21,10 @@ import './SignatureVerification.sol';
 abstract contract Deposits is SignatureVerification, IERC721Receiver, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
+
     /* ───────── Events ───────── */
     event Deposited(uint256 indexed tokenId, bytes32 indexed referenceId);
+
 
     /* ───────── Errors ───────── */
     error NonexistentToken();
@@ -29,6 +32,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     error ZeroAmount();
     error MismatchedInputs();
     error ETHMismatch();
+
 
     /* ───────── Storage ───────── */
 
@@ -49,6 +53,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     mapping(uint256 => mapping(bytes32 => nftBalances)) internal _lockboxNftData;
     mapping(uint256 => mapping(bytes32 => uint256)) internal _nftIndex;
 
+
     /* ───────── Guards ───────── */
     function _requireOwnsLockbox(uint256 tokenId) internal view {
         if (_erc721.ownerOf(tokenId) != msg.sender) revert NotOwner();
@@ -63,6 +68,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         if (owner == address(0)) revert NonexistentToken();
     }
 
+
     /* ───────── IERC721Receiver ───────── */
     function onERC721Received(
         address,
@@ -73,7 +79,8 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         return this.onERC721Received.selector;
     }
 
-    /* ══════════════════  USER-FACING DEPOSIT WRAPPERS  ══════════════════ */
+
+    /* ─────────────────── Lockbox deposits ────────────────────── */
 
     /*
      * @notice Deposit ETH into a Lockbox.
@@ -166,7 +173,8 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         emit Deposited(tokenId, referenceId);
     }
 
-    /* ══════════════════  INTERNAL DEPOSIT HELPERS  ══════════════════ */
+
+    /* ────────────── Internal deposit helpers ────────────── */
 
     /*
      * @dev Internal helper for ETH deposits.
@@ -242,7 +250,8 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         }
     }
 
-    /* ══════════════════  REMOVAL UTILITIES  ══════════════════ */
+
+    /* ───────────────────- Removal utilities ────────────────────── */
 
     /*
      * @dev Remove an ERC-20 token address from the tracking array.
