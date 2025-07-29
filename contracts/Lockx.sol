@@ -1,14 +1,16 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Copyright © 2025 Lockx. All Rights Reserved.
-// You may use, modify, and share this code for NON-COMMERCIAL purposes only.
-// Commercial use requires written permission from Lockx.
-// Change Date: January 1, 2029 | Change License: MIT
+// Copyright © 2025 Lockx. All rights reserved.
+// This software is licensed under the Business Source License 1.1 (BUSL-1.1).
+// You may use, modify, and distribute this code for non-commercial purposes only.
+// For commercial use, you must obtain a license from Lockx.io.
+// On or after January 1, 2029, this code will be made available under the MIT License.
 pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
 import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
+import '@openzeppelin/contracts/utils/Strings.sol';
 import './Withdrawals.sol';
 import './SignatureVerification.sol';
 
@@ -23,13 +25,14 @@ interface IERC5192 {
 
 /**
  * @title Lockx
- * @dev Core soul-bound ERC-721 contract for Lockbox creation and wrapping flows
+ * @dev Core soul-bound ERC-721 contract for Lockbox creation, key rotation, metadata management, and burning.
  *      Implements ERC-5192 (soulbound standard) for non-transferability.
  *      Inherits the Withdrawals smart contract which inherits Deposits and SignatureVerification contracts.
  */
 contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
-    /// @dev Next token ID to mint (auto-incremented per mint.
+    /// @dev Next token ID to mint (auto-incremented per mint).
     uint256 private _nextId;
+
 
     /* ─────────── Custom errors ───────── */
     error ZeroTokenAddress();
@@ -42,6 +45,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error FallbackNotAllowed();
     error SelfMintOnly();
 
+
     /* ───────────────────────── Metadata storage ────────────────────────── */
     string private _defaultMetadataURI;
     mapping(uint256 => string) private _tokenMetadataURIs;
@@ -49,6 +53,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /// Emitted whenever a per-token metadata URI is set/updated.
     event TokenMetadataURISet(uint256 indexed tokenId, bytes32 indexed referenceId);
     event Minted(uint256 indexed tokenId, bytes32 indexed referenceId);
+    event LockboxBurned(uint256 indexed tokenId, bytes32 indexed referenceId);
+    event KeyRotated(uint256 indexed tokenId, bytes32 indexed referenceId);
+
 
     /* ─────────────────────────── Constructor ───────────────────────────── */
 
@@ -58,10 +65,6 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
      */
     constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {}
 
-    /* ─────────── Lockbox callback (burn underlying ERC-721) ───────────── */
-    function _burnLockboxNFT(uint256 tokenId) internal override {
-        _burn(tokenId);
-    }
 
     /* ───────────────────────── Minting + wrapping flows ───────────────────────── */
 
@@ -207,6 +210,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         emit Minted(tokenId, referenceId);
     }
 
+
     /* ──────────────────────── Default metadata management ──────────────────────── */
 
     /**
@@ -273,16 +277,148 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /**
      * @notice Returns the metadata URI for a Lockbox.
      * @param tokenId The ID of the token to query.
-     * @return The custom URI if set; otherwise the default URI.
+     * @return The custom URI if set; otherwise the default URI with tokenId appended.
      * @dev Reverts if neither custom nor default URI is available.
      */
     function tokenURI(uint256 tokenId) public view override(ERC721) returns (string memory) {
         if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         string memory custom = _tokenMetadataURIs[tokenId];
         if (bytes(custom).length > 0) return custom;
-        if (bytes(_defaultMetadataURI).length > 0) return _defaultMetadataURI;
+        if (bytes(_defaultMetadataURI).length > 0) {
+            return string(abi.encodePacked(_defaultMetadataURI, Strings.toString(tokenId)));
+        }
         revert NoURI();
     }
+
+    
+    /* ─────────────────── Lockbox key rotation ──────────────────── */
+
+    /*
+     * @notice Rotate the off-chain authorization key for a Lockbox.
+     * @param tokenId         The ID of the Lockbox.
+     * @param messageHash     The EIP-712 digest that was signed.
+     * @param signature       The EIP-712 signature by the active Lockbox key.
+     * @param newPublicKey    The new authorized Lockbox public key.
+     * @param referenceId     External reference ID for off-chain tracking.
+     * @param signatureExpiry UNIX timestamp after which the signature is invalid.
+     *
+     * Requirements:
+     * - `tokenId` must exist and caller must be its owner.
+     * - `block.timestamp` must be ≤ `signatureExpiry`.
+     */
+    function rotateLockboxKey(
+        uint256 tokenId,
+        bytes32 messageHash,
+        bytes memory signature,
+        address newPublicKey,
+        bytes32 referenceId,
+        uint256 signatureExpiry
+    ) external nonReentrant {
+        _requireOwnsLockbox(tokenId);
+        if (block.timestamp > signatureExpiry) revert SignatureExpired();
+
+        bytes memory data = abi.encode(
+            tokenId,
+            newPublicKey,
+            referenceId,
+            msg.sender,
+            signatureExpiry
+        );
+        verifySignature(
+            tokenId,
+            messageHash,
+            signature,
+            newPublicKey,
+            OperationType.ROTATE_KEY,
+            data
+        );
+        emit KeyRotated(tokenId, referenceId);
+    }
+
+
+    /* ─────────────────── Lockbox burning ──────────────────── */
+
+    function _burnLockboxNFT(uint256 tokenId) internal {
+        _burn(tokenId);
+    }
+
+    /*
+     * @notice Authenticated burn of a Lockbox, clearing all assets and burning the NFT.
+     * @param tokenId         The ID of the Lockbox.
+     * @param messageHash     The EIP-712 digest that was signed.
+     * @param signature       The EIP-712 signature by the active Lockbox key.
+     * @param referenceId     External reference ID for off-chain tracking.
+     * @param signatureExpiry UNIX timestamp after which the signature is invalid.
+     *
+     * Requirements:
+     * - `tokenId` must exist and caller must be its owner.
+     * - `block.timestamp` must be ≤ `signatureExpiry`.
+     */
+    function burnLockbox(
+        uint256 tokenId,
+        bytes32 messageHash,
+        bytes memory signature,
+        bytes32 referenceId,
+        uint256 signatureExpiry
+    ) external nonReentrant {
+        _requireOwnsLockbox(tokenId);
+        if (block.timestamp > signatureExpiry) revert SignatureExpired();
+
+        bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
+        verifySignature(
+            tokenId,
+            messageHash,
+            signature,
+            address(0),
+            OperationType.BURN_LOCKBOX,
+            data
+        );
+
+        _finalizeBurn(tokenId);
+        emit LockboxBurned(tokenId, referenceId);
+    }
+
+    /**
+     * @dev Internal helper called by `burnLockbox`.
+     *      - Wipes all ETH / ERC20 / ERC721 bookkeeping for the Lockbox.
+     *      - Delegates the actual ERC-721 burn to `_burnLockboxNFT` (implemented above).
+     */
+    function _finalizeBurn(uint256 tokenId) internal {
+        /* ---- ETH ---- */
+        delete _ethBalances[tokenId];
+
+        /* ---- ERC-20 balances ---- */
+        address[] storage toks = _erc20TokenAddresses[tokenId];
+        // Cache array in memory to avoid repeated SLOADs
+        address[] memory toksCached = toks;
+        for (uint256 i; i < toksCached.length; ) {
+            address t = toksCached[i];
+            delete _erc20Balances[tokenId][t];
+            delete _erc20Index[tokenId][t];
+            unchecked {
+                ++i;
+            }
+        }
+        delete _erc20TokenAddresses[tokenId];
+
+        /* ---- ERC-721 bookkeeping ---- */
+        bytes32[] storage keys = _nftKeys[tokenId];
+        // Cache array in memory to avoid repeated SLOADs
+        bytes32[] memory keysCached = keys;
+        for (uint256 i; i < keysCached.length; ) {
+            bytes32 k = keysCached[i];
+            delete _lockboxNftData[tokenId][k];
+            unchecked {
+                ++i;
+            }
+        }
+        delete _nftKeys[tokenId];
+
+        /* ---- finally burn the NFT itself ---- */
+        _burnLockboxNFT(tokenId);
+        _purgeAuth(tokenId);
+    }
+
 
     /* ────────────────────── Soul-bound mechanics (ERC-5192) ────────────── */
 
@@ -297,7 +433,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         return true;
     }
 
-    /// Disable any transfer—soul‐bound enforcement and handle metadata cleanup on burn.
+    /// Override _update to enforce soulbound behavior (prevent transfers) and cleanup metadata on burn.
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
         address from = _ownerOf(tokenId);
         if (from != address(0) && to != address(0)) {
@@ -320,6 +456,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         // everything else (ERC-721, ERC-165)
         return super.supportsInterface(interfaceId);
     }
+
 
     /* ───────────────────────── Fallback handlers ───────────────────────── */
     receive() external payable {

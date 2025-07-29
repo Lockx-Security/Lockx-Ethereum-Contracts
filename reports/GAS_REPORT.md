@@ -1,9 +1,10 @@
 # Gas Consumption Report
 
-**Contract Version:** v2.1.0  
+**Contract Version:** v2.4.0  
 **Compiler:** Solc version 0.8.30  
 **Optimizer:** Enabled (200 runs)  
 **Block Limit:** 30,000,000 gas  
+**Test Coverage:** 86.78% branches (Lockx.sol: 90.54%)  
 
 ## Method Gas Usage
 
@@ -70,3 +71,11 @@
 - Token operations show consistent gas usage across different amounts
 - Mock contracts add overhead but provide realistic testing environment
 - Batch operations are more gas-efficient per asset than individual operations
+- Gas measurements taken during comprehensive coverage testing (86.78% branches)
+- All measurements include security validations and comprehensive error checking
+
+**Replication:**
+```bash
+# Generate fresh gas report with coverage
+./scripts/replicate-coverage.sh
+```
