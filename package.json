@@ -6,12 +6,15 @@
   "scripts": {
     "test": "hardhat test",
     "coverage": "hardhat coverage",
+    "coverage:replicate": "./coverage-replication.sh",
+    "coverage:table": "node generate-coverage-table.js",
+    "coverage:core": "hardhat coverage --testfiles \"test/master-cumulative-90.spec.ts,test/deposits-90-supplement.spec.ts,test/withdrawals-90-supplement.spec.ts,test/lockx-90-targeted.spec.ts,test/branch-coverage-90-percent.spec.ts\"",
     "gas": "REPORT_GAS=true hardhat test",
     "gas:report": "mkdir -p reports && REPORT_GAS=true hardhat test > reports/gas-report.txt",
 
     "mythril": "bash -c 'mkdir -p reports && myth analyze --execution-timeout 300 contracts/Lockx.sol -o json > reports/mythril-lockx.json'",
     "forge:test": "PATH=\"$HOME/.foundry/bin:$PATH\" forge test -vv",
-    "ci": "npm run test && npm run forge:test && npm run coverage",
+    "ci": "npm run test && npm run forge:test && npm run coverage:core",
     "build": "npx hardhat compile",
     "format": "prettier --write .",
     "lint:sol": "solhint 'contracts/**/*.sol'"

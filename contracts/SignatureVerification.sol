@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: BUSL-1.1
-// Copyright © 2025 Lockx. All Rights Reserved.
-// You may use, modify, and share this code for NON-COMMERCIAL purposes only.
-// Commercial use requires written permission from Lockx.
-// Change Date: January 1, 2029 | Change License: MIT
+// Copyright © 2025 Lockx. All rights reserved.
+// This software is licensed under the Business Source License 1.1 (BUSL-1.1).
+// You may use, modify, and distribute this code for non-commercial purposes only.
+// For commercial use, you must obtain a license from Lockx.io.
+// On or after January 1, 2029, this code will be made available under the MIT License.
 pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
@@ -46,12 +47,14 @@ contract SignatureVerification is EIP712 {
     /// @dev Mapping from Lockbox token ID to its TokenAuth.
     mapping(uint256 => TokenAuth) private _tokenAuth;
 
+
     /* ─────────────────── Errors ────────────────────── */
     error NotOwner();
     error InvalidMessageHash();
     error InvalidSignature();
     error AlreadyInitialized();
     error ZeroKey();
+
 
     /* ─────────────────── EIP-712 setup ───────────────────── */
 
@@ -147,6 +150,7 @@ contract SignatureVerification is EIP712 {
     function _purgeAuth(uint256 tokenId) internal {
         delete _tokenAuth[tokenId];
     }
+
 
     /* ─────────────────── Token-gated view functions ────────────────────── */
 
