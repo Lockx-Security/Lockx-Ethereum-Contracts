@@ -50,7 +50,6 @@ This patch release consolidates the test infrastructure, improves deployment doc
 - **Professional Organization**: Consolidated test suite with clear, descriptive test cases
 
 ---
-
 ## [3.0.0] - 2025-07-29
 
 ### 🚀 **MAJOR RELEASE: Enhanced Swap Functionality & Contract Architecture**
@@ -58,13 +57,11 @@ This patch release consolidates the test infrastructure, improves deployment doc
 This release introduces significant architectural improvements, enhanced swap functionality, and breaking changes to the EIP-712 signature system.
 
 ### ⚡ **Breaking Changes**
-
 - **EIP-712 Domain Version**: Updated from `v2` to `v3` in SignatureVerification.sol
   - All existing signatures generated with v2 will become invalid
   - Applications must regenerate signatures using the new domain separator
 
 ### 🔄 **Contract Architecture Refactoring**
-
 - **Function Consolidation**: Moved `rotateLockboxKey()` and `burnLockbox()` from Withdrawals.sol to Lockx.sol
   - Provides better logical grouping of lockbox management functions
   - Reduces contract complexity and improves maintainability
@@ -74,7 +71,6 @@ This release introduces significant architectural improvements, enhanced swap fu
   - Direct existence checks using balance/data lookups
 
 ### ✨ **Enhanced Swap Functionality**
-
 - **Recipient Parameter Support**: `swapInLockbox()` now supports direct external transfers
   - Send swapped tokens directly to any recipient address
   - Using `address(0)` maintains original behavior (credits lockbox)
@@ -86,14 +82,12 @@ This release introduces significant architectural improvements, enhanced swap fu
 - **Event Improvements**: Simplified `SwapExecuted` event for better privacy
 
 ### 📋 **Metadata Management System**
-
 - **Default Metadata URI**: Added `setDefaultMetadataURI()` for contract-wide default
 - **Token-Specific Metadata**: Enhanced `setTokenMetadataURI()` with signature protection
 - **Fallback System**: `tokenURI()` checks custom URI first, then falls back to default
 - **Access Control**: Owner-only default URI setting with one-time initialization
 
 ### 🧪 **Testing Infrastructure Overhaul**
-
 - **Test Suite Consolidation**: Reduced from 20+ files to focused professional structure
   - Systematic coverage phases (systematic-coverage-phase1-20.spec.ts)
   - Advanced targeting (advanced-branch-coverage.spec.ts, comprehensive-edge-cases.spec.ts)
@@ -104,14 +98,12 @@ This release introduces significant architectural improvements, enhanced swap fu
   - All 7 invariants passing across 4 test suites
 
 ### ⚡ **Gas Optimizations**
-
 - **Memory Caching**: Array operations now cache in memory during loops
 - **Smart Allowance Management**: Check existing allowance before setting to zero
 - **Reduced Storage Access**: Direct balance checks instead of mapping lookups
 - **Total Savings**: 10,000-30,000+ gas depending on operation type
 
 ### 📊 **Test Results**
-
 ```
 Hardhat Unit Tests:
 - 84.3% overall branch coverage (some failing tests due to complex infrastructure)
@@ -125,7 +117,6 @@ Foundry Invariant Tests:
 ```
 
 ### 🔧 **Development Experience**
-
 - **Professional File Naming**: Consistent naming patterns across test suite
 - **Improved Documentation**: Updated all test documentation to reflect current state
 - **Replication Guide**: Added `REPLICATION_GUIDE.md` with exact commands to reproduce results
@@ -136,19 +127,17 @@ Foundry Invariant Tests:
 For applications integrating with these contracts:
 
 1. **Signature Updates**:
-
    ```javascript
    // Update domain version from '2' to '3'
    const domain = {
      name: 'Lockx',
      version: '3', // Changed from '2'
      chainId: chainId,
-     verifyingContract: contractAddress,
+     verifyingContract: contractAddress
    };
    ```
 
 2. **Function Calls**:
-
    - `rotateLockboxKey()`: Now called on Lockx contract instead of Withdrawals
    - `burnLockbox()`: Now called on Lockx contract instead of Withdrawals
 
