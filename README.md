@@ -32,7 +32,6 @@ The Lockx smart contracts are open source with comprehensive security validation
 - **Core Contract Coverage**: Lockx.sol achieves 90.54% branch coverage (exceeds 90% target)
 
 **Testing Results:**
-
 ```
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
@@ -44,7 +43,6 @@ contracts/               |    98.51 |    84.3  |      100 |    98.3  |
 ```
 
 All tests are publicly available and replicable:
-
 ```bash
 # Clone and test locally
 git clone [repo-url]
@@ -55,7 +53,6 @@ forge test --match-contract Invariant
 ---
 
 🧪 **Testing framework**
-
 - **Systematic Phase Testing**: 20 phase-based test files targeting specific branches
 - **Hardhat testing suite** with 84.3% branch coverage and 380+ individual tests
 - **Foundry testing** with 7 invariant tests executing 25 million operations
@@ -63,7 +60,6 @@ forge test --match-contract Invariant
 - **Property-based testing** validating system invariants and balance consistency
 
 📊 **Test coverage**
-
 - **Current Achievement**: 84.3% branch coverage (208/242 branches)
 - **Working Test Suite**: `systematic-core-suite.spec.ts` (5 passing tests) and systematic phases
 - **Foundry Invariants**: 25 million randomized operations across 7 test cases
@@ -133,7 +129,6 @@ open coverage/index.html
 ```
 
 **Primary Test Files:**
-
 - `systematic-core-suite.spec.ts` - **RELIABLE**: Core working test suite (5 passing tests)
 - `systematic-coverage-phase*.spec.ts` - **COMPREHENSIVE**: Phase-based systematic testing (20 files)
 - `advanced-branch-coverage.spec.ts` - Advanced branch targeting techniques
@@ -149,7 +144,6 @@ forge test --match-contract Invariant --profile production  # 250M operations
 ```
 
 **Invariant test results (all passing):**
-
 - Contract ETH balance matches accounting ✅ (1000 runs × 25,000 calls)
 - Contract ERC20 balance matches accounting ✅ (1000 runs × 25,000 calls)
 - Nonces are monotonically increasing ✅ (1000 runs × 25,000 calls)
