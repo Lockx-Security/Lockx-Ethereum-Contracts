@@ -107,22 +107,51 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
 
-    // Create a dummy signature for burnLockbox
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const dummySignature = ethers.toUtf8Bytes("dummy_signature_test");
+    // Create proper TypedData signature for burnLockbox
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
+    const referenceId = ethers.ZeroHash;
+    
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
+    
+    const burnData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'bytes32', 'address', 'uint256'],
+      [tokenId, referenceId, user1.address, signatureExpiry]
+    );
+    
+    const burnValue = {
+      tokenId: tokenId,
+      nonce: await lockx.connect(user1).getNonce(tokenId),
+      opType: 4, // BURN_LOCKBOX
+      dataHash: ethers.keccak256(burnData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, burnValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
 
     // This should hit the "else" (successful) path of the nonReentrant modifier
-    // Even though signature will be invalid, we get past the reentrancy guard first
     await expect(
       lockx.connect(user1).burnLockbox(
         tokenId,
         messageHash,
-        dummySignature,
-        ethers.ZeroHash, // referenceId
+        signature,
+        referenceId,
         signatureExpiry
       )
-    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash'); // Gets past reentrancy guard, hits signature verification
+    ).to.emit(lockx, 'LockboxBurned'); // Should succeed with proper signature
   });
 
   it('🎯 BRANCH: Hit successful ReentrancyGuard path in rotateLockboxKey', async () => {
@@ -138,22 +167,52 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
 
-    // Create a dummy signature
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const dummySignature = ethers.toUtf8Bytes("dummy_signature_test");
+    // Create proper TypedData signature for rotateLockboxKey
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
+    const referenceId = ethers.ZeroHash;
+    
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
+    
+    const rotateData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'address', 'bytes32', 'address', 'uint256'],
+      [tokenId, user2.address, referenceId, user1.address, signatureExpiry]
+    );
+    
+    const rotateValue = {
+      tokenId: tokenId,
+      nonce: await lockx.connect(user1).getNonce(tokenId),
+      opType: 0, // ROTATE_KEY
+      dataHash: ethers.keccak256(rotateData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, rotateValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, rotateValue);
 
     // This should hit the "else" (successful) path of the nonReentrant modifier
     await expect(
       lockx.connect(user1).rotateLockboxKey(
         tokenId,
         messageHash,
-        dummySignature,
+        signature,
         user2.address, // new key
-        ethers.ZeroHash, // referenceId
+        referenceId,
         signatureExpiry
       )
-    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash'); // Gets past reentrancy guard, hits signature verification
+    ).to.emit(lockx, 'KeyRotated'); // Should succeed with proper signature
   });
 
   it('🎯 BRANCH: Hit successful ReentrancyGuard path in setTokenMetadataURI', async () => {
@@ -169,21 +228,52 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
 
-    // Create a dummy signature
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const dummySignature = ethers.toUtf8Bytes("dummy_signature_test");
+    // Create proper TypedData signature for setTokenMetadataURI
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
+    const referenceId = ethers.ZeroHash;
+    const metadataURI = "https://example.com/metadata.json";
+    
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
+    
+    const uriData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'string', 'bytes32', 'address', 'uint256'],
+      [tokenId, metadataURI, referenceId, user1.address, signatureExpiry]
+    );
+    
+    const uriValue = {
+      tokenId: tokenId,
+      nonce: await lockx.connect(user1).getNonce(tokenId),
+      opType: 5, // SET_TOKEN_URI
+      dataHash: ethers.keccak256(uriData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, uriValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, uriValue);
 
     // This should hit the "else" (successful) path of the nonReentrant modifier
     await expect(
       lockx.connect(user1).setTokenMetadataURI(
         tokenId,
         messageHash,
-        dummySignature,
-        "https://example.com/metadata.json",
-        ethers.ZeroHash, // referenceId
+        signature,
+        metadataURI,
+        referenceId,
         signatureExpiry
       )
-    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash'); // Gets past reentrancy guard, hits signature verification
+    ).to.emit(lockx, 'TokenMetadataURISet'); // Should succeed with proper signature
   });
 });

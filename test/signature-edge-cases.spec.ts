@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 SIGNATURE VERIFICATION MISSING BRANCHES', () => {
   let lockx, owner, user1, user2, lockboxKeyPair;

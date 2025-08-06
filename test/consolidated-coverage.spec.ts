@@ -47,7 +47,7 @@ describe('Consolidated Branch Coverage Tests', () => {
     const { chainId } = await ethers.provider.getNetwork();
     return {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId,
       verifyingContract,
     };
@@ -249,7 +249,7 @@ describe('Consolidated Branch Coverage Tests', () => {
         );
         
         const uri = await lockx.tokenURI(0);
-        expect(uri).to.equal('https://example.com/metadata/');
+        expect(uri).to.equal('https://example.com/metadata/0');
       });
 
       it('should revert setTokenMetadataURI with empty URI', async () => {
@@ -2100,7 +2100,8 @@ describe('Consolidated Branch Coverage Tests', () => {
           swapTokenId, messageHash, signature,
           await erc20.getAddress(), ethers.ZeroAddress,
           ethers.parseEther('100'), ethers.parseEther('90'),
-          user.address, '0x', ethers.ZeroHash, expiredTime
+          user.address, '0x', ethers.ZeroHash, expiredTime,
+          user.address  // recipient
         )
       ).to.be.revertedWithCustomError(lockx, 'SignatureExpired');
     });
@@ -2112,7 +2113,8 @@ describe('Consolidated Branch Coverage Tests', () => {
           await erc20.getAddress(), ethers.ZeroAddress,
           ethers.parseEther('100'), ethers.parseEther('90'),
           ethers.ZeroAddress, '0x', ethers.ZeroHash,
-          (await ethers.provider.getBlock('latest'))!.timestamp + 3600
+          (await ethers.provider.getBlock('latest'))!.timestamp + 3600,
+          user.address  // recipient
         )
       ).to.be.revertedWithCustomError(lockx, 'ZeroAddress');
     });
@@ -2124,7 +2126,8 @@ describe('Consolidated Branch Coverage Tests', () => {
           await erc20.getAddress(), ethers.ZeroAddress,
           0, ethers.parseEther('90'), // Zero input amount
           user.address, '0x', ethers.ZeroHash,
-          (await ethers.provider.getBlock('latest'))!.timestamp + 3600
+          (await ethers.provider.getBlock('latest'))!.timestamp + 3600,
+          user.address  // recipient
         )
       ).to.be.revertedWithCustomError(lockx, 'ZeroAmount');
     });
@@ -2136,7 +2139,8 @@ describe('Consolidated Branch Coverage Tests', () => {
           await erc20.getAddress(), await erc20.getAddress(), // Same token
           ethers.parseEther('100'), ethers.parseEther('90'),
           user.address, '0x', ethers.ZeroHash,
-          (await ethers.provider.getBlock('latest'))!.timestamp + 3600
+          (await ethers.provider.getBlock('latest'))!.timestamp + 3600,
+          user.address  // recipient
         )
       ).to.be.revertedWithCustomError(lockx, 'InvalidSwap');
     });
@@ -2169,7 +2173,8 @@ describe('Consolidated Branch Coverage Tests', () => {
           swapTokenId, messageHash, signature,
           await erc20.getAddress(), ethers.ZeroAddress,
           ethers.parseEther('100'), ethers.parseEther('90'),
-          user.address, swapData, ethers.ZeroHash, expiry
+          user.address, swapData, ethers.ZeroHash, expiry,
+          user.address  // recipient
         )
       ).to.be.reverted; // Expected to fail but will hit validation branches
     });
@@ -2455,7 +2460,7 @@ describe('Consolidated Branch Coverage Tests', () => {
         if (defaultTokenId !== null) {
           // This should hit the default URI branch and return the default URI
           const tokenURI = await lockx.tokenURI(defaultTokenId);
-          expect(tokenURI).to.equal('https://api.lockx.io/metadata/');
+          expect(tokenURI).to.equal('https://api.lockx.io/metadata/1');
         }
       });
 
@@ -2570,7 +2575,7 @@ describe('Consolidated Branch Coverage Tests', () => {
         ).to.be.reverted; // Will fail on signature validation but zero address check exists in contract
         
         // Test NFT withdrawal for non-existent NFT in lockbox
-        const nonce2 = await lockx.connect(user).getNonce(edgeTokenId);
+        const nftNonce = await lockx.connect(user).getNonce(edgeTokenId);
         const nonExistentNFTId = 999;
         const data2 = ethers.AbiCoder.defaultAbiCoder().encode(
           ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
@@ -2578,7 +2583,7 @@ describe('Consolidated Branch Coverage Tests', () => {
         );
         const dataHash2 = ethers.keccak256(data2);
         const domain = await buildDomain(await lockx.getAddress());
-        const opStruct2 = { tokenId: edgeTokenId, nonce: nonce2, opType: OPERATION_TYPE.WITHDRAW_NFT, dataHash: dataHash2 };
+        const opStruct2 = { tokenId: edgeTokenId, nonce: nftNonce, opType: OPERATION_TYPE.WITHDRAW_NFT, dataHash: dataHash2 };
         const signature2 = await edgeKeyWallet.signTypedData(domain, types, opStruct2);
         const messageHash2 = ethers.TypedDataEncoder.hash(domain, types, opStruct2);
 

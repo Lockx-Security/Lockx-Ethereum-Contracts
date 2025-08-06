@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
   let lockx, mockToken, mockNFT, owner, user1, user2, lockboxKeyPair, newKeyPair;
@@ -34,12 +34,13 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     // Create a lockbox to work with
     const ethAmount = ethers.parseEther('1');
     await lockx.connect(user1).createLockboxWithETH(
+      user1.address,
       lockboxKeyPair.address,
-      'Test Lockbox',
+      ethers.ZeroHash,
       { value: ethAmount }
     );
     
-    const tokenId = 1;
+    const tokenId = 0;
     
     // ✅ HIT BRANCH: getActiveLockboxPublicKeyForToken - onlyTokenOwner modifier success path
     const activePubKey = await lockx.connect(user1).getActiveLockboxPublicKeyForToken(tokenId);
@@ -70,7 +71,7 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     // ✅ HIT BRANCH: verifySignature - valid signature path
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -85,9 +86,13 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     };
     
     // Test ROTATE_KEY operation to hit key rotation branch
+    const referenceId = ethers.keccak256(ethers.toUtf8Bytes('rotate1'));
+    const currentBlock = await ethers.provider.getBlock('latest');
+    const signatureExpiry = currentBlock.timestamp + 86400; // 24 hours from current block
+    
     const rotateData = ethers.AbiCoder.defaultAbiCoder().encode(
-      ['address'],
-      [newKeyPair.address]
+      ['uint256', 'address', 'bytes32', 'address', 'uint256'],
+      [tokenId, newKeyPair.address, referenceId, user1.address, signatureExpiry]
     );
     
     const rotateValue = {
@@ -105,7 +110,9 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
       tokenId,
       rotateMessageHash,
       rotateSignature,
-      newKeyPair.address
+      newKeyPair.address,
+      referenceId,
+      signatureExpiry
     );
     
     // Verify the key was rotated
@@ -113,14 +120,19 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     expect(newActivePubKey).to.equal(newKeyPair.address);
     
     // ✅ HIT BRANCH: verifySignature - InvalidSignature revert path (wrong signer)
+    const withdrawReferenceId = ethers.keccak256(ethers.toUtf8Bytes('withdraw1'));
+    const currentBlock3 = await ethers.provider.getBlock('latest');
+    const withdrawSignatureExpiry = currentBlock3.timestamp + 86400;
+    
     const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
-      ['uint256', 'address'],
-      [ethAmount, user1.address]
+      ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+      [tokenId, ethAmount, user1.address, withdrawReferenceId, user1.address, withdrawSignatureExpiry]
     );
     
+    const nonce = await lockx.connect(user1).getNonce(tokenId);
     const withdrawValue = {
       tokenId: tokenId,
-      nonce: 2, // Updated nonce after rotation
+      nonce: nonce, // Updated nonce after rotation
       opType: 1, // WITHDRAW_ETH
       dataHash: ethers.keccak256(withdrawData)
     };
@@ -129,44 +141,61 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     const badSignature = await lockboxKeyPair.signTypedData(domain, types, withdrawValue);
     const withdrawMessageHash = ethers.TypedDataEncoder.hash(domain, types, withdrawValue);
     
-    try {
-      await lockx.connect(user1).withdrawETH(
+    await expect(
+      lockx.connect(user1).withdrawETH(
         tokenId,
         withdrawMessageHash,
         badSignature,
         ethAmount,
-        user1.address
-      );
-      expect.fail('Should have reverted');
-    } catch (error) {
-      expect(error.message).to.include('InvalidSignature');
-    }
+        user1.address,
+        withdrawReferenceId,
+        withdrawSignatureExpiry
+      )
+    ).to.be.revertedWithCustomError(lockx, 'InvalidSignature');
     
     // ✅ HIT BRANCH: verifySignature - InvalidMessageHash revert path
-    const wrongMessageHash = ethers.keccak256(ethers.toUtf8Bytes('wrong hash'));
+    // Create an invalid message hash by using wrong data
+    const withdrawReferenceId2 = ethers.keccak256(ethers.toUtf8Bytes('withdraw2'));
+    const currentBlock4 = await ethers.provider.getBlock('latest');
+    const withdrawSignatureExpiry2 = currentBlock4.timestamp + 86400;
+    
+    const wrongWithdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+      [tokenId, ethAmount, user1.address, withdrawReferenceId2, user1.address, withdrawSignatureExpiry2]
+    );
+    
+    const wrongWithdrawValue = {
+      tokenId: tokenId,
+      nonce: 1, // Wrong nonce (should be 2 after rotation)
+      opType: 1, // WITHDRAW_ETH
+      dataHash: ethers.keccak256(wrongWithdrawData)
+    };
+    const wrongMessageHash = ethers.TypedDataEncoder.hash(domain, types, wrongWithdrawValue);
     const validSignature = await newKeyPair.signTypedData(domain, types, withdrawValue);
     
-    try {
-      await lockx.connect(user1).withdrawETH(
+    await expect(
+      lockx.connect(user1).withdrawETH(
         tokenId,
-        wrongMessageHash, // Wrong hash
+        wrongMessageHash, // Wrong hash - created with wrong nonce
         validSignature,
         ethAmount,
-        user1.address
-      );
-      expect.fail('Should have reverted');
-    } catch (error) {
-      expect(error.message).to.include('InvalidMessageHash');
-    }
+        user1.address,
+        withdrawReferenceId2,
+        withdrawSignatureExpiry2
+      )
+    ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
     
     // ✅ HIT BRANCH: verifySignature - successful path with new key
     const correctSignature = await newKeyPair.signTypedData(domain, types, withdrawValue);
+    
     await lockx.connect(user1).withdrawETH(
       tokenId,
       withdrawMessageHash,
       correctSignature,
       ethAmount,
-      user1.address
+      user1.address,
+      withdrawReferenceId,
+      withdrawSignatureExpiry
     );
     
     // ✅ HIT BRANCH: initialize - AlreadyInitialized revert path
@@ -187,22 +216,26 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     }
     
     // Create another lockbox to test additional paths
-    await lockx.connect(user1).createLockboxWithETH(
+    const tx2 = await lockx.connect(user1).createLockboxWithETH(
+      user1.address,
       lockboxKeyPair.address,
-      'Second Lockbox',
+      ethers.ZeroHash,
       { value: ethers.parseEther('0.5') }
     );
     
-    const tokenId2 = 2;
+    // Get actual tokenId from transaction
+    const receipt2 = await tx2.wait();
+    const transferEvent2 = receipt2.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+    const tokenId2 = parseInt(transferEvent2.topics[3], 16);
     
     // Test getNonce with different token
-    const nonce2 = await lockx.connect(user1).getNonce(tokenId2);
-    expect(nonce2).to.equal(1);
+    const secondTokenNonce = await lockx.connect(user1).getNonce(tokenId2);
+    expect(secondTokenNonce).to.equal(1);
     
     // Test operations that don't rotate keys to hit the non-rotation branch
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -217,11 +250,17 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     };
     
     // Test BURN_LOCKBOX operation (different from ROTATE_KEY)
-    const burnData = ethers.AbiCoder.defaultAbiCoder().encode([], []);
+    const currentBlock2 = await ethers.provider.getBlock('latest');
+    const signatureExpiry = currentBlock2.timestamp + 86400; // 24 hours from current block
+    const burnData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'bytes32', 'address', 'uint256'],
+      [tokenId2, ethers.ZeroHash, user1.address, signatureExpiry]
+    );
     
+    const burnTokenNonce = await lockx.connect(user1).getNonce(tokenId2);
     const burnValue = {
       tokenId: tokenId2,
-      nonce: 1,
+      nonce: burnTokenNonce,
       opType: 4, // BURN_LOCKBOX
       dataHash: ethers.keccak256(burnData)
     };
@@ -233,7 +272,9 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     await lockx.connect(user1).burnLockbox(
       tokenId2,
       burnMessageHash,
-      burnSignature
+      burnSignature,
+      ethers.ZeroHash,
+      signatureExpiry
     );
     
     console.log('✅ Additional SignatureVerification branches covered!');

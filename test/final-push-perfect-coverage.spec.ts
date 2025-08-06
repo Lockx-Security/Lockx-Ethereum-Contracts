@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 FINAL PUSH TO PERFECT COVERAGE - HIT LAST 6 STATEMENTS', () => {
   let lockx, mockToken, mockTokenB, mockRouter, owner, user1, lockboxKeyPair;
@@ -79,7 +79,7 @@ describe('🎯 FINAL PUSH TO PERFECT COVERAGE - HIT LAST 6 STATEMENTS', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -148,7 +148,7 @@ describe('🎯 FINAL PUSH TO PERFECT COVERAGE - HIT LAST 6 STATEMENTS', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -238,7 +238,7 @@ describe('🎯 FINAL PUSH TO PERFECT COVERAGE - HIT LAST 6 STATEMENTS', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -328,12 +328,12 @@ describe('🎯 FINAL PUSH TO PERFECT COVERAGE - HIT LAST 6 STATEMENTS', () => {
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
     
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
     const referenceId = ethers.encodeBytes32String('swap-eth-recipient');
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 MISSING BRANCHES BOOST - TARGET HIGH IMPACT VALIDATION BRANCHES', () => {
   let lockx, mockToken, owner, user1, lockboxKeyPair;
@@ -38,7 +38,7 @@ describe('🎯 MISSING BRANCHES BOOST - TARGET HIGH IMPACT VALIDATION BRANCHES',
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

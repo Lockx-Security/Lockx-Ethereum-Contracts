@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
   let lockx, mockToken, owner, user1, lockboxKeyPair;
@@ -43,7 +43,7 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -117,7 +117,7 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -208,12 +208,14 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
         tokenId,
         ethers.keccak256(ethers.toUtf8Bytes('expired')),
         '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef12',
-        [],
-        [],
-        [],
-        [],
-        [],
-        expiredSignatureExpiry
+        0, // amountETH
+        [], // tokenAddresses
+        [], // tokenAmounts
+        [], // nftContracts
+        [], // nftTokenIds
+        user1.address, // recipient
+        ethers.ZeroHash, // referenceId
+        expiredSignatureExpiry // signatureExpiry
       );
       expect.fail('Should have reverted with SignatureExpired');
     } catch (error) {

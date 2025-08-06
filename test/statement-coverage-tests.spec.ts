@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 FINAL STATEMENTS COMPLETION - HIT LAST MISSING STATEMENTS', () => {
   let lockx, mockToken, mockTokenB, mockRouter, owner, user1, lockboxKeyPair;
@@ -51,7 +51,7 @@ describe('🎯 FINAL STATEMENTS COMPLETION - HIT LAST MISSING STATEMENTS', () =>
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -122,7 +122,7 @@ describe('🎯 FINAL STATEMENTS COMPLETION - HIT LAST MISSING STATEMENTS', () =>
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

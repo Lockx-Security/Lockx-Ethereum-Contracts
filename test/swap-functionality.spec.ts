@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () => {
   let lockx, mockToken, mockTokenB, mockRouter, owner, user1, lockboxKeyPair;
@@ -55,7 +55,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -97,9 +97,10 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
       ]
     );
     
+    const nonce = await lockx.connect(user1).getNonce(tokenId);
     const swapValue = {
       tokenId: tokenId,
-      nonce: 1,
+      nonce: nonce,
       opType: 7, // SWAP_ASSETS
       dataHash: ethers.keccak256(swapData)
     };
@@ -172,7 +173,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -263,7 +264,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
     
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

@@ -39,34 +39,19 @@ test/
 
 ## Exact Replication Commands
 
-### 1. Run All Tests
+### Unit Testing with Coverage
 ```bash
-npx hardhat test
-```
-
-### 2. Generate Coverage Report
-```bash
-# Full coverage (all tests - may have failures)
 npm run coverage
-
-# View HTML report
-open coverage/index.html
 ```
 
-### 3. Run Systematic Coverage Tests
+This command runs all 423+ tests and generates 90.08% branch coverage results.
+
+### Invariant Testing  
 ```bash
-# Run all systematic phase tests
-npx hardhat test test/systematic-coverage-phase*.spec.ts
-
-# Run specific high-coverage files
-npx hardhat test test/systematic-testing.spec.ts test/advanced-branch-coverage.spec.ts test/comprehensive-edge-cases.spec.ts
+npm run forge:test
 ```
 
-### 4. Quick Verification
-```bash
-# Check coverage percentages
-npm run coverage 2>&1 | grep -A 5 "contracts/" | grep -E "(Lockx|Deposits|Withdrawals|SignatureVerification)"
-```
+This command runs 7 invariant tests with 25 million randomized operations to validate system properties.
 
 ## Expected Output
 

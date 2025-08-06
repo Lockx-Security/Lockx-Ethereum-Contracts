@@ -19,7 +19,7 @@ contract MaliciousRouter {
         shouldLeaveAllowance[token] = leave;
     }
     
-    function swap(address tokenIn, address tokenOut, uint256 amountIn) external payable {
+    function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address recipient) external payable {
         if (tokenIn != address(0)) {
             // For ERC20 input
             IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
@@ -35,13 +35,15 @@ contract MaliciousRouter {
         // Output the configured amount
         uint256 outputAmount = outputAmounts[tokenOut];
         if (outputAmount > 0) {
+            require(outputAmount >= minAmountOut, "Slippage");
+            address actualRecipient = recipient == address(0) ? msg.sender : recipient;
             if (tokenOut == address(0)) {
                 // Send ETH
-                payable(msg.sender).transfer(outputAmount);
+                payable(actualRecipient).transfer(outputAmount);
             } else {
                 // Send ERC20 (we need to mint/have these tokens)
                 // For testing, we'll assume this router has the tokens
-                IERC20(tokenOut).transfer(msg.sender, outputAmount);
+                IERC20(tokenOut).transfer(actualRecipient, outputAmount);
             }
         }
     }

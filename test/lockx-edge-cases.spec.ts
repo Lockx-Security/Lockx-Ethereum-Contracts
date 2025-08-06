@@ -125,7 +125,7 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       // Test NoURI error for nonexistent token
       await expect(
         lockx.tokenURI(999)
-      ).to.be.revertedWithCustomError(lockx, 'NoURI');
+      ).to.be.revertedWithCustomError(lockx, 'NonexistentToken');
       
       console.log('✅ LOCKX TARGET: tokenURI() NoURI error executed!');
     });
@@ -152,7 +152,7 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       
       const domain = {
         name: 'Lockx',  
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -166,16 +166,17 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
         ]
       };
 
+      const referenceId = ethers.keccak256(ethers.toUtf8Bytes('key-rotation-ref'));
       const keyRotationData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'address', 'uint256'],
-        [tokenId, newKey.address, user.address, validExpiry]
+        ['uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, newKey.address, referenceId, user.address, validExpiry]
       );
       const keyRotationDataHash = ethers.keccak256(keyRotationData);
 
       const keyRotationValue = {
         tokenId: tokenId,
         nonce: nonce,
-        opType: 4, // Key rotation op type
+        opType: 0, // Key rotation op type
         dataHash: keyRotationDataHash
       };
 
@@ -183,7 +184,6 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       const keyRotationOperationHash = ethers.TypedDataEncoder.hash(domain, types, keyRotationValue);
 
       // Execute key rotation (with referenceId parameter)
-      const referenceId = ethers.keccak256(ethers.toUtf8Bytes('key-rotation-ref'));
       await lockx.connect(user).rotateLockboxKey(
         tokenId,
         keyRotationOperationHash,
@@ -208,7 +208,7 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       const key = ethers.Wallet.createRandom();
       
       // Create lockbox with assets
-      await lockx.connect(user).createLockboxWithBatch(
+      const tx = await lockx.connect(user).createLockboxWithBatch(
         user.address,
         key.address,
         ethers.parseEther('3'),
@@ -219,7 +219,11 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
         ethers.ZeroHash,
         { value: ethers.parseEther('3') }
       );
-      const tokenId = 0;
+      
+      // Get the actual tokenId from the transaction
+      const receipt = await tx.wait();
+      const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
       // Withdraw all assets first (burn requires empty lockbox)
       const nonce = await lockx.connect(user).getNonce(tokenId);
@@ -228,7 +232,7 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -286,18 +290,20 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
 
       console.log('✅ LOCKX TARGET: Pre-burn asset withdrawal executed!');
 
-      // Now burn the empty lockbox
+      // Now burn the empty lockbox - get actual nonce
       const burnNonce = await lockx.connect(user).getNonce(tokenId);
+      const burnReferenceId = ethers.keccak256(ethers.toUtf8Bytes('burn-lockbox-ref'));
+      const burnExpiry = validExpiry + 100;
       const burnData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'uint256'],
-        [tokenId, user.address, validExpiry + 100]
+        ['uint256', 'bytes32', 'address', 'uint256'], 
+        [tokenId, burnReferenceId, user.address, burnExpiry]
       );
       const burnDataHash = ethers.keccak256(burnData);
 
       const burnValue = {
         tokenId: tokenId,
         nonce: burnNonce,
-        opType: 7, // Burn op type
+        opType: 4, // Burn op type
         dataHash: burnDataHash
       };
 
@@ -305,13 +311,12 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       const burnOperationHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
 
       // Execute burn (with referenceId parameter)
-      const burnReferenceId = ethers.keccak256(ethers.toUtf8Bytes('burn-lockbox-ref'));
       await lockx.connect(user).burnLockbox(
         tokenId,
         burnOperationHash,
         burnSignature,
         burnReferenceId,
-        validExpiry + 100
+        burnExpiry
       );
       
       console.log('✅ LOCKX TARGET: burnLockbox() complete flow executed!');

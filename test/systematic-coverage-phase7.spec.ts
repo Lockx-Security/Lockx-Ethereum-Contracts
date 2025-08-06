@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
   let lockx, mockToken, mockNFT, owner, user1, user2, lockboxKeyPair;
@@ -44,14 +44,52 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
+      // Create proper signature with wrong signer to test InvalidSignature branch
+      const currentBlock = await ethers.provider.getBlock('latest');
+      const signatureExpiry = currentBlock.timestamp + 3600;
+      const referenceId = ethers.ZeroHash;
+      
+      const domain = {
+        name: 'Lockx',
+        version: '3',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await lockx.getAddress()
+      };
+      
+      const types = {
+        Operation: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'opType', type: 'uint8' },
+          { name: 'dataHash', type: 'bytes32' }
+        ]
+      };
+      
+      const rotateData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, user2.address, referenceId, user1.address, signatureExpiry]
+      );
+      
+      const rotateValue = {
+        tokenId: tokenId,
+        nonce: await lockx.connect(user1).getNonce(tokenId),
+        opType: 0, // ROTATE_KEY
+        dataHash: ethers.keccak256(rotateData)
+      };
+      
+      // Sign with wrong key (user1 instead of lockboxKeyPair) to trigger InvalidSignature
+      const wrongSignature = await user1.signTypedData(domain, types, rotateValue);
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, rotateValue);
+      
       // Try to rotate key with invalid signature - should hit signature validation branch
       await expect(
         lockx.connect(user1).rotateLockboxKey(
           tokenId,
+          messageHash,
+          wrongSignature, // Signed by wrong key
           user2.address, // new key
-          ethers.ZeroHash,
-          Math.floor(Date.now() / 1000) + 3600,
-          "0x1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890" // Invalid signature
+          referenceId,
+          signatureExpiry
         )
       ).to.be.revertedWithCustomError(lockx, 'InvalidSignature');
     });
@@ -69,15 +107,20 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
+      const currentBlock = await ethers.provider.getBlock('latest');
+      const signatureExpiry = currentBlock.timestamp + 3600;
+      const referenceId = ethers.ZeroHash;
+      
       // Try to burn as user2 (not owner) - should hit authorization branch
       await expect(
         lockx.connect(user2).burnLockbox(
           tokenId,
-          ethers.ZeroHash,
-          Math.floor(Date.now() / 1000) + 3600,
-          "0x00" // Invalid signature, but should hit auth check first
+          ethers.ZeroHash, // messageHash - doesn't matter since auth check comes first
+          "0x00", // Invalid signature, but should hit auth check first
+          referenceId,
+          signatureExpiry
         )
-      ).to.be.revertedWithCustomError(lockx, 'Unauthorized');
+      ).to.be.revertedWithCustomError(lockx, 'NotOwner');
     });
 
     it('🎯 BRANCH: Hit zero amount in createLockboxWithERC20', async () => {
@@ -130,7 +173,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -149,21 +192,25 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
         [tokenId, referenceId, user1.address, signatureExpiry]
       );
       
+      // Use nonce 1 for first operation on newly created token
+      const nonce1 = await lockx.connect(user1).getNonce(tokenId);
       const burnValue = {
         tokenId: tokenId,
-        nonce: 0,
-        opType: 5, // BurnLockbox
+        nonce: nonce1,
+        opType: 4, // BURN_LOCKBOX
         dataHash: ethers.keccak256(burnData)
       };
       
       const signature = await lockboxKeyPair.signTypedData(domain, types, burnValue);
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
       
       // Burn lockbox - should hit successful burn branches
       const burnTx = await lockx.connect(user1).burnLockbox(
         tokenId,
-        referenceId,
-        signatureExpiry,
-        signature
+        messageHash, // messageHash
+        signature, // signature
+        referenceId, // referenceId
+        signatureExpiry // signatureExpiry
       );
       
       expect(burnTx).to.emit(lockx, 'Transfer');
@@ -200,7 +247,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -219,22 +266,25 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
         [tokenId, "https://example.com/metadata", referenceId, user1.address, signatureExpiry]
       );
       
+      const rotateNonce = await lockx.connect(user1).getNonce(tokenId);
       const metadataValue = {
         tokenId: tokenId,
-        nonce: 0,
-        opType: 6, // SetTokenMetadataURI
+        nonce: rotateNonce,
+        opType: 5, // SET_TOKEN_URI
         dataHash: ethers.keccak256(metadataData)
       };
       
       const signature = await lockboxKeyPair.signTypedData(domain, types, metadataValue);
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, metadataValue);
       
       // Update metadata - should hit successful metadata update branches
       const metadataTx = await lockx.connect(user1).setTokenMetadataURI(
         tokenId,
-        "https://example.com/metadata",
-        referenceId,
-        signatureExpiry,
-        signature
+        messageHash, // messageHash
+        signature, // signature
+        "https://example.com/metadata", // newMetadataURI
+        referenceId, // referenceId
+        signatureExpiry // signatureExpiry
       );
       
       expect(metadataTx).to.not.be.reverted;

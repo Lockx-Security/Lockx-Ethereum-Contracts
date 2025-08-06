@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 FINAL BRANCH PUSH - TARGET 86.78%+', () => {
   let lockx, mockToken, mockTokenB, mockRouter, owner, user1, lockboxKeyPair;
@@ -59,7 +59,7 @@ describe('🎯 FINAL BRANCH PUSH - TARGET 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -74,40 +74,59 @@ describe('🎯 FINAL BRANCH PUSH - TARGET 86.78%+', () => {
       };
       
       // Use correct MockSwapRouter function signature: (tokenIn, tokenOut, amountIn, minAmountOut, recipient)
-      const swapData = mockRouter.interface.encodeFunctionData('swap', [
+      const swapCallData = mockRouter.interface.encodeFunctionData('swap', [
         await mockToken.getAddress(),      // tokenIn
         await mockTokenB.getAddress(),     // tokenOut
         ethers.parseEther('50'),          // amountIn
         ethers.parseEther('25'),          // minAmountOut
-        await lockx.getAddress()          // recipient (lockbox)
+        ethers.ZeroAddress                // recipient
       ]);
       
-      const swapEncoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await mockToken.getAddress(), await mockTokenB.getAddress(), ethers.parseEther('50'), ethers.parseEther('25'), await mockRouter.getAddress(), swapData, ethers.ZeroAddress, referenceId, user1.address, signatureExpiry]
+      const swapData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        [
+          tokenId,                          // tokenId
+          await mockToken.getAddress(),     // tokenIn
+          await mockTokenB.getAddress(),    // tokenOut
+          ethers.parseEther('50'),          // amountIn
+          ethers.parseEther('25'),          // minAmountOut
+          await mockRouter.getAddress(),    // target
+          ethers.keccak256(swapCallData),   // data hash
+          referenceId,                      // referenceId
+          user1.address,                    // msg.sender
+          signatureExpiry,                  // signatureExpiry
+          ethers.ZeroAddress                // recipient
+        ]
       );
+      
+      // Get current nonce for correct signature
+      const currentNonce = await lockx.connect(user1).getNonce(tokenId);
       
       const swapValue = {
         tokenId: tokenId,
-        nonce: 0,
-        opType: 4, // SwapInLockbox
-        dataHash: ethers.keccak256(swapEncoded)
+        nonce: currentNonce,
+        opType: 7, // SWAP_ASSETS
+        dataHash: ethers.keccak256(swapData)
       };
       
       const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
       
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
+      
       // Execute successful swap - should hit various success branches
       const swapTx = await lockx.connect(user1).swapInLockbox(
         tokenId,
-        ethers.keccak256(swapEncoded),
+        messageHash,
         signature,
-        await mockToken.getAddress(),
-        await mockTokenB.getAddress(),
-        ethers.parseEther('50'),
-        ethers.parseEther('25'),
-        await mockRouter.getAddress(),
-        swapData,
-        ethers.ZeroAddress
+        await mockToken.getAddress(),     // tokenIn
+        await mockTokenB.getAddress(),    // tokenOut
+        ethers.parseEther('50'),          // amountIn
+        ethers.parseEther('25'),          // minAmountOut
+        await mockRouter.getAddress(),    // target
+        swapCallData,                     // data (use swapCallData, not swapData)
+        referenceId,                      // referenceId
+        signatureExpiry,                  // signatureExpiry
+        ethers.ZeroAddress                // recipient
       );
       
       expect(swapTx).to.not.be.reverted;
@@ -135,7 +154,7 @@ describe('🎯 FINAL BRANCH PUSH - TARGET 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -149,41 +168,60 @@ describe('🎯 FINAL BRANCH PUSH - TARGET 86.78%+', () => {
         ]
       };
       
-      const swapData = mockRouter.interface.encodeFunctionData('swap', [
-        await mockToken.getAddress(),
-        await mockTokenB.getAddress(),
-        ethers.parseEther('30'),
-        ethers.parseEther('15'),
-        await lockx.getAddress()
+      const swapCallData = mockRouter.interface.encodeFunctionData('swap', [
+        await mockToken.getAddress(),     // tokenIn
+        await mockTokenB.getAddress(),    // tokenOut  
+        ethers.parseEther('30'),          // amountIn
+        ethers.parseEther('15'),          // minAmountOut
+        ethers.ZeroAddress                // recipient
       ]);
       
-      const swapEncoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await mockToken.getAddress(), await mockTokenB.getAddress(), ethers.parseEther('30'), ethers.parseEther('15'), await mockRouter.getAddress(), swapData, ethers.ZeroAddress, referenceId, user1.address, signatureExpiry]
+      const swapData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        [
+          tokenId,                          // tokenId
+          await mockToken.getAddress(),     // tokenIn
+          await mockTokenB.getAddress(),    // tokenOut
+          ethers.parseEther('30'),          // amountIn
+          ethers.parseEther('15'),          // minAmountOut
+          await mockRouter.getAddress(),    // target
+          ethers.keccak256(swapCallData),   // data hash
+          referenceId,                      // referenceId
+          user1.address,                    // msg.sender
+          signatureExpiry,                  // signatureExpiry
+          ethers.ZeroAddress                // recipient
+        ]
       );
+      
+      // Get current nonce for correct signature
+      const currentNonce = await lockx.connect(user1).getNonce(tokenId);
       
       const swapValue = {
         tokenId: tokenId,
-        nonce: 0,
-        opType: 4,
-        dataHash: ethers.keccak256(swapEncoded)
+        nonce: currentNonce,
+        opType: 7, // SWAP_ASSETS
+        dataHash: ethers.keccak256(swapData)
       };
       
       const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+      
+      const messageHash2 = ethers.TypedDataEncoder.hash(domain, types, swapValue);
       
       // This swap should introduce mockTokenB to the lockbox for the first time
       // Should hit the new token registration branch
       const swapTx = await lockx.connect(user1).swapInLockbox(
         tokenId,
-        ethers.keccak256(swapEncoded),
+        messageHash2,
         signature,
-        await mockToken.getAddress(),
-        await mockTokenB.getAddress(),
-        ethers.parseEther('30'),
-        ethers.parseEther('15'),
-        await mockRouter.getAddress(),
-        swapData,
-        ethers.ZeroAddress
+        await mockToken.getAddress(),     // tokenIn
+        await mockTokenB.getAddress(),    // tokenOut
+        ethers.parseEther('30'),          // amountIn
+        ethers.parseEther('15'),          // minAmountOut
+        await mockRouter.getAddress(),    // target
+        swapCallData,                     // data (use swapCallData, not swapData)
+        referenceId,                      // referenceId
+        signatureExpiry,                  // signatureExpiry
+        ethers.ZeroAddress                // recipient
       );
       
       expect(swapTx).to.not.be.reverted;
