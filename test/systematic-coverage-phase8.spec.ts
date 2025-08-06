@@ -69,11 +69,40 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     // Create signature for batch withdraw with mismatched NFT arrays
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
+    
+    const referenceId = ethers.keccak256(ethers.toUtf8Bytes('batch'));
+    const batchData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'uint256[]', 'uint256[]', 'address[]', 'uint256[]', 'address', 'bytes32', 'address', 'uint256'],
+      [ethers.parseEther('0.5'), [], [], [await mockNFT.getAddress(), await mockNFT.getAddress()], [1], user2.address, referenceId, user1.address, signatureExpiry]
+    );
+    
+    const batchValue = {
+      tokenId: tokenId,
+      nonce: 1,
+      opType: 6, // BATCH_WITHDRAW
+      dataHash: ethers.keccak256(batchData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, batchValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, batchValue);
 
     // Call with nftContracts.length (2) != nftTokenIds.length (1) - should hit uncovered branch
     await expect(
@@ -110,10 +139,39 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
+    
+    const referenceId = ethers.keccak256(ethers.toUtf8Bytes('duplicate'));
+    const batchData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'uint256[]', 'uint256[]', 'address[]', 'uint256[]', 'address', 'bytes32', 'address', 'uint256'],
+      [0, [], [], [await mockNFT.getAddress(), await mockNFT.getAddress()], [1, 1], user2.address, referenceId, user1.address, signatureExpiry]
+    );
+    
+    const batchValue = {
+      tokenId: tokenId,
+      nonce: 1,
+      opType: 6, // BATCH_WITHDRAW
+      dataHash: ethers.keccak256(batchData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, batchValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, batchValue);
 
     // Try to withdraw same NFT twice - should hit duplicate detection branch
     await expect(
@@ -146,13 +204,27 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     // Router already funded in beforeEach
 
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
 
+    const referenceId = ethers.ZeroHash;
     const swapData = mockRouter.interface.encodeFunctionData('swap', [
       await mockToken.getAddress(), // tokenIn
       ethers.ZeroAddress, // tokenOut (ETH)
@@ -160,6 +232,21 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
       ethers.parseEther('0.1'), // minAmountOut
       user2.address // recipient (external!)
     ]);
+
+    const swapEncodeData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'bytes32', 'address', 'uint256', 'address'],
+      [await mockToken.getAddress(), ethers.ZeroAddress, ethers.parseEther('5'), ethers.parseEther('0.1'), await mockRouter.getAddress(), swapData, referenceId, user1.address, signatureExpiry, user2.address]
+    );
+    
+    const swapValue = {
+      tokenId: tokenId,
+      nonce: 1,
+      opType: 7, // SWAP_ASSETS
+      dataHash: ethers.keccak256(swapEncodeData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
 
     // This should hit the ETH transfer to external recipient branch (lines 1783-1784)
     await expect(
@@ -192,12 +279,25 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     // Router uses fixed 950 tokens per ETH rate
 
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
 
     const swapData = mockRouter.interface.encodeFunctionData('swap', [
       ethers.ZeroAddress, // tokenIn (ETH)
@@ -206,6 +306,22 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
       ethers.parseEther('4'), // minAmountOut
       ethers.ZeroAddress // recipient = lockbox
     ]);
+
+    const referenceId = ethers.keccak256(ethers.toUtf8Bytes('newtoken'));
+    const swapEncodeData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'bytes32', 'address', 'uint256', 'address'],
+      [ethers.ZeroAddress, await mockToken.getAddress(), ethers.parseEther('0.5'), ethers.parseEther('400'), await mockRouter.getAddress(), swapData, referenceId, user1.address, signatureExpiry, ethers.ZeroAddress]
+    );
+    
+    const swapValue = {
+      tokenId: tokenId,
+      nonce: 1,
+      opType: 7, // SWAP_ASSETS
+      dataHash: ethers.keccak256(swapEncodeData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
 
     // This should trigger new token registration (line 1794) since lockbox has no ERC20 balances yet
     await expect(
@@ -238,10 +354,23 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
 
     const swapData = mockRouter.interface.encodeFunctionData('swap', [
       ethers.ZeroAddress, // tokenIn (ETH)
@@ -250,6 +379,22 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
       ethers.parseEther('5'), // minAmountOut
       ethers.ZeroAddress // recipient
     ]);
+
+    const referenceId = ethers.keccak256(ethers.toUtf8Bytes('insufficient'));
+    const swapEncodeData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'bytes32', 'address', 'uint256', 'address'],
+      [ethers.ZeroAddress, await mockToken.getAddress(), ethers.parseEther('1'), ethers.parseEther('5'), await mockRouter.getAddress(), swapData, referenceId, user1.address, signatureExpiry, ethers.ZeroAddress]
+    );
+    
+    const swapValue = {
+      tokenId: tokenId,
+      nonce: 1,
+      opType: 7, // SWAP_ASSETS
+      dataHash: ethers.keccak256(swapEncodeData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
 
     // Should hit NoETHBalance error (line 1703)
     await expect(
@@ -283,10 +428,23 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
     const tokenId = parseInt(transferEvent.topics[3], 16);
-    const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+    const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
-    const messageHash = ethers.keccak256(ethers.toUtf8Bytes('test'));
-    const signature = await lockboxKeyPair.signMessage(ethers.getBytes(messageHash));
+    const domain = {
+      name: 'Lockx',
+      version: '3',
+      chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
 
     const swapData = mockRouter.interface.encodeFunctionData('swap', [
       await mockToken.getAddress(), // tokenIn
@@ -295,6 +453,22 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
       ethers.parseEther('0.5'), // minAmountOut
       ethers.ZeroAddress // recipient
     ]);
+
+    const referenceId = ethers.keccak256(ethers.toUtf8Bytes('insufficientToken'));
+    const swapEncodeData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'bytes32', 'address', 'uint256', 'address'],
+      [await mockToken.getAddress(), ethers.ZeroAddress, ethers.parseEther('10'), ethers.parseEther('0.5'), await mockRouter.getAddress(), swapData, referenceId, user1.address, signatureExpiry, ethers.ZeroAddress]
+    );
+    
+    const swapValue = {
+      tokenId: tokenId,
+      nonce: 1,
+      opType: 7, // SWAP_ASSETS
+      dataHash: ethers.keccak256(swapEncodeData)
+    };
+    
+    const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+    const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
 
     // Should hit InsufficientTokenBalance error (line 1705)
     await expect(

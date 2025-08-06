@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🔧 DEBUG ARRAY ISSUE', () => {
   let lockx, mockNFT, owner, user1, lockboxKeyPair;
@@ -37,7 +37,7 @@ describe('🔧 DEBUG ARRAY ISSUE', () => {
         [], // nftTokenIds - EMPTY
         user1.address, // recipient
         ethers.ZeroHash, // referenceId
-        Math.floor(Date.now() / 1000) + 3600 // signatureExpiry
+        (await ethers.provider.getBlock('latest'))!.timestamp + 3600 // signatureExpiry
       );
     } catch (error) {
       console.log('Empty arrays error:', error.message);
@@ -60,7 +60,7 @@ describe('🔧 DEBUG ARRAY ISSUE', () => {
         [1], // nftTokenIds - SINGLE ELEMENT
         user1.address, // recipient
         ethers.ZeroHash, // referenceId
-        Math.floor(Date.now() / 1000) + 3600 // signatureExpiry
+        (await ethers.provider.getBlock('latest'))!.timestamp + 3600 // signatureExpiry
       );
     } catch (error) {
       console.log('Single element arrays error:', error.message);

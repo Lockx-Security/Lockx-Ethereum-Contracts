@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 WORKING BRANCH COVERAGE TESTS - 5 Key Branches', () => {
   let lockx, mockToken, mockTokenB, mockRouter, owner, user1, lockboxKeyPair;
@@ -56,7 +56,7 @@ describe('🎯 WORKING BRANCH COVERAGE TESTS - 5 Key Branches', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -123,7 +123,7 @@ describe('🎯 WORKING BRANCH COVERAGE TESTS - 5 Key Branches', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -191,7 +191,7 @@ describe('🎯 WORKING BRANCH COVERAGE TESTS - 5 Key Branches', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -230,7 +230,7 @@ describe('🎯 WORKING BRANCH COVERAGE TESTS - 5 Key Branches', () => {
           referenceId,
           user1.address,
           signatureExpiry,
-          ethers.ZeroAddress
+          ethers.ZeroAddress // recipient
         ]
       );
       

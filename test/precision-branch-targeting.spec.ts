@@ -23,11 +23,11 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
   let signatureExpiry: number
 
   const types = {
-    VerifySignature: [
-      { name: 'lockboxId', type: 'uint256' },
-      { name: 'lockboxSigner', type: 'address' },
+    Operation: [
+      { name: 'tokenId', type: 'uint256' },
       { name: 'nonce', type: 'uint256' },
-      { name: 'expiry', type: 'uint256' }
+      { name: 'opType', type: 'uint8' },
+      { name: 'dataHash', type: 'bytes32' }
     ]
   }
 
@@ -41,14 +41,18 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
     await lockx.waitForDeployment()
 
     const MockERC20Factory = await ethers.getContractFactory('MockERC20')
-    mockToken = await MockERC20Factory.deploy('Mock', 'MCK', 18)
+    mockToken = await MockERC20Factory.deploy()
     await mockToken.waitForDeployment()
-    mockToken2 = await MockERC20Factory.deploy('Mock2', 'MCK2', 18)
+    await mockToken.initialize('Mock', 'MCK')
+    
+    mockToken2 = await MockERC20Factory.deploy()
     await mockToken2.waitForDeployment()
+    await mockToken2.initialize('Mock2', 'MCK2')
 
     const MockERC721Factory = await ethers.getContractFactory('MockERC721')
-    mockNFT = await MockERC721Factory.deploy('MockNFT', 'MNFT')
+    mockNFT = await MockERC721Factory.deploy()
     await mockNFT.waitForDeployment()
+    await mockNFT.initialize('MockNFT', 'MNFT')
 
     const MockSwapRouterFactory = await ethers.getContractFactory('MockSwapRouter')
     mockRouter = await MockSwapRouterFactory.deploy()
@@ -56,7 +60,7 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
 
     domain = {
       name: 'Lockx',
-      version: '1',
+      version: '3',
       chainId: (await ethers.provider.getNetwork()).chainId,
       verifyingContract: await lockx.getAddress()
     }
@@ -77,21 +81,29 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
     // Branch 1: Hit recipient == address(0) in withdrawERC20
     it('🔥 BRANCH 1: withdrawERC20 with zero address recipient', async () => {
       // Create lockbox with tokens
+      const tokenAddr = await mockToken.getAddress();
       await lockx.connect(user1).createLockboxWithERC20(
         user1.address,
         lockboxKeyPair.address,
-        [await mockToken.getAddress()],
-        [ethers.parseEther('50')],
+        tokenAddr,
+        ethers.parseEther('50'),
         ethers.ZeroHash
       )
 
       const tokenId = 0
-      const nonce = await lockx.getNonce(tokenId)
+      // Use nonce 1 for first operation on newly created token
+      const nonce = 1
+      // Prepare withdrawal data for EIP-712 signature
+      const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['address', 'uint256', 'address'],
+        [tokenAddr, ethers.parseEther('10'), ethers.ZeroAddress]
+      );
+      
       const value = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
+        tokenId: tokenId,
         nonce: nonce,
-        expiry: signatureExpiry
+        opType: 2, // WITHDRAW_ERC20
+        dataHash: ethers.keccak256(withdrawData)
       }
 
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, value)
@@ -103,7 +115,7 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
           tokenId,
           messageHash,
           signature,
-          await mockToken.getAddress(),
+          tokenAddr,
           ethers.parseEther('10'),
           ethers.ZeroAddress, // Zero address!
           ethers.ZeroHash,
@@ -124,12 +136,19 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
       )
 
       const tokenId = 0
-      const nonce = await lockx.getNonce(tokenId)
+      // Use nonce 1 for first operation on newly created token
+      const nonce = 1
+      // Prepare withdrawal data for EIP-712 signature (withdrawERC721 parameters)
+      const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, await mockNFT.getAddress(), 1, ethers.ZeroAddress, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+      
       const value = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
+        tokenId: tokenId,
         nonce: nonce,
-        expiry: signatureExpiry
+        opType: 2, // WITHDRAW_ERC20
+        dataHash: ethers.keccak256(withdrawData)
       }
 
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, value)
@@ -161,12 +180,19 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
       )
 
       const tokenId = 0
-      const nonce = await lockx.getNonce(tokenId)
+      // Use nonce 1 for first operation on newly created token
+      const nonce = 1
+      // Prepare withdrawal data for EIP-712 signature (withdrawETH parameters)
+      const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, ethers.parseEther('1'), user1.address, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+      
       const value = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
+        tokenId: tokenId,
         nonce: nonce,
-        expiry: signatureExpiry
+        opType: 1, // WITHDRAW_ETH
+        dataHash: ethers.keccak256(withdrawData)
       }
 
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, value)
@@ -189,21 +215,29 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
     // Branch 4: Hit insufficient token balance check
     it('🔥 BRANCH 4: withdrawERC20 with insufficient balance', async () => {
       // Create lockbox with limited tokens
+      const tokenAddr = await mockToken.getAddress();
       await lockx.connect(user1).createLockboxWithERC20(
         user1.address,
         lockboxKeyPair.address,
-        [await mockToken.getAddress()],
-        [ethers.parseEther('10')],
+        tokenAddr,
+        ethers.parseEther('10'),
         ethers.ZeroHash
       )
 
       const tokenId = 0
-      const nonce = await lockx.getNonce(tokenId)
+      // Use nonce 1 for first operation on newly created token
+      const nonce = 1
+      // Prepare withdrawal data for EIP-712 signature (withdrawERC20 parameters)
+      const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, tokenAddr, ethers.parseEther('50'), user1.address, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+      
       const value = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
+        tokenId: tokenId,
         nonce: nonce,
-        expiry: signatureExpiry
+        opType: 2, // WITHDRAW_ERC20
+        dataHash: ethers.keccak256(withdrawData)
       }
 
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, value)
@@ -215,8 +249,8 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
           tokenId,
           messageHash,
           signature,
-          await mockToken.getAddress(),
-          ethers.parseEther('100'), // More than deposited!
+          tokenAddr,
+          ethers.parseEther('50'), // More than deposited!
           user1.address,
           ethers.ZeroHash,
           signatureExpiry
@@ -229,7 +263,7 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
       // Try to deposit ETH to non-existent lockbox
       await expect(
         lockx.connect(user1).depositETH(999, ethers.ZeroHash, { value: ethers.parseEther('1') })
-      ).to.be.revertedWithCustomError(lockx, 'NonexistentToken')
+      ).to.be.revertedWithCustomError(lockx, 'ERC721NonexistentToken')
     })
 
     // Branch 6: Hit idx == 0 in _removeERC20Token
@@ -243,14 +277,22 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
       )
 
       const tokenId = 0
+      const tokenAddr = await mockToken.getAddress();
       
       // Try to withdraw a token that was never deposited
-      const nonce = await lockx.getNonce(tokenId)
+      // Use nonce 1 for first operation on newly created token
+      const nonce = 1
+      // Prepare withdrawal data for EIP-712 signature (withdrawERC20 parameters)
+      const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, tokenAddr, 0, user1.address, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+      
       const value = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
+        tokenId: tokenId,
         nonce: nonce,
-        expiry: signatureExpiry
+        opType: 2, // WITHDRAW_ERC20
+        dataHash: ethers.keccak256(withdrawData)
       }
 
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, value)
@@ -261,7 +303,7 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
         tokenId,
         messageHash,
         signature,
-        await mockToken.getAddress(), // Never deposited
+        tokenAddr, // Never deposited
         0, // Zero amount
         user1.address,
         ethers.ZeroHash,
@@ -282,12 +324,19 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
       const tokenId = 0
       
       // Try to withdraw an NFT that was never deposited
-      const nonce = await lockx.getNonce(tokenId)
+      // Use nonce 1 for first operation on newly created token
+      const nonce = 1
+      // Prepare withdrawal data for EIP-712 signature (withdrawERC721 parameters)
+      const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, await mockNFT.getAddress(), 999, user1.address, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+      
       const value = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
+        tokenId: tokenId,
         nonce: nonce,
-        expiry: signatureExpiry
+        opType: 3, // WITHDRAW_ERC721
+        dataHash: ethers.keccak256(withdrawData)
       }
 
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, value)
@@ -305,17 +354,18 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
           ethers.ZeroHash,
           signatureExpiry
         )
-      ).to.be.revertedWithCustomError(lockx, 'LockboxDoesNotContainNFT')
+      ).to.be.revertedWithCustomError(lockx, 'NFTNotFound')
     })
 
     // Branch 8 & 9: Hit swap validation branches
     it('🔥 BRANCH 8-9: swapInLockbox validation branches', async () => {
       // Create lockbox with both ETH and tokens
+      const tokenAddr = await mockToken.getAddress();
       await lockx.connect(user1).createLockboxWithBatch(
         user1.address,
         lockboxKeyPair.address,
         ethers.parseEther('2'),
-        [await mockToken.getAddress()],
+        [tokenAddr],
         [ethers.parseEther('100')],
         [],
         [],
@@ -324,12 +374,19 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
       )
 
       const tokenId = 0
-      const nonce = await lockx.getNonce(tokenId)
+      // Use nonce 1 for first operation on newly created token
+      const nonce = 1
+      // Prepare swap data for EIP-712 signature
+      const swapData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        [tokenId, ethers.ZeroAddress, tokenAddr, ethers.parseEther('10'), ethers.parseEther('1'), await mockRouter.getAddress(), ethers.keccak256('0x'), ethers.ZeroHash, user1.address, signatureExpiry, user1.address]
+      );
+      
       const value = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
+        tokenId: tokenId,
         nonce: nonce,
-        expiry: signatureExpiry
+        opType: 7, // SWAP_ASSETS
+        dataHash: ethers.keccak256(swapData)
       }
 
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, value)
@@ -344,25 +401,30 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
           tokenId,
           messageHash,
           signature,
-          0, // EXACT_INPUT
-          ethers.ZeroAddress, // ETH input
-          await mockToken.getAddress(),
-          ethers.parseEther('10'), // More ETH than in lockbox!
-          ethers.parseEther('1'),
-          await mockRouter.getAddress(),
-          '0x',
-          ethers.ZeroHash,
-          signatureExpiry
+          ethers.ZeroAddress,              // tokenIn (ETH)
+          tokenAddr,    // tokenOut
+          ethers.parseEther('10'),         // amountIn (more ETH than in lockbox)
+          ethers.parseEther('1'),          // minAmountOut
+          await mockRouter.getAddress(),   // target
+          '0x',                            // data
+          ethers.ZeroHash,                 // referenceId
+          signatureExpiry,                 // signatureExpiry
+          user1.address                    // recipient
         )
       ).to.be.revertedWithCustomError(lockx, 'NoETHBalance')
 
       // Branch 9: Try swap with insufficient token balance
-      const nonce2 = await lockx.getNonce(tokenId)
+      const currentNonce = await lockx.connect(user1).getNonce(tokenId)
+      const swapData2 = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        [tokenId, tokenAddr, ethers.ZeroAddress, ethers.parseEther('200'), ethers.parseEther('1'), await mockRouter.getAddress(), ethers.keccak256('0x'), ethers.ZeroHash, user1.address, signatureExpiry, user1.address]
+      );
+      
       const value2 = {
-        lockboxId: tokenId,
-        lockboxSigner: lockboxKeyPair.address,
-        nonce: nonce2,
-        expiry: signatureExpiry
+        tokenId: tokenId,
+        nonce: currentNonce,
+        opType: 7, // SWAP_ASSETS
+        dataHash: ethers.keccak256(swapData2)
       }
 
       const messageHash2 = ethers.TypedDataEncoder.hash(domain, types, value2)
@@ -373,15 +435,15 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
           tokenId,
           messageHash2,
           signature2,
-          0, // EXACT_INPUT
-          await mockToken.getAddress(),
-          ethers.ZeroAddress, // ETH output
-          ethers.parseEther('200'), // More tokens than in lockbox!
-          ethers.parseEther('1'),
-          await mockRouter.getAddress(),
-          '0x',
-          ethers.ZeroHash,
-          signatureExpiry
+          tokenAddr,    // tokenIn
+          ethers.ZeroAddress,              // tokenOut (ETH)
+          ethers.parseEther('200'),        // amountIn (more tokens than in lockbox)
+          ethers.parseEther('1'),          // minAmountOut
+          await mockRouter.getAddress(),   // target
+          '0x',                            // data
+          ethers.ZeroHash,                 // referenceId
+          signatureExpiry,                 // signatureExpiry
+          user1.address                    // recipient
         )
       ).to.be.revertedWithCustomError(lockx, 'InsufficientTokenBalance')
     })

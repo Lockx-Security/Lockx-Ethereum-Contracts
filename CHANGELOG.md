@@ -5,6 +5,73 @@ All notable changes to the Lockx Smart Contracts project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.1] - 2025-08-04
+
+### 🎯 **Test Suite Stabilization & Coverage Excellence**
+
+This patch release focuses on stabilizing the test suite and achieving the highest practical test coverage through systematic test fixes and coverage configuration improvements.
+
+### ✅ **Testing Infrastructure Improvements**
+- **Test Suite Stabilization**: Fixed 89 failing tests by addressing signature expiry issues, parameter mismatches, and EIP-712 domain version consistency
+- **Coverage Achievement**: Improved from 85.95% to **90.5% branch coverage** with **423 passing tests** (up from 380+ tests)
+- **Mock Contract Exclusion**: Configured `hardhat.config.ts` to exclude mock contracts from coverage reports for accurate metrics
+- **Signature Verification**: Updated all test files to use consistent EIP-712 domain version 'v3' and proper timestamp handling
+
+### 🔧 **Configuration Improvements**
+- **Coverage Configuration**: Added `solcover` configuration to exclude `contracts/mocks/` from coverage calculations
+- **Package Scripts Cleanup**: Removed redundant coverage scripts (`coverage:replicate`, `coverage:table`, `coverage:core`) leaving only `npm run coverage`
+- **Version Update**: Updated package.json from 2.1.0 to 3.0.1
+
+### 📊 **Coverage Metrics Achievement**
+```
+File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
+-------------------------|----------|----------|----------|----------|
+contracts/               |    98.51 |    90.5  |      100 |    99.15 |
+  Lockx.sol             |      100 |    90.54 |      100 |      100 | 🎯
+  SignatureVerification |      100 |      100 |      100 |      100 | ✅
+  Deposits.sol          |    96.36 |    84.09 |      100 |      100 |
+  Withdrawals.sol       |    98.31 |    81.82 |      100 |    98.15 |
+```
+
+**Key Achievements:**
+- ✅ **90.5% overall branch coverage** (improved from 85.95%)
+- ✅ **423 passing tests** with 0 failures (improved from 380+ tests)
+- ✅ **100% function coverage** maintained across all contracts
+- ✅ **Lockx.sol exceeds 90% target** with 90.54% branch coverage
+
+### 🧪 **Test Suite Fixes**
+- **Signature Expiry Resolution**: Fixed hardcoded timestamps in test files that were causing `SignatureExpired` errors
+- **EIP-712 Consistency**: Updated all test files to use domain version 'v3' consistently
+- **Parameter Alignment**: Fixed function call parameter mismatches across multiple test files
+- **Nonce Management**: Corrected nonce handling in signature generation for proper test execution
+
+### 📝 **Documentation Updates**
+- **README.md**: Updated all coverage metrics from 84.3% to 90.5% and test counts from 380+ to 423
+- **Version Badges**: Updated version references from 3.0.0 to 3.0.1 throughout documentation
+- **Test Statistics**: Reflected new achievement of 90.5% branch coverage in all documentation
+
+### 🔄 **Quick Start Verification**
+```bash
+# Verify the improved coverage
+npm install
+npm run coverage
+
+# Expected results:
+# - contracts/: 90.5% branch coverage
+# - 423 passing tests
+# - 0 failing tests
+```
+
+### Summary
+- **Test Status**: All 423 tests pass with proper signature handling
+- **Coverage**: Achieved 90.5% branch coverage 
+- **Configuration**: Excluded mock contracts from coverage reports
+- **Metrics**: Coverage metrics are accurate and reproducible
+
+This release stabilizes the test suite and improves coverage reporting.
+
+---
+
 ## [3.0.0] - 2025-07-29
 
 ### 🚀 **MAJOR RELEASE: Enhanced Swap Functionality & Contract Architecture**

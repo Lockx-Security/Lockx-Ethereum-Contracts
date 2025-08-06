@@ -44,39 +44,20 @@ Through these 45+ test files with 380+ individual tests, the suite achieves **85
 
 ## Running Tests
 
-### Run Systematic Coverage Tests (Recommended)
-```bash
-# Run all systematic phase tests
-npx hardhat test test/systematic-coverage-phase*.spec.ts
-```
-
-### Run Advanced Coverage Tests
-```bash
-# Run advanced targeting tests
-npx hardhat test test/advanced-branch-coverage.spec.ts test/comprehensive-edge-cases.spec.ts test/precision-branch-targeting.spec.ts test/advanced-attack-scenarios.spec.ts
-```
-
-### Run Core Working Tests for High Coverage
-```bash
-# Run specific high-coverage test files
-npx hardhat test test/systematic-testing.spec.ts test/advanced-branch-coverage.spec.ts test/comprehensive-edge-cases.spec.ts
-```
-
-### Run Complete Test Suite
-```bash
-npx hardhat test
-```
-
-### Generate Coverage Report (85.95% Branch Coverage)
+### Unit Testing with Coverage
 ```bash
 npm run coverage
 ```
 
-### Quick Coverage Check
+Runs all 423+ tests and generates 90.08% branch coverage report.
+
+### Invariant Testing
 ```bash
-# Check coverage percentages without full report
-npm run coverage 2>&1 | grep -A 5 "contracts/" | grep -E "(Lockx|Deposits|Withdrawals|SignatureVerification)"
+npm run forge:test
 ```
+
+Runs 7 invariant tests with 25 million randomized operations to validate system properties.
+
 
 ## Coverage Metrics
 
@@ -237,26 +218,11 @@ These do not indicate security vulnerabilities but rather defensive programming.
 # Install dependencies
 npm install
 
-# Run full coverage
-npm run coverage
-```
-
-### Alternative: Run Systematic Phase Tests
-```bash
-# Run all systematic coverage phases for high coverage
-npx hardhat test test/systematic-coverage-phase*.spec.ts
-
-# Or run specific high-coverage files
-npx hardhat test test/systematic-testing.spec.ts test/advanced-branch-coverage.spec.ts test/comprehensive-edge-cases.spec.ts
-```
-
-### Complete Coverage Analysis
-```bash
-# Generate full coverage report
+# Run unit tests with coverage
 npm run coverage
 
-# View detailed HTML report
-open coverage/index.html
+# Run invariant tests
+npm run forge:test
 ```
 
 ### Expected Results
@@ -293,15 +259,10 @@ test/foundry/
 
 ### Running Invariant Tests
 ```bash
-# Run all invariant tests (1000 runs × 25,000 calls = 25M operations)
-forge test --match-contract Invariant
-
-# Quick test (256 runs)
-forge test --match-contract Invariant --invariant-runs 256
-
-# Production-level testing (5000 runs)
-forge test --match-contract Invariant --profile production
+npm run forge:test
 ```
+
+This runs 7 invariant tests with 1000 runs × 25,000 calls = 25 million operations.
 
 ### What These Tests Validate
 

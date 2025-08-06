@@ -293,19 +293,15 @@ test/
 
 ### Easy Replication for Open Source Users
 
-### Option 1: Quick Coverage Check
 ```bash
 # Install dependencies
 npm install
 
-# Run coverage
+# Run unit tests with coverage
 npm run coverage
-```
 
-### Option 2: Targeted High Coverage
-```bash
-# Run specific high-coverage test files
-npx hardhat test test/systematic-coverage-phase*.spec.ts
+# Run invariant tests
+npm run forge:test
 ```
 
 ### Expected Output

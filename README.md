@@ -1,7 +1,7 @@
-# Lockx Smart Contracts v3.0.0
+# Lockx Smart Contracts v3.0.1
 
 [![license](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
-[![version](https://img.shields.io/badge/version-3.0.0-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-3.0.1-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
 Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes with OpenZeppelin v5.3.0 security standards. Features comprehensive testing with dual framework support (Hardhat + Foundry), property-based testing, and EIP-712 v3 signature verification.
@@ -26,7 +26,7 @@ Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes
 
 The Lockx smart contracts are open source with comprehensive security validation through dual testing frameworks:
 
-- **Hardhat Unit Tests**: 84.3% branch coverage across 45+ test files with 380+ individual tests
+- **Hardhat Unit Tests**: 90.5% branch coverage across 46 test files with 423 individual tests
 - **Foundry Property Testing**: 7 invariant tests with 25 million randomized operations  
 - **Security Coverage**: 100% coverage on signature verification and access control paths
 - **Core Contract Coverage**: Lockx.sol achieves 90.54% branch coverage (exceeds 90% target)
@@ -35,7 +35,7 @@ The Lockx smart contracts are open source with comprehensive security validation
 ```
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
-contracts/               |    98.51 |    84.3  |      100 |    98.3  |
+contracts/               |    98.51 |    90.5  |      100 |    99.15 |
   Lockx.sol             |      100 |    90.54 |      100 |      100 | 🎯
   SignatureVerification |      100 |      100 |      100 |      100 | ✅
   Deposits.sol          |    96.36 |    84.09 |      100 |      100 |
@@ -46,21 +46,22 @@ All tests are publicly available and replicable:
 ```bash
 # Clone and test locally
 git clone [repo-url]
-npm install && npm run coverage
-forge test --match-contract Invariant
+npm install
+npm run coverage
+npm run forge:test
 ```
 
 ---
 
 🧪 **Testing framework**
 - **Systematic Phase Testing**: 20 phase-based test files targeting specific branches
-- **Hardhat testing suite** with 84.3% branch coverage and 380+ individual tests
+- **Hardhat testing suite** with 90.5% branch coverage and 423 individual tests
 - **Foundry testing** with 7 invariant tests executing 25 million operations
 - **Core functionality testing** with working test files for reliable replication
 - **Property-based testing** validating system invariants and balance consistency
 
 📊 **Test coverage**
-- **Current Achievement**: 84.3% branch coverage (208/242 branches)
+- **Current Achievement**: 90.5% branch coverage (219/242 branches)
 - **Working Test Suite**: `systematic-core-suite.spec.ts` (5 passing tests) and systematic phases
 - **Foundry Invariants**: 25 million randomized operations across 7 test cases
 - **Security Focus**: 100% coverage of signature verification and access control paths
@@ -106,35 +107,15 @@ forge test --match-contract Invariant
 ### Running tests
 
 ```bash
-# Run working core tests (recommended)
-npx hardhat test test/systematic-core-suite.spec.ts
-
-# Run systematic phase tests for maximum coverage
-npx hardhat test test/systematic-coverage-phase*.spec.ts
-
-# Generate full coverage report (84.3% branch coverage)
+# Unit testing with coverage
 npm run coverage
 
-# Run specific working files
-npx hardhat test test/systematic-core-suite.spec.ts test/advanced-branch-coverage.spec.ts
-
-# View coverage report
-open coverage/index.html
+# Invariant testing
+npm run forge:test
 ```
 
-**Primary Test Files:**
-- `systematic-core-suite.spec.ts` - **RELIABLE**: Core working test suite (5 passing tests)
-- `systematic-coverage-phase*.spec.ts` - **COMPREHENSIVE**: Phase-based systematic testing (20 files)
-- `advanced-branch-coverage.spec.ts` - Advanced branch targeting techniques
-- `comprehensive-edge-cases.spec.ts` - Edge case scenarios
-- `precision-branch-targeting.spec.ts` - Precision branch hitting strategies
+The first command runs all 423+ tests with 90.5% branch coverage. The second runs 7 invariant tests with 25 million randomized operations.
 
-### Foundry testing (Solidity)
-```bash
-forge test --match-contract Invariant       # runs all invariant tests (25M operations)
-forge test --match-contract Invariant -v    # verbose output with gas usage
-forge test --match-contract Invariant --profile production  # 250M operations
-```
 
 **Invariant test results (all passing):**
 - Contract ETH balance matches accounting ✅ (1000 runs × 25,000 calls)
@@ -237,7 +218,7 @@ ETHERSCAN_API_KEY=YourEtherscanKey
 
 ## Development & Testing Acknowledgments
 
-This project's comprehensive test suite (45+ test files, 380+ individual tests, 84.3% branch coverage) was developed through an intensive automated testing approach using Claude AI for systematic test generation and coverage optimization. Over multiple development cycles, Claude assisted with:
+This project's comprehensive test suite (46 test files, 423 individual tests, 90.5% branch coverage) was developed through an intensive automated testing approach using Claude AI for systematic test generation and coverage optimization. Over multiple development cycles, Claude assisted with:
 
 - **Automated Unit Test Generation**: Systematic creation of edge case tests and branch coverage optimization
 - **Property-Based Test Design**: Development of invariant tests for Foundry integration  
@@ -252,7 +233,7 @@ The core smart contract logic, architecture, and security design remain entirely
 
 ## Version information
 
-**Current version:** 3.0.0  
+**Current version:** 3.0.1  
 **OpenZeppelin:** v5.3.0  
 **EIP-712 domain:** 'Lockx', version '3'  
 

@@ -48,6 +48,11 @@ const config: HardhatUserConfig = {
     outDir: 'typechain-types',
     target: 'ethers-v6',
   },
+  solcover: {
+    sources: './contracts',
+    skipFiles: ['contracts/mocks/'],
+    exclude: ['contracts/mocks/**/*']
+  },
 };
 
 export default config;

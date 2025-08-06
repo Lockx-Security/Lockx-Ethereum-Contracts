@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => {
   let lockx, mockToken, mockRouter, owner, user1, lockboxKeyPair;
@@ -38,10 +38,11 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
       await lockx.connect(user1).createLockboxWithETH(
         user1.address,
         lockboxKeyPair.address,
+        ethers.ZeroHash,
         { value: ethers.parseEther('1') }
       );
       
-      const tokenId = 1;
+      const tokenId = 0;
       
       // These calls will attempt to remove tokens that don't exist (idx == 0)
       // This will hit the return statements in _removeERC20Token and _removeNFTKey
@@ -56,7 +57,7 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
       // Now withdraw ALL of it to trigger removal
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -70,7 +71,7 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
         ]
       };
 
-      const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const futureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
         [tokenId, await mockToken.getAddress(), ethers.parseEther('100'), user1.address, ethers.ZeroHash, user1.address, futureExpiry]
@@ -109,15 +110,15 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
         lockboxKeyPair.address,
         await mockToken.getAddress(),
         ethers.parseEther('200'),
-        { value: ethers.parseEther('0.01') }
+        ethers.ZeroHash
       );
       
-      const tokenId = 1;
-      const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const tokenId = 0;
+      const futureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -133,16 +134,24 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
 
       // Create swap: TOKEN → ETH with external recipient
       // This will hit lines 520-521 (ETH transfer to recipient)
+      const swapCallData = mockRouter.interface.encodeFunctionData('swap', [
+        await mockToken.getAddress(), // tokenIn
+        ethers.ZeroAddress, // tokenOut (ETH)
+        ethers.parseEther('1'), // amountIn
+        0, // minAmountOut
+        owner.address // recipient
+      ]);
+      
       const swapData = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
         [
           tokenId, 
           await mockToken.getAddress(), // tokenIn
           ethers.ZeroAddress, // tokenOut (ETH)
-          ethers.parseEther('100'), // amountIn
-          ethers.parseEther('0.05'), // minAmountOut
+          ethers.parseEther('1'), // amountIn
+          0, // minAmountOut (minimal slippage protection)
           await mockRouter.getAddress(), // target
-          ethers.keccak256('0x'), // data hash
+          ethers.keccak256(swapCallData), // data hash
           ethers.ZeroHash, // referenceId
           user1.address, // msg.sender
           futureExpiry,
@@ -168,10 +177,10 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
         swapSignature,
         await mockToken.getAddress(), // tokenIn
         ethers.ZeroAddress, // tokenOut (ETH)
-        ethers.parseEther('100'), // amountIn
-        ethers.parseEther('0.05'), // minAmountOut
+        ethers.parseEther('1'), // amountIn
+        0, // minAmountOut (minimal slippage protection)
         await mockRouter.getAddress(), // target
-        '0x', // data
+        swapCallData, // data
         ethers.ZeroHash, // referenceId
         futureExpiry,
         owner.address // recipient (external address - this hits the missing branch!)
@@ -193,15 +202,15 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
         lockboxKeyPair.address,
         await mockNFT.getAddress(),
         1,
-        { value: ethers.parseEther('0.01') }
+        ethers.ZeroHash
       );
       
-      const tokenId = 1;
-      const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const tokenId = 0;
+      const futureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -217,8 +226,8 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
 
       // Test 1: withdrawERC721 with zero recipient (should hit missing line 203)
       const nftWithdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await mockNFT.getAddress(), 1, ethers.ZeroAddress, ethers.ZeroHash, user1.address, futureExpiry]
+        ['address', 'uint256', 'address'],
+        [await mockNFT.getAddress(), 1, ethers.ZeroAddress]
       );
 
       const nftValue = {
@@ -243,12 +252,12 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
           ethers.ZeroHash,
           futureExpiry
         )
-      ).to.be.revertedWith('ZeroAddress()');
+      ).to.be.revertedWithCustomError(lockx, 'ZeroAddress');
 
       // Test 2: batchWithdraw with zero recipient (should hit missing line 274)
       const batchData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'uint256', 'address[]', 'uint256[]', 'address[]', 'uint256[]', 'bytes32', 'address', 'uint256'],
-        [tokenId, 0, [], [], [], [], ethers.ZeroHash, ethers.ZeroAddress, futureExpiry]
+        ['address[]', 'uint256[]', 'address[]', 'uint256[]', 'uint256', 'address'],
+        [[], [], [], [], 0, ethers.ZeroAddress]
       );
 
       const batchValue = {
@@ -276,7 +285,7 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
           ethers.ZeroHash,
           futureExpiry
         )
-      ).to.be.revertedWith('ZeroAddress()');
+      ).to.be.revertedWithCustomError(lockx, 'ZeroAddress');
     });
 
     it('🎯 Hit array length mismatch in batchWithdraw', async () => {
@@ -284,11 +293,12 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
       await lockx.connect(user1).createLockboxWithETH(
         user1.address,
         lockboxKeyPair.address,
+        ethers.ZeroHash,
         { value: ethers.parseEther('1') }
       );
       
-      const tokenId = 1;
-      const futureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const tokenId = 0;
+      const futureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       
       // Test array length mismatch: nftContracts.length != nftTokenIds.length
       // This should hit the missing branch in the validation
@@ -306,7 +316,7 @@ describe('🎯 PERFECT COVERAGE FINAL - Hit Last 4 Statements + 6 Lines', () => 
           ethers.ZeroHash,
           futureExpiry
         )
-      ).to.be.revertedWith('MismatchedInputs()');
+      ).to.be.revertedWithCustomError(lockx, 'MismatchedInputs');
     });
   });
 });

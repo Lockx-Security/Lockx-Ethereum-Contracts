@@ -63,10 +63,46 @@ contract AdvancedMockRouter {
     }
     
     /**
-     * @dev Generic swap function that the Lockx contract calls
+     * @dev Standard swap function for compatibility
+     */
+    function swap(
+        address tokenIn,
+        address tokenOut,
+        uint256 amountIn,
+        uint256 minAmountOut,
+        address recipient
+    ) external payable {
+        // Simple swap implementation
+        address actualRecipient = recipient == address(0) ? msg.sender : recipient;
+        
+        if (tokenIn == address(0)) {
+            // ETH to token
+            require(msg.value == amountIn, "ETH amount mismatch");
+            uint256 amountOut = amountIn * 950; // 950 tokens per ETH
+            require(amountOut >= minAmountOut, "Slippage");
+            IERC20(tokenOut).transfer(actualRecipient, amountOut);
+        } else if (tokenOut == address(0)) {
+            // Token to ETH
+            IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+            uint256 amountOut = amountIn / 100; // 0.01 ETH per token
+            require(amountOut >= minAmountOut, "Slippage");
+            require(address(this).balance >= amountOut, "Insufficient ETH");
+            (bool success,) = payable(actualRecipient).call{value: amountOut}("");
+            require(success, "ETH transfer failed");
+        } else {
+            // Token to token
+            IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+            uint256 amountOut = (amountIn * 95) / 100; // 95% rate
+            require(amountOut >= minAmountOut, "Slippage");
+            IERC20(tokenOut).transfer(actualRecipient, amountOut);
+        }
+    }
+
+    /**
+     * @dev Generic swap function that the Lockx contract calls (legacy)
      * This function should transfer output tokens to the caller (Lockx contract)
      */
-    function swap(bytes calldata /* data */) external payable {
+    function swapAdvanced(bytes calldata /* data */) external payable {
         if (shouldFail) {
             revert("Router: Simulated failure");
         }

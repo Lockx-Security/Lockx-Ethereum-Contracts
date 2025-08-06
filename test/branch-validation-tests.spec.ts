@@ -42,7 +42,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
     const { chainId } = await ethers.provider.getNetwork();
     return {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId,
       verifyingContract,
     };
@@ -126,7 +126,8 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
         const expiredTimestamp = (await ethers.provider.getBlock('latest'))!.timestamp - 3600; // 1 hour ago
         
         const domain = await buildDomain(await lockx.getAddress());
-        const nonce = await lockx.connect(user).getNonce(tokenId);
+        // Use nonce 1 for first operation on newly created token
+        const nonce = 1;
         const dataHash = ethers.keccak256(
           ethers.AbiCoder.defaultAbiCoder().encode(
             ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
@@ -175,7 +176,8 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
         const expiredTimestamp = (await ethers.provider.getBlock('latest'))!.timestamp - 3600;
         
         const domain = await buildDomain(await lockx.getAddress());
-        const nonce = await lockx.connect(user).getNonce(tokenId);
+        // Use nonce 1 for first operation on newly created token
+        const nonce = 1;
         const dataHash = ethers.keccak256(
           ethers.AbiCoder.defaultAbiCoder().encode(
             ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
@@ -227,7 +229,8 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
         const expiredTimestamp = (await ethers.provider.getBlock('latest'))!.timestamp - 3600;
         
         const domain = await buildDomain(await lockx.getAddress());
-        const nonce = await lockx.connect(user).getNonce(tokenId);
+        // Use nonce 1 for first operation on newly created token
+        const nonce = 1;
         const dataHash = ethers.keccak256(
           ethers.AbiCoder.defaultAbiCoder().encode([
             'uint256', 'uint256', 'address[]', 'uint256[]', 'address[]', 'uint256[]', 'address', 'bytes32', 'address', 'uint256'
@@ -342,7 +345,8 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
 
         // Create signature for withdrawal to RejectETH contract (which rejects ETH)
         const domain = await buildDomain(await lockx.getAddress());
-        const nonce = await lockx.connect(user).getNonce(tokenId);
+        // Use nonce 1 for first operation on newly created token
+        const nonce = 1;
         const dataHash = ethers.keccak256(
           ethers.AbiCoder.defaultAbiCoder().encode(
             ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
@@ -426,7 +430,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
         
         // This should hit the "default URI already set" branch in tokenURI
         const uri = await lockx.tokenURI(0);
-        expect(uri).to.equal('https://example.com/metadata/');
+        expect(uri).to.equal('https://example.com/metadata/0');
         
         console.log('✅ BRANCH HIT: Default metadata URI branch in tokenURI');
       });
@@ -510,7 +514,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
       
       // Create lockbox with multiple NFTs
       const lockboxKeyWallet = ethers.Wallet.createRandom();
-      await lockx.connect(user).createLockboxWithBatch(
+      const tx = await lockx.connect(user).createLockboxWithBatch(
         user.address,
         lockboxKeyWallet.address,
         ethers.parseEther('1'),
@@ -522,7 +526,10 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
         { value: ethers.parseEther('1') }
       );
 
-      const tokenId = 0;
+      // Get actual tokenId from transaction
+      const receipt = await tx.wait();
+      const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      const tokenId = parseInt(transferEvent.topics[3], 16);
       const nftTokenId = 2; // Withdraw middle NFT
       const referenceId = ethers.ZeroHash;
       const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -553,7 +560,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
       
       // Verify the NFT was removed from array
       const lockboxData = await lockx.connect(user).getFullLockbox(tokenId);
-      expect(lockboxData.erc721Tokens?.length || 0).to.equal(2); // Should have 1 and 3 remaining
+      expect(lockboxData.nftContracts?.length || 0).to.equal(2); // Should have 1 and 3 remaining
       
       console.log('✅ BRANCH HIT: NFT array removal branches');
     });

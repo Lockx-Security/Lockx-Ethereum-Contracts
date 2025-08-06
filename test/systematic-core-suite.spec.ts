@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 SYSTEMATIC RESTORATION - TARGET 98.88% STATEMENTS, 100% FUNCTIONS', () => {
   let lockx, mockToken, mockNFT, mockFeeToken, owner, user1, user2, lockboxKeyPair, newKeyPair;
@@ -173,7 +173,7 @@ describe('🎯 SYSTEMATIC RESTORATION - TARGET 98.88% STATEMENTS, 100% FUNCTIONS
     // Try to hit the missing function - likely something signature-related
     const domain = {
       name: 'Lockx',
-      version: '2',
+      version: '3',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -204,7 +204,9 @@ describe('🎯 SYSTEMATIC RESTORATION - TARGET 98.88% STATEMENTS, 100% FUNCTIONS
         tokenId,
         rotateMessageHash,
         rotateSignature,
-        newKeyPair.address
+        newKeyPair.address,
+        ethers.ZeroHash,
+        signatureExpiry
       );
     } catch (error) {
       // May fail due to signature issues but should hit the function
@@ -223,11 +225,13 @@ describe('🎯 SYSTEMATIC RESTORATION - TARGET 98.88% STATEMENTS, 100% FUNCTIONS
     const uriMessageHash = ethers.TypedDataEncoder.hash(domain, types, uriValue);
     
     try {
-      await lockx.connect(user1).setTokenURI(
+      await lockx.connect(user1).setTokenMetadataURI(
         tokenId,
         uriMessageHash,
         uriSignature,
-        'https://test.com'
+        'https://test.com',
+        ethers.ZeroHash,
+        signatureExpiry
       );
     } catch (error) {
       // May fail but should hit the function
@@ -271,14 +275,17 @@ describe('🎯 SYSTEMATIC RESTORATION - TARGET 98.88% STATEMENTS, 100% FUNCTIONS
     } catch (error) { /* Expected */ }
     
     try {
-      await lockx.connect(user1).createLockboxWithETH(ethers.ZeroAddress, 'Zero', { value: ethers.parseEther('1') }); // ZeroAddress line
+      await lockx.connect(user1).createLockboxWithETH(ethers.ZeroAddress, lockboxKeyPair.address, ethers.ZeroHash, { value: ethers.parseEther('1') }); // ZeroAddress line
     } catch (error) { /* Expected */ }
     
     try {
       await lockx.connect(user1).createLockboxWithBatch(
-        lockboxKeyPair.address, 'Mismatch',
+        user1.address,
+        lockboxKeyPair.address,
+        0,
         [await mockToken.getAddress()], [], // Array mismatch line
         [], [],
+        ethers.ZeroHash,
         { value: 0 }
       );
     } catch (error) { /* Expected */ }

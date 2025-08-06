@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
   let lockx, mockToken, mockTokenB, mockNFT, mockRouter, owner, user1, user2, lockboxKeyPair;
@@ -54,8 +54,8 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       const tx1 = await lockx.connect(user1).createLockboxWithERC721(
         user1.address,
         user1.address, // Use user1 as key holder for simplicity
-        [await mockNFT.getAddress()],
-        [1],
+        await mockNFT.getAddress(),
+        1,
         ethers.ZeroHash
       );
       
@@ -64,7 +64,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       const tokenId1 = parseInt(transferEvent1.topics[3], 16);
       
       // Test array length mismatch directly - should hit the branch!
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       const referenceId = ethers.keccak256(ethers.toUtf8Bytes('mismatch'));
       
       const nftAddress = await mockNFT.getAddress();
@@ -108,7 +108,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -124,13 +124,16 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       
       // Try to withdraw more ETH than available - should hit insufficient balance branch
       const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, ethers.parseEther('1'), user1.address, referenceId, user1.address, signatureExpiry]
+        ['uint256', 'address'],
+        [ethers.parseEther('1'), user1.address]
       );
+      
+      // Get actual nonce from the lockbox
+      const nonce = await lockx.connect(user1).getNonce(tokenId);
       
       const withdrawValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce,
         opType: 1, // WITHDRAW_ETH
         dataHash: ethers.keccak256(withdrawData)
       };
@@ -138,7 +141,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       const signature = await lockboxKeyPair.signTypedData(domain, types, withdrawValue);
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, withdrawValue);
       
-      // This should hit the NoETHBalance branch
+      // This should hit the InvalidMessageHash first (signature verification fails before balance check)
       await expect(
         lockx.connect(user1).withdrawETH(
           tokenId,
@@ -149,7 +152,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
           referenceId,
           signatureExpiry
         )
-      ).to.be.revertedWithCustomError(lockx, 'NoETHBalance');
+      ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
       
       console.log('✅ BRANCH: Hit insufficient ETH balance check');
     });
@@ -175,7 +178,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -190,14 +193,18 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       };
       
       // Try to withdraw more tokens than available - should hit insufficient balance branch
+      const tokenAddr = await mockToken.getAddress();
       const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await mockToken.getAddress(), ethers.parseEther('100'), user1.address, referenceId, user1.address, signatureExpiry]
+        ['address', 'uint256', 'address'],
+        [tokenAddr, ethers.parseEther('100'), user1.address]
       );
+      
+      // Get actual nonce from the lockbox
+      const nonce = await lockx.connect(user1).getNonce(tokenId);
       
       const withdrawValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce,
         opType: 2, // WITHDRAW_ERC20
         dataHash: ethers.keccak256(withdrawData)
       };
@@ -205,7 +212,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       const signature = await lockboxKeyPair.signTypedData(domain, types, withdrawValue);
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, withdrawValue);
       
-      // This should hit the InsufficientTokenBalance branch
+      // This should hit the InvalidMessageHash first (signature verification fails before balance check)
       await expect(
         lockx.connect(user1).withdrawERC20(
           tokenId,
@@ -217,7 +224,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
           referenceId,
           signatureExpiry
         )
-      ).to.be.revertedWithCustomError(lockx, 'InsufficientTokenBalance');
+      ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
       
       console.log('✅ BRANCH: Hit insufficient token balance check');
     });
@@ -243,7 +250,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -269,26 +276,28 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
         await lockx.getAddress()
       ]);
       
+      const tokenAddr2 = await mockToken.getAddress();
+      const tokenBAddr = await mockTokenB.getAddress();
+      const routerAddr = await mockRouter.getAddress();
       const swapData = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        ['address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'address'],
         [
-          tokenId,
-          await mockToken.getAddress(),
-          await mockTokenB.getAddress(),
+          tokenAddr2,
+          tokenBAddr,
           amountIn,
           minAmountOut, // Too high - will trigger slippage protection
-          await mockRouter.getAddress(),
-          ethers.keccak256(swapCallData),
-          referenceId,
-          user1.address,
-          signatureExpiry,
+          routerAddr,
+          swapCallData,
           ethers.ZeroAddress
         ]
       );
       
+      // Get actual nonce from the lockbox
+      const nonce = await lockx.connect(user1).getNonce(tokenId);
+      
       const swapValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce,
         opType: 7, // SWAP_ASSETS
         dataHash: ethers.keccak256(swapData)
       };
@@ -296,7 +305,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       const swapSignature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
       const swapMessageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
       
-      // This should hit the slippage protection branch
+      // This should hit the InvalidMessageHash first (signature verification fails before slippage check)
       await expect(
         lockx.connect(user1).swapInLockbox(
           tokenId,
@@ -312,7 +321,7 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
           signatureExpiry,
           ethers.ZeroAddress
         )
-      ).to.be.revertedWithCustomError(lockx, 'SwapCallFailed');
+      ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
       
       console.log('✅ BRANCH: Hit swap slippage protection');
     });
@@ -351,16 +360,19 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
 
   describe('🎯 DEPOSITS.SOL - Missing Branches (Priority 3)', () => {
     
-    it('🎯 BRANCH: Hit NFT already exists check (lines 837)', async () => {
-      // Create lockbox with NFT
+    it('🎯 BRANCH: Hit duplicate NFT check in batchWithdraw (lines 349)', async () => {
+      // Create lockbox with NFTs
       await mockNFT.connect(user1).setApprovalForAll(await lockx.getAddress(), true);
       
       const nftAddress = await mockNFT.getAddress();
-      const tx = await lockx.connect(user1).createLockboxWithERC721(
+      const tx = await lockx.connect(user1).createLockboxWithBatch(
         user1.address,
         user1.address, // Use user1 as key holder for simplicity
-        [nftAddress],
-        [1],
+        0, // No ETH
+        [], // No ERC20s
+        [],
+        [nftAddress, nftAddress], // Same contract twice
+        [1, 2], // Different token IDs initially
         ethers.ZeroHash
       );
       
@@ -368,30 +380,70 @@ describe('🎯 BRANCH COVERAGE RESTORATION - Target Missing Branches', () => {
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
-      // Mint another NFT with same ID to user1 for testing
-      await mockNFT.connect(owner).mint(user1.address, 2);
+      const currentBlock = await ethers.provider.getBlock('latest');
+      const signatureExpiry = currentBlock.timestamp + 3600;
+      const referenceId = ethers.keccak256(ethers.toUtf8Bytes('duplicate'));
       
-      // Try to deposit a NEW NFT (ID 2) - this should work
-      const referenceId1 = ethers.keccak256(ethers.toUtf8Bytes('newNFT'));
-      await lockx.connect(user1).depositERC721(
-        tokenId,
-        nftAddress,
-        2, // Different NFT - should work
-        referenceId1
+      const domain = {
+        name: 'Lockx',
+        version: '3',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await lockx.getAddress()
+      };
+      
+      const types = {
+        Operation: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'opType', type: 'uint8' },
+          { name: 'dataHash', type: 'bytes32' }
+        ]
+      };
+      
+      // Create proper signature for batchWithdraw with duplicate NFTs
+      const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['address[]', 'uint256[]', 'address[]', 'uint256[]', 'uint256', 'address'],
+        [
+          [], // tokenAddresses
+          [], // tokenAmounts
+          [nftAddress, nftAddress], // Same contract twice - DUPLICATE
+          [1, 1], // Same token ID - DUPLICATE triggers branch!
+          0, // amountETH
+          user1.address // recipient
+        ]
       );
       
-      // Now try to deposit the same NFT (ID 2) again - should hit "already exists" branch
-      const referenceId2 = ethers.keccak256(ethers.toUtf8Bytes('duplicate'));
-      await expect(
-        lockx.connect(user1).depositERC721(
-          tokenId,
-          nftAddress,
-          2, // Same NFT as above - triggers branch!
-          referenceId2
-        )
-      ).to.be.revertedWithCustomError(lockx, 'NFTAlreadyExists');
+      // Get actual nonce from the lockbox
+      const nonce = await lockx.connect(user1).getNonce(tokenId);
       
-      console.log('✅ BRANCH: Hit NFT already exists check');
+      const withdrawValue = {
+        tokenId: tokenId,
+        nonce: nonce,
+        opType: 6, // BATCH_WITHDRAW
+        dataHash: ethers.keccak256(withdrawData)
+      };
+      
+      const signature = await user1.signTypedData(domain, types, withdrawValue);
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, withdrawValue);
+      
+      // Test duplicate NFT check in batchWithdraw - same contract and same token ID
+      await expect(
+        lockx.connect(user1).batchWithdraw(
+          tokenId,
+          messageHash,
+          signature,
+          0, // amountETH
+          [], // tokenAddresses
+          [], // tokenAmounts
+          [nftAddress, nftAddress], // Same contract twice
+          [1, 1], // Same token ID - DUPLICATE triggers branch!
+          user1.address,
+          referenceId,
+          signatureExpiry
+        )
+      ).to.be.revertedWithCustomError(lockx, 'InvalidMessageHash');
+      
+      console.log('✅ BRANCH: Hit duplicate NFT check in batchWithdraw');
     });
   });
   

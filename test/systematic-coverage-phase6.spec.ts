@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
   let lockx, mockToken, mockTokenB, mockRouter, usdtSimulator, owner, user1, lockboxKeyPair;
@@ -67,7 +67,7 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -85,27 +85,34 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
         await usdtSimulator.getAddress(),
         await mockTokenB.getAddress(),
         ethers.parseEther('50'),
-        ethers.parseEther('25')
+        ethers.parseEther('25'),
+        ethers.ZeroAddress // recipient (lockbox)
       ]);
       
+      // Use nonce 1 for first operation on newly created token
+      const usdtAddr = await usdtSimulator.getAddress();
+      const tokenBAddr = await mockTokenB.getAddress();
+      const routerAddr = await mockRouter.getAddress();
       const swapEncoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await usdtSimulator.getAddress(), await mockTokenB.getAddress(), ethers.parseEther('50'), ethers.parseEther('25'), await mockRouter.getAddress(), swapData, ethers.ZeroAddress, referenceId, user1.address, signatureExpiry]
+        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        [tokenId, usdtAddr, tokenBAddr, ethers.parseEther('50'), ethers.parseEther('25'), routerAddr, ethers.keccak256(swapData), referenceId, user1.address, signatureExpiry, ethers.ZeroAddress]
       );
       
+      const nonce1 = await lockx.connect(user1).getNonce(tokenId);
       const swapValue = {
         tokenId: tokenId,
-        nonce: 0,
-        opType: 4, // SwapInLockbox
+        nonce: nonce1,
+        opType: 7, // SWAP_ASSETS
         dataHash: ethers.keccak256(swapEncoded)
       };
       
       const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
       
       // Execute swap - should hit forceApprove(0) then forceApprove(amount) branches
       const swapTx = await lockx.connect(user1).swapInLockbox(
         tokenId,
-        ethers.keccak256(swapEncoded),
+        messageHash,
         signature,
         await usdtSimulator.getAddress(),
         await mockTokenB.getAddress(),
@@ -113,6 +120,8 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
         ethers.parseEther('25'),
         await mockRouter.getAddress(),
         swapData,
+        referenceId,
+        signatureExpiry,
         ethers.ZeroAddress
       );
       
@@ -141,7 +150,7 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -159,27 +168,34 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
         await mockToken.getAddress(),
         await mockTokenB.getAddress(),
         ethers.parseEther('100'), // Swap ALL tokens
-        ethers.parseEther('50')
+        ethers.parseEther('50'),
+        ethers.ZeroAddress // recipient (lockbox)
       ]);
       
+      // Use nonce 1 for first operation on newly created token
+      const tokenAddr = await mockToken.getAddress();
+      const tokenBAddr2 = await mockTokenB.getAddress();
+      const routerAddr2 = await mockRouter.getAddress();
       const swapEncoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await mockToken.getAddress(), await mockTokenB.getAddress(), ethers.parseEther('100'), ethers.parseEther('50'), await mockRouter.getAddress(), swapData, ethers.ZeroAddress, referenceId, user1.address, signatureExpiry]
+        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        [tokenId, tokenAddr, tokenBAddr2, ethers.parseEther('100'), ethers.parseEther('50'), routerAddr2, ethers.keccak256(swapData), referenceId, user1.address, signatureExpiry, ethers.ZeroAddress]
       );
       
+      const metaNonce = await lockx.connect(user1).getNonce(tokenId);
       const swapValue = {
         tokenId: tokenId,
-        nonce: 0,
-        opType: 4, // SwapInLockbox
+        nonce: metaNonce,
+        opType: 7, // SWAP_ASSETS
         dataHash: ethers.keccak256(swapEncoded)
       };
       
       const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
       
       // Execute swap - should swap ALL tokens, making balance 0, triggering token removal
       const swapTx = await lockx.connect(user1).swapInLockbox(
         tokenId,
-        ethers.keccak256(swapEncoded),
+        messageHash,
         signature,
         await mockToken.getAddress(),
         await mockTokenB.getAddress(),
@@ -187,6 +203,8 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
         ethers.parseEther('50'),
         await mockRouter.getAddress(),
         swapData,
+        referenceId,
+        signatureExpiry,
         ethers.ZeroAddress
       );
       
@@ -215,7 +233,7 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -233,29 +251,35 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
         await mockToken.getAddress(),
         ethers.ZeroAddress, // ETH
         ethers.parseEther('50'),
-        ethers.parseEther('0.1')
+        ethers.parseEther('0.1'),
+        owner.address // external recipient
       ]);
       
       const externalRecipient = await owner.getAddress(); // External recipient
       
+      // Use nonce 1 for first operation on newly created token
+      const tokenAddr3 = await mockToken.getAddress();
+      const routerAddr3 = await mockRouter.getAddress();
       const swapEncoded = ethers.AbiCoder.defaultAbiCoder().encode(
-        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes', 'address', 'bytes32', 'address', 'uint256'],
-        [tokenId, await mockToken.getAddress(), ethers.ZeroAddress, ethers.parseEther('50'), 0, await mockRouter.getAddress(), swapData, externalRecipient, referenceId, user1.address, signatureExpiry]
+        ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'bytes32', 'address', 'uint256', 'address'],
+        [tokenId, tokenAddr3, ethers.ZeroAddress, ethers.parseEther('50'), 0, routerAddr3, ethers.keccak256(swapData), referenceId, user1.address, signatureExpiry, externalRecipient]
       );
       
+      const nonce3 = await lockx.connect(user1).getNonce(tokenId);
       const swapValue = {
         tokenId: tokenId,
-        nonce: 0,
-        opType: 4, // SwapInLockbox
+        nonce: nonce3,
+        opType: 7, // SWAP_ASSETS
         dataHash: ethers.keccak256(swapEncoded)
       };
       
       const signature = await lockboxKeyPair.signTypedData(domain, types, swapValue);
+      const messageHash = ethers.TypedDataEncoder.hash(domain, types, swapValue);
       
       // Execute swap to ETH with external recipient - should hit lines 520-521
       const swapTx = await lockx.connect(user1).swapInLockbox(
         tokenId,
-        ethers.keccak256(swapEncoded),
+        messageHash,
         signature,
         await mockToken.getAddress(),
         ethers.ZeroAddress, // ETH output
@@ -263,6 +287,8 @@ describe('🎯 BRANCH COVERAGE PHASE 7 - WITHDRAWALS FOCUS', () => {
         0, // No slippage check
         await mockRouter.getAddress(),
         swapData,
+        referenceId,
+        signatureExpiry,
         externalRecipient // External recipient
       );
       

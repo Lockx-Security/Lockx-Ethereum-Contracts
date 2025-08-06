@@ -1,8 +1,8 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 BRANCH COVERAGE PHASE 4 - ULTRA TARGETED TESTS', () => {
-  let lockx, mockToken, mockTokenB, mockRouter, owner, user1, lockboxKeyPair;
+  let lockx, mockToken, mockTokenB, mockRouter, mockNFT, owner, user1, lockboxKeyPair;
   
   beforeEach(async () => {
     [owner, user1] = await ethers.getSigners();
@@ -18,11 +18,18 @@ describe('🎯 BRANCH COVERAGE PHASE 4 - ULTRA TARGETED TESTS', () => {
     const MockSwapRouter = await ethers.getContractFactory('MockSwapRouter');
     mockRouter = await MockSwapRouter.deploy();
     
+    const MockERC721 = await ethers.getContractFactory('MockERC721');
+    mockNFT = await MockERC721.deploy();
+    await mockNFT.initialize('Mock NFT', 'MNFT');
+    
     // Deploy Lockx
     const Lockx = await ethers.getContractFactory('Lockx');
     lockx = await Lockx.deploy();
     
     lockboxKeyPair = ethers.Wallet.createRandom();
+    
+    // Mint NFTs
+    await mockNFT.mint(owner.address, 1);
     
     // Fund accounts and contracts
     await mockToken.connect(owner).transfer(user1.address, ethers.parseEther('1000'));
@@ -72,7 +79,7 @@ describe('🎯 BRANCH COVERAGE PHASE 4 - ULTRA TARGETED TESTS', () => {
           ethers.parseEther('1'), // amountETH
           [await mockToken.getAddress()], // tokenAddresses
           [ethers.parseEther('10')], // tokenAmounts
-          [await mockToken.getAddress()], // nftContracts
+          [await mockNFT.getAddress()], // nftContracts
           [1], // nftTokenIds
           ethers.ZeroHash, // referenceId
           { value: ethers.parseEther('1') }
@@ -89,7 +96,7 @@ describe('🎯 BRANCH COVERAGE PHASE 4 - ULTRA TARGETED TESTS', () => {
           ethers.parseEther('1'), // amountETH
           [await mockToken.getAddress()], // tokenAddresses
           [ethers.parseEther('10')], // tokenAmounts
-          [await mockToken.getAddress()], // nftContracts
+          [await mockNFT.getAddress()], // nftContracts
           [1], // nftTokenIds
           ethers.ZeroHash, // referenceId
           { value: ethers.parseEther('1') }

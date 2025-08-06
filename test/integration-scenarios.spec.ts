@@ -112,7 +112,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -174,7 +174,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -236,7 +236,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -302,7 +302,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -377,7 +377,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -720,7 +720,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       } catch (error: any) {}
 
       try {
-        await lockx.connect(user).batchDeposit(tokenId, 0, [await mockERC20.getAddress()], 
+        await lockx.connect(user).batchDeposit(tokenId, 0, [await mockERC20.getAddress(), await mockERC20.getAddress()], 
           [ethers.parseEther('1000'), ethers.parseEther('2000')], [], [], ethers.ZeroHash, { value: 0 });
       } catch (error: any) {}
 
@@ -815,7 +815,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
 
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -880,7 +880,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -997,7 +997,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -1070,7 +1070,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -1123,7 +1123,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       }
 
       // Test ZeroAmount
-      const nonce2 = await lockx.connect(user).getNonce(tokenId);
+      const tokenNonce = await lockx.connect(user).getNonce(tokenId);
       const swapData2 = ethers.AbiCoder.defaultAbiCoder().encode(
         ['uint256', 'address', 'address', 'uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256', 'address'],
         [tokenId, ethers.ZeroAddress, await mockERC20.getAddress(), 0, ethers.parseEther('0.5'), 
@@ -1133,7 +1133,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
 
       const swapValue2 = {
         tokenId: tokenId,
-        nonce: nonce2,
+        nonce: tokenNonce,
         opType: 5,
         dataHash: swapDataHash2
       };
@@ -1183,7 +1183,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };

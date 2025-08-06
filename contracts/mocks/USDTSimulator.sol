@@ -80,7 +80,7 @@ contract AllowanceRouter {
         leaveAllowance = _leave;
     }
     
-    function swap(address tokenIn, address tokenOut, uint256 amountIn) external payable {
+    function swap(address tokenIn, address tokenOut, uint256 amountIn, uint256 minAmountOut, address recipient) external payable {
         if (tokenIn != address(0)) {
             // Only take partial allowance to leave some remaining
             uint256 partialAmount = leaveAllowance ? amountIn / 2 : amountIn;
@@ -89,8 +89,14 @@ contract AllowanceRouter {
         
         // Send output
         uint256 output = outputAmounts[tokenOut];
-        if (output > 0 && tokenOut == address(0)) {
-            payable(msg.sender).transfer(output);
+        if (output > 0) {
+            require(output >= minAmountOut, "Slippage");
+            address actualRecipient = recipient == address(0) ? msg.sender : recipient;
+            if (tokenOut == address(0)) {
+                payable(actualRecipient).transfer(output);
+            } else {
+                IERC20(tokenOut).transfer(actualRecipient, output);
+            }
         }
     }
 }

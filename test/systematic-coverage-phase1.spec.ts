@@ -1,5 +1,5 @@
-const { expect } = require('chai');
-const { ethers } = require('hardhat');
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
 
 describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
   let lockx, mockToken, mockTokenB, mockNFT, mockRouter, usdtSimulator, owner, user1, user2, lockboxKeyPair;
@@ -73,7 +73,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -92,9 +92,10 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
         [tokenId, ethers.parseEther('0.5'), user1.address, referenceId, user1.address, expiredTimestamp]
       );
       
+      const nonce = await lockx.connect(user1).getNonce(tokenId);
       const withdrawValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce,
         opType: 1, // WITHDRAW_ETH
         dataHash: ethers.keccak256(withdrawData)
       };
@@ -133,12 +134,12 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       const referenceId = ethers.keccak256(ethers.toUtf8Bytes('zeroaddr'));
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -158,9 +159,10 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
         [tokenId, await mockToken.getAddress(), ethers.parseEther('50'), ethers.ZeroAddress, referenceId, user1.address, signatureExpiry]
       );
       
+      const nonce = await lockx.connect(user1).getNonce(tokenId);
       const withdrawValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce,
         opType: 2, // WITHDRAW_ERC20
         dataHash: ethers.keccak256(withdrawData)
       };
@@ -198,12 +200,12 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       const referenceId = ethers.keccak256(ethers.toUtf8Bytes('nftnotfound'));
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -223,9 +225,10 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
         [tokenId, await mockNFT.getAddress(), 999, user1.address, referenceId, user1.address, signatureExpiry] // NFT 999 doesn't exist
       );
       
+      const nonce = await lockx.connect(user1).getNonce(tokenId);
       const withdrawValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce,
         opType: 3, // WITHDRAW_NFT
         dataHash: ethers.keccak256(withdrawData)
       };
@@ -263,12 +266,12 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       const referenceId = ethers.keccak256(ethers.toUtf8Bytes('invalidswap'));
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -311,9 +314,10 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
         ]
       );
       
+      const withdrawNonce = await lockx.connect(user1).getNonce(tokenId);
       const swapValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: withdrawNonce,
         opType: 7, // SWAP_ASSETS
         dataHash: ethers.keccak256(swapData)
       };
@@ -364,12 +368,12 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
         ethers.keccak256(ethers.toUtf8Bytes('deposit'))
       );
       
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       const referenceId = ethers.keccak256(ethers.toUtf8Bytes('balancemeasure'));
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -412,9 +416,10 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
         ]
       );
       
+      const nonce3 = await lockx.connect(user1).getNonce(tokenId);
       const swapValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce3,
         opType: 7, // SWAP_ASSETS
         dataHash: ethers.keccak256(swapData)
       };
@@ -463,7 +468,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '2',
+        version: '3',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -483,9 +488,10 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
         [tokenId, newURI, referenceId, expiredTimestamp]
       );
       
+      const nonce4 = await lockx.connect(user1).getNonce(tokenId);
       const metadataValue = {
         tokenId: tokenId,
-        nonce: 1,
+        nonce: nonce4,
         opType: 5, // SET_TOKEN_URI
         dataHash: ethers.keccak256(metadataData)
       };
@@ -511,7 +517,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
     it('🎯 BRANCH: Hit nonexistent token check in operations', async () => {
       // Try to perform operation on non-existent token - should hit NonexistentToken branch
       const nonExistentTokenId = 999999;
-      const signatureExpiry = Math.floor(Date.now() / 1000) + 3600;
+      const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       
       // This should hit the NonexistentToken branch
       await expect(
