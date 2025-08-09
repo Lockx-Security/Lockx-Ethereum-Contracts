@@ -1,7 +1,7 @@
-# Lockx Smart Contracts v3.0.1
+# Lockx Smart Contracts v3.0.2
 
 [![license](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
-[![version](https://img.shields.io/badge/version-3.0.1-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-3.0.2-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
 Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes with OpenZeppelin v5.3.0 security standards. Features comprehensive testing with dual framework support (Hardhat + Foundry), property-based testing, and EIP-712 v3 signature verification.
@@ -22,12 +22,12 @@ Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes
 
 ---
 
-## Open Source & Testing
+## Open source & testing
 
 The Lockx smart contracts are open source with comprehensive security validation through dual testing frameworks:
 
-- **Hardhat Unit Tests**: 90.5% branch coverage across 46 test files with 423 individual tests
-- **Foundry Property Testing**: 7 invariant tests with 25 million randomized operations  
+- **Hardhat unit tests**: 90.5% branch coverage across 46 test files with 438 passing tests
+- **Foundry property testing**: 27 tests (invariants + fuzz) with ~25M randomized operations  
 - **Security Coverage**: 100% coverage on signature verification and access control paths
 - **Core Contract Coverage**: Lockx.sol achieves 90.54% branch coverage (exceeds 90% target)
 
@@ -44,10 +44,14 @@ contracts/               |    98.51 |    90.5  |      100 |    99.15 |
 
 All tests are publicly available and replicable:
 ```bash
-# Clone and test locally
+# clone and test locally
 git clone [repo-url]
 npm install
+
+# unit tests with coverage (reproducible)
 npm run coverage
+
+# invariants + fuzz (reproducible)
 npm run forge:test
 ```
 
@@ -55,13 +59,14 @@ npm run forge:test
 
 🧪 **Testing framework**
 - **Systematic Phase Testing**: 20 phase-based test files targeting specific branches
-- **Hardhat testing suite** with 90.5% branch coverage and 423 individual tests
-- **Foundry testing** with 7 invariant tests executing 25 million operations
+- **Hardhat testing suite** with 90.5% branch coverage and 438 passing tests
+- **Foundry testing** with 27 tests (invariants + fuzz) executing ~25 million operations
 - **Core functionality testing** with working test files for reliable replication
 - **Property-based testing** validating system invariants and balance consistency
 
 📊 **Test coverage**
-- **Current Achievement**: 90.5% branch coverage (219/242 branches)
+- **Current achievement**: ~90.5% production branch coverage
+- **focus**: coverage figures refer to the production contracts only — `contracts/Lockx.sol`, `contracts/Withdrawals.sol`, `contracts/Deposits.sol`, `contracts/SignatureVerification.sol`. Aggregates that include `contracts/mocks/**` are not representative of production quality.
 - **Working Test Suite**: `systematic-core-suite.spec.ts` (5 passing tests) and systematic phases
 - **Foundry Invariants**: 25 million randomized operations across 7 test cases
 - **Security Focus**: 100% coverage of signature verification and access control paths
@@ -107,14 +112,14 @@ npm run forge:test
 ### Running tests
 
 ```bash
-# Unit testing with coverage
+# unit testing with coverage
 npm run coverage
 
-# Invariant testing
+# invariant and fuzz testing (foundry)
 npm run forge:test
 ```
 
-The first command runs all 423+ tests with 90.5% branch coverage. The second runs 7 invariant tests with 25 million randomized operations.
+The first command runs all Hardhat tests (currently 438 passing) with coverage. The second runs Foundry property tests.
 
 
 **Invariant test results (all passing):**
@@ -218,7 +223,7 @@ ETHERSCAN_API_KEY=YourEtherscanKey
 
 ## Development & Testing Acknowledgments
 
-This project's comprehensive test suite (46 test files, 423 individual tests, 90.5% branch coverage) was developed through an intensive automated testing approach using Claude AI for systematic test generation and coverage optimization. Over multiple development cycles, Claude assisted with:
+This project's comprehensive test suite (46 test files, 438 passing tests, 90.5% branch coverage) was developed through an intensive automated testing approach using Claude AI for systematic test generation and coverage optimization. Over multiple development cycles, Claude assisted with:
 
 - **Automated Unit Test Generation**: Systematic creation of edge case tests and branch coverage optimization
 - **Property-Based Test Design**: Development of invariant tests for Foundry integration  
@@ -233,7 +238,7 @@ The core smart contract logic, architecture, and security design remain entirely
 
 ## Version information
 
-**Current version:** 3.0.1  
+**Current version:** 3.0.2  
 **OpenZeppelin:** v5.3.0  
 **EIP-712 domain:** 'Lockx', version '3'  
 

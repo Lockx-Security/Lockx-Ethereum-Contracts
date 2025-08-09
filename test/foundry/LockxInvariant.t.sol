@@ -69,4 +69,12 @@ contract LockxInvariant is Test {
         uint256 onchain = mock20.balanceOf(address(lockx));
         assertEq(onchain, stored, "ERC20 balance mismatch");
     }
+
+    // invariant: no ERC20 or ETH assigned to tokenId 1 or 2 (isolation)
+    function invariant_isolatedLockboxZero() public view {
+        assertEq(lockx.getEthBal(1), 0);
+        assertEq(lockx.getEthBal(2), 0);
+        assertEq(lockx.getERC20Bal(1, address(mock20)), 0);
+        assertEq(lockx.getERC20Bal(2, address(mock20)), 0);
+    }
 } 

@@ -1,6 +1,16 @@
-# Lockx Test Suite Documentation
+# Lockx test suite documentation
 
-This directory contains the complete test suite for the Lockx smart contract system, achieving **85.95% overall branch coverage** with **Lockx.sol at 90.54% branches** (exceeding the 90% target). The suite includes extensive systematic testing across multiple specialized test files.
+This directory contains the complete test suite for the Lockx smart contract system. Current snapshot:
+
+- Hardhat (coverage): contracts/ 99.63% statements, 90.08% branches, 100% functions, 100% lines; 438 tests passing
+- Foundry (property tests): 27 tests (invariants + fuzz), ~25M randomized operations
+
+Tests are reproducible with:
+
+```bash
+npm run coverage   # hardhat + solidity-coverage
+npm run forge:test # foundry invariants + fuzz
+```
 
 ## Test Organization
 
@@ -40,23 +50,23 @@ test/
 └── swap-edge-cases.spec.ts               # Swap functionality edge cases
 ```
 
-Through these 45+ test files with 380+ individual tests, the suite achieves **85.95% branch coverage** with systematic targeting of specific uncovered branches.
+Through these 45+ test files with 380+ individual tests, the legacy aggregate view reports **85.95% branch coverage** (historical report). The current production contracts report ~90.5% branch coverage via `npm run coverage`.
 
 ## Running Tests
 
-### Unit Testing with Coverage
+### Unit testing with coverage
 ```bash
 npm run coverage
 ```
 
-Runs all 423+ tests and generates 90.08% branch coverage report.
+Runs all Hardhat tests (currently 438 passing) with coverage and generates HTML under `coverage/`.
 
-### Invariant Testing
+### Invariant and fuzz testing (Foundry)
 ```bash
 npm run forge:test
 ```
 
-Runs 7 invariant tests with 25 million randomized operations to validate system properties.
+Runs 27 property tests (invariants + fuzz), ~25 million randomized operations validating core properties.
 
 
 ## Coverage Metrics
@@ -72,11 +82,12 @@ Runs 7 invariant tests with 25 million randomized operations to validate system 
 
 **Overall System Coverage: 85.95% branches (208/242) with 98.51% statements**
 
-### Viewing Coverage Report
+### Viewing coverage report
 
 After running coverage, open the HTML report:
 ```bash
 open coverage/index.html
+Note: Coverage of `contracts/mocks/**` is test scaffolding; only the four production contracts under `contracts/` (`Lockx.sol`, `Withdrawals.sol`, `Deposits.sol`, `SignatureVerification.sol`) should be used to assess production quality.
 ```
 
 ## Systematic Testing Approach

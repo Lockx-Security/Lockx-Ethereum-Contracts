@@ -32,15 +32,32 @@ contract LockxStateHarness is Lockx {
         return _erc20Balances[tokenId][token] > 0;
     }
 
+    /* ─────────── ERC-721 bookkeeping arrays ───────── */
+    function getNftKeysLength(uint256 tokenId) external view returns (uint256) {
+        return _nftKeys[tokenId].length;
+    }
+
+    function getNftKeyAt(uint256 tokenId, uint256 index) external view returns (bytes32) {
+        return _nftKeys[tokenId][index];
+    }
+
+    function getNftIndex(uint256 tokenId, bytes32 key) external view returns (uint256) {
+        return _nftIndex[tokenId][key];
+    }
+
+    function getNftRecord(uint256 tokenId, bytes32 key) external view returns (address, uint256) {
+        nftBalances memory r = _lockboxNftData[tokenId][key];
+        return (r.nftContract, r.nftTokenId);
+    }
+
     /* ─────────── Test Helper for Initialize Function ───────── */
-    /// @dev Exposes the internal initialize function for testing purposes
-    /// This allows us to test the AlreadyInitialized error condition
-    function testInitialize(uint256 tokenId, address lockboxPublicKey) external {
+    /// @dev Exposes the internal initialize function for harnesses
+    function harnessInitialize(uint256 tokenId, address lockboxPublicKey) external {
         initialize(tokenId, lockboxPublicKey);
     }
 
-    /// @dev Exposes the internal _requireExists function for testing purposes
-    function testRequireExists(uint256 tokenId) external view {
+    /// @dev Exposes the internal _requireExists function for harnesses
+    function harnessRequireExists(uint256 tokenId) external view {
         _requireExists(tokenId);
     }
 }

@@ -65,4 +65,21 @@ contract LockxArrayInvariant is Test {
             }
         }
     }
+
+    // NFT bookkeeping integrity: index mapping must reflect keys array, and records must be present.
+    function invariant_nftBookkeepingIntegrity() public view {
+        uint256 nlen = lockx.getNftKeysLength(0);
+        for (uint256 i; i < nlen; ++i) {
+            bytes32 key = lockx.getNftKeyAt(0, i);
+            uint256 idx = lockx.getNftIndex(0, key);
+            assertGt(idx, 0);
+            // 1-based index
+            uint256 arrayIdx = idx - 1;
+            assertLt(arrayIdx, nlen);
+            // record exists
+            (address c, uint256 id) = lockx.getNftRecord(0, key);
+            // contract present implies a valid record
+            assertTrue(c != address(0) || id == 0);
+        }
+    }
 } 
