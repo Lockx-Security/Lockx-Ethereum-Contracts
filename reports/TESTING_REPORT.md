@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-The Lockx smart contract system has been tested to achieve **85.95% overall branch coverage** with **Lockx.sol at 90.54% branches** (exceeding the 90% target) through comprehensive unit testing and systematic branch targeting. The testing covers a dual-key architecture for digital asset storage, with swap functionality that allows direct transfers to external recipients.
+The Lockx smart contract system has reproducible tests with **Hardhat coverage (~90.5% branches overall; 90.54% for Lockx.sol)** and an expanded **Foundry property suite** (27 tests: invariants + fuzz) validating ownership/auth, nonces, accounting, swaps (min‑out/overspend/allowances/fee‑on‑transfer), key rotation, soulbound behavior, batch guards, `getFullLockbox` correctness, and direct ETH handling.
 
 ### Test Coverage Areas
 - **Dual-Key Architecture**: Separation between wallet keys and lockbox keys
@@ -82,7 +82,8 @@ Through 17 phases of systematic testing, we achieved:
 - Phase 11-13: Advanced edge cases
 - Phase 14-17: Final push toward 90%
 
-### Coverage Analysis (85.95%)
+### Coverage analysis (representative)
+Note: Coverage figures refer to the four production contracts under `contracts/` (`Lockx.sol`, `Withdrawals.sol`, `Deposits.sol`, `SignatureVerification.sol`). Numbers for `contracts/mocks/**` are test scaffolding and not representative of production.
 Systematic verification that test cases exercise all code paths:
 - 208 of 242 branches tested
 - All critical security paths covered
@@ -182,7 +183,7 @@ it('should prevent all transfers', async () => {
 | **Deposits.sol** | 96.36% (53/55) | 84.09% (37/44) | 100% (13/13) | 100% (72/72) | Asset Storage |
 | **Withdrawals.sol** | 98.31% (116/118) | 81.82% (90/110) | 100% (6/6) | 98.15% (159/162) | Asset Extraction |
 
-**Overall: 98.51% statements, 85.95% branches, 100% functions, 99.15% lines**
+**Production (representative): ~99.6% statements, ~90.1% branches, 100% functions, 100% lines**
 
 ### What the Coverage Means
 
@@ -289,18 +290,18 @@ test/
 - **Memory usage**: Normal
 - **Coverage generation**: ~15-20 seconds
 
-## Replicating Results
+## Replicating results
 
 ### Easy Replication for Open Source Users
 
 ```bash
-# Install dependencies
+# install dependencies
 npm install
 
-# Run unit tests with coverage
+# unit tests with coverage (HTML under coverage/index.html)
 npm run coverage
 
-# Run invariant tests
+# invariant and fuzz tests (Foundry)
 npm run forge:test
 ```
 

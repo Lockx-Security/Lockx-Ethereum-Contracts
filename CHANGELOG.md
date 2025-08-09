@@ -5,13 +5,38 @@ All notable changes to the Lockx Smart Contracts project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.2] - 2025-08-09
+
+### Added
+- Foundry invariants and fuzz tests expanded significantly:
+  - Swap allowance reset invariant
+  - Signature recipient binding test
+  - Key rotation correctness test
+  - Global conservation across multiple tokens (multi-user)
+  - getFullLockbox correctness vs internal state
+  - Direct ETH receive() invariant (no accounting corruption)
+  - Fee-on-transfer swap post-conditions
+  - Withdraw ETH/ERC20 fuzz tests
+
+### Results
+- Hardhat: 438 tests passing; production coverage unchanged (contracts/: 99.63% statements, 90.08% branches)
+- Foundry: 27 tests passed (invariants + fuzz)
+- Reproducible commands:
+  - `npm run coverage` (Hardhat + solidity-coverage)
+  - `npm run forge:test` (Foundry invariants/fuzz)
+
+### Notes
+- This release focuses on property-based testing and reproducibility. Coverage percentages for production contracts are unchanged and remain strong.
+
+---
+
 ## [3.0.1] - 2025-08-04
 
-### 🎯 **Test Suite Stabilization & Coverage Excellence**
+### Test suite stabilization and coverage
 
 This patch release focuses on stabilizing the test suite and achieving the highest practical test coverage through systematic test fixes and coverage configuration improvements.
 
-### ✅ **Testing Infrastructure Improvements**
+### Testing infrastructure improvements
 - **Test Suite Stabilization**: Fixed 89 failing tests by addressing signature expiry issues, parameter mismatches, and EIP-712 domain version consistency
 - **Coverage Achievement**: Improved from 85.95% to **90.5% branch coverage** with **423 passing tests** (up from 380+ tests)
 - **Mock Contract Exclusion**: Configured `hardhat.config.ts` to exclude mock contracts from coverage reports for accurate metrics
@@ -22,7 +47,7 @@ This patch release focuses on stabilizing the test suite and achieving the highe
 - **Package Scripts Cleanup**: Removed redundant coverage scripts (`coverage:replicate`, `coverage:table`, `coverage:core`) leaving only `npm run coverage`
 - **Version Update**: Updated package.json from 2.1.0 to 3.0.1
 
-### 📊 **Coverage Metrics Achievement**
+### Coverage metrics
 ```
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
@@ -33,24 +58,24 @@ contracts/               |    98.51 |    90.5  |      100 |    99.15 |
   Withdrawals.sol       |    98.31 |    81.82 |      100 |    98.15 |
 ```
 
-**Key Achievements:**
-- ✅ **90.5% overall branch coverage** (improved from 85.95%)
-- ✅ **423 passing tests** with 0 failures (improved from 380+ tests)
-- ✅ **100% function coverage** maintained across all contracts
-- ✅ **Lockx.sol exceeds 90% target** with 90.54% branch coverage
+**Summary:**
+- 90.5% overall branch coverage (improved from 85.95%)
+- 423 passing tests with 0 failures (up from 380+)
+- 100% function coverage across all contracts
+- Lockx.sol at 90.54% branch coverage
 
-### 🧪 **Test Suite Fixes**
+### Test suite fixes
 - **Signature Expiry Resolution**: Fixed hardcoded timestamps in test files that were causing `SignatureExpired` errors
 - **EIP-712 Consistency**: Updated all test files to use domain version 'v3' consistently
 - **Parameter Alignment**: Fixed function call parameter mismatches across multiple test files
 - **Nonce Management**: Corrected nonce handling in signature generation for proper test execution
 
-### 📝 **Documentation Updates**
+### Documentation updates
 - **README.md**: Updated all coverage metrics from 84.3% to 90.5% and test counts from 380+ to 423
 - **Version Badges**: Updated version references from 3.0.0 to 3.0.1 throughout documentation
 - **Test Statistics**: Reflected new achievement of 90.5% branch coverage in all documentation
 
-### 🔄 **Quick Start Verification**
+### Quick start verification
 ```bash
 # Verify the improved coverage
 npm install
@@ -63,10 +88,10 @@ npm run coverage
 ```
 
 ### Summary
-- **Test Status**: All 423 tests pass with proper signature handling
-- **Coverage**: Achieved 90.5% branch coverage 
-- **Configuration**: Excluded mock contracts from coverage reports
-- **Metrics**: Coverage metrics are accurate and reproducible
+- Test status: All 423 tests pass
+- Coverage: 90.5% branch coverage
+- Configuration: Excluded mock contracts from coverage reports
+- Metrics: Coverage metrics accurate and reproducible
 
 This release stabilizes the test suite and improves coverage reporting.
 

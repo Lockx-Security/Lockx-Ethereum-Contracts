@@ -44,7 +44,7 @@ test/
 npm run coverage
 ```
 
-This command runs all 423+ tests and generates 90.08% branch coverage results.
+This command runs all Hardhat tests (currently 438 passing) and generates the coverage report.
 
 ### Invariant Testing  
 ```bash
