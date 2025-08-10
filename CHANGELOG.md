@@ -38,7 +38,7 @@ This patch release focuses on stabilizing the test suite and achieving the highe
 
 ### Testing infrastructure improvements
 - **Test Suite Stabilization**: Fixed 89 failing tests by addressing signature expiry issues, parameter mismatches, and EIP-712 domain version consistency
-- **Coverage Achievement**: Improved from 85.95% to **90.5% branch coverage** with **423 passing tests** (up from 380+ tests)
+- **Coverage Achievement**: Improved from 85.95% to **90.08% branch coverage** with **423 passing tests** (up from 380+ tests)
 - **Mock Contract Exclusion**: Configured `hardhat.config.ts` to exclude mock contracts from coverage reports for accurate metrics
 - **Signature Verification**: Updated all test files to use consistent EIP-712 domain version 'v3' and proper timestamp handling
 
@@ -51,7 +51,7 @@ This patch release focuses on stabilizing the test suite and achieving the highe
 ```
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
-contracts/               |    98.51 |    90.5  |      100 |    99.15 |
+contracts/               |    99.63 |    90.08 |      100 |      100 |
   Lockx.sol             |      100 |    90.54 |      100 |      100 | 🎯
   SignatureVerification |      100 |      100 |      100 |      100 | ✅
   Deposits.sol          |    96.36 |    84.09 |      100 |      100 |
@@ -59,7 +59,7 @@ contracts/               |    98.51 |    90.5  |      100 |    99.15 |
 ```
 
 **Summary:**
-- 90.5% overall branch coverage (improved from 85.95%)
+- 90.08% overall branch coverage (improved from 85.95%)
 - 423 passing tests with 0 failures (up from 380+)
 - 100% function coverage across all contracts
 - Lockx.sol at 90.54% branch coverage
@@ -71,9 +71,9 @@ contracts/               |    98.51 |    90.5  |      100 |    99.15 |
 - **Nonce Management**: Corrected nonce handling in signature generation for proper test execution
 
 ### Documentation updates
-- **README.md**: Updated all coverage metrics from 84.3% to 90.5% and test counts from 380+ to 423
+- **README.md**: Updated all coverage metrics from 84.3% to 90.08% and test counts from 380+ to 423
 - **Version Badges**: Updated version references from 3.0.0 to 3.0.1 throughout documentation
-- **Test Statistics**: Reflected new achievement of 90.5% branch coverage in all documentation
+- **Test Statistics**: Reflected new achievement of 90.08% branch coverage in all documentation
 
 ### Quick start verification
 ```bash
@@ -82,14 +82,14 @@ npm install
 npm run coverage
 
 # Expected results:
-# - contracts/: 90.5% branch coverage
+# - contracts/: 90.08% branch coverage
 # - 423 passing tests
 # - 0 failing tests
 ```
 
 ### Summary
 - Test status: All 423 tests pass
-- Coverage: 90.5% branch coverage
+- Coverage: 90.08% branch coverage
 - Configuration: Excluded mock contracts from coverage reports
 - Metrics: Coverage metrics accurate and reproducible
 
