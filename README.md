@@ -1,45 +1,46 @@
-# Lockx Smart Contracts v3.0.2
+# Lockx smart contracts v3.0.2
 
 [![license](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
 [![version](https://img.shields.io/badge/version-3.0.2-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
-Professional Solidity smart-contract suite implementing soul-bound NFT lockboxes with OpenZeppelin v5.3.0 security standards. Features comprehensive testing with dual framework support (Hardhat + Foundry), property-based testing, and EIP-712 v3 signature verification.
+Solidity contracts implementing soul-bound NFT lockboxes. Uses OpenZeppelin v5.3.0. Includes unit and property-based tests (Hardhat and Foundry) and EIP-712 v3 signature verification.
 
 ## Table of contents
 
-1. [Overview](#overview)
-2. [Open Source & Testing](#open-source--testing)
-3. [Installation](#installation)
-4. [Usage](#usage)
-5. [Testing](#testing)
-6. [Coverage](#coverage)
-7. [Static analysis](#static-analysis)
-8. [Linting & formatting](#linting--formatting)
-9. [Deployment](#deployment)
-10. [Continuous integration](#continuous-integration)
-11. [Environment variables](#environment-variables)
+1. [Open source & testing](#open-source--testing)
+2. [Testing framework](#testing-framework)
+3. [Running tests](#running-tests)
+4. [Test coverage](#test-coverage)
+5. [Static analysis](#static-analysis)
+6. [Linting & formatting](#linting--formatting)
+7. [Deployment](#deployment)
+8. [Contract architecture](#contract-architecture)
+9. [Environment variables](#environment-variables)
+10. [Development & testing acknowledgments](#development--testing-acknowledgments)
+11. [Version information](#version-information)
+12. [Gas reports](#gas-reports)
 
 ---
 
-## Open source & testing
+## Open source and testing
 
-The Lockx smart contracts are open source with comprehensive security validation through dual testing frameworks:
+The Lockx smart contracts are open source and tested with two frameworks:
 
 - **Hardhat unit tests**: 90.5% branch coverage across 46 test files with 438 passing tests
-- **Foundry property testing**: 27 tests (invariants + fuzz) with ~25M randomized operations  
-- **Security Coverage**: 100% coverage on signature verification and access control paths
-- **Core Contract Coverage**: Lockx.sol achieves 90.54% branch coverage (exceeds 90% target)
+- **Foundry property testing**: 27 tests (invariants + fuzz) with ~25M randomized operations
+- **Signature verification and access control**: full test coverage
+- **Core contract coverage**: `Lockx.sol` 90.54% branch coverage
 
-**Testing Results:**
+**Testing results:**
 ```
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
 contracts/               |    98.51 |    90.5  |      100 |    99.15 |
-  Lockx.sol             |      100 |    90.54 |      100 |      100 | 🎯
-  SignatureVerification |      100 |      100 |      100 |      100 | ✅
-  Deposits.sol          |    96.36 |    84.09 |      100 |      100 |
-  Withdrawals.sol       |    98.31 |    78.18 |      100 |    96.3  |
+  Lockx.sol              |      100 |    90.54 |      100 |      100 |
+  SignatureVerification  |      100 |      100 |      100 |      100 |
+  Deposits.sol           |    96.36 |    84.09 |      100 |      100 |
+  Withdrawals.sol        |    98.31 |    78.18 |      100 |    96.3  |
 ```
 
 All tests are publicly available and replicable:
@@ -57,57 +58,57 @@ npm run forge:test
 
 ---
 
-🧪 **Testing framework**
-- **Systematic Phase Testing**: 20 phase-based test files targeting specific branches
-- **Hardhat testing suite** with 90.5% branch coverage and 438 passing tests
-- **Foundry testing** with 27 tests (invariants + fuzz) executing ~25 million operations
-- **Core functionality testing** with working test files for reliable replication
-- **Property-based testing** validating system invariants and balance consistency
+## Testing framework
+- Phase-based tests: 20 files targeting specific branches
+- Hardhat: 90.5% branch coverage and 438 passing tests
+- Foundry: 27 tests (invariants + fuzz) executing ~25 million operations
+- Core functionality tests included for replication
+- Property-based tests validate system invariants and balance consistency
 
-📊 **Test coverage**
-- **Current achievement**: ~90.5% production branch coverage
+## Test coverage
+- **Current coverage**: ~90.5% production branch coverage
 - **focus**: coverage figures refer to the production contracts only — `contracts/Lockx.sol`, `contracts/Withdrawals.sol`, `contracts/Deposits.sol`, `contracts/SignatureVerification.sol`. Aggregates that include `contracts/mocks/**` are not representative of production quality.
 - **Working Test Suite**: `systematic-core-suite.spec.ts` (5 passing tests) and systematic phases
 - **Foundry Invariants**: 25 million randomized operations across 7 test cases
 - **Security Focus**: 100% coverage of signature verification and access control paths
 - **Core Contract**: Lockx.sol achieves 90.54% branch coverage (exceeds 90% target)
 
-### Test Coverage by Function
+### Test coverage by function
 
-#### Core Lockbox Functions
+#### Core lockbox functions
 - **createLockboxWithETH**: 8 tests (creation, validation, gas optimization)
 - **createLockboxWithERC20**: 6 tests (creation, batch operations, edge cases)
 - **createLockboxWithERC721**: 4 tests (NFT handling, metadata validation)
 - **createLockboxWithBatch**: 5 tests (multi-asset creation, array validation)
 
-#### Deposit Functions  
+#### Deposit functions  
 - **depositETH**: 7 tests (basic deposits, validation, reentrancy)
 - **depositERC20**: 12 tests (token handling, fee-on-transfer, batch operations)
 - **depositERC721**: 8 tests (NFT deposits, approval patterns, metadata)
 - **batchDeposit**: 6 tests (multi-asset deposits, gas optimization)
 
-#### Withdrawal Functions
+#### Withdrawal functions
 - **withdrawETH**: 9 tests (basic withdrawals, access control, edge cases)
 - **withdrawERC20**: 11 tests (token withdrawals, balance validation, cleanup)
 - **withdrawERC721**: 7 tests (NFT withdrawals, ownership validation)
 - **batchWithdraw**: 8 tests (multi-asset withdrawals, array handling)
 
-#### Swap Functions
+#### Swap functions
 - **swapInLockbox**: 14 tests (ERC20 swaps, slippage protection, security validation)
 - **Integration tests**: 6 tests (swap + withdrawal/deposit combinations)
 - **Security tests**: 8 tests (access control, signature verification, reentrancy)
 - **Performance tests**: 6 tests (gas analysis, multi-hop swaps, optimization)
 
-#### Key Management
+#### Key management
 - **rotateLockboxKey**: 4 tests (key rotation, signature validation, access control)
 - **Signature verification**: 12 tests (EIP-712 validation, replay protection, expiry)
 
-#### Utility Functions
+#### Utility functions
 - **burnLockbox**: 5 tests (cleanup, asset recovery, access control)
 - **getFullLockbox**: 8 tests (data retrieval, pagination, complex scenarios)
 - **Array management**: 6 tests (insertion, removal, gap handling)
 
-📋 **[Testing Report →](reports/TESTING_REPORT.md)** | **[Swap Testing →](docs/SWAP_FUNCTIONALITY_TEST_REPORT.md)** | **[Gas Analysis →](reports/GAS_REPORT.md)** | **[Raw Test Output →](reports/TEST_OUTPUT_RAW.md)** | **[Test Guide →](test/README.md)**
+**[Testing report →](reports/TESTING_REPORT.md)** | **[Swap testing →](docs/SWAP_FUNCTIONALITY_TEST_REPORT.md)** | **[Gas analysis →](reports/GAS_REPORT.md)** | **[Raw test output →](reports/TEST_OUTPUT_RAW.md)** | **[Test guide →](test/README.md)**
 
 ### Running tests
 
@@ -184,9 +185,9 @@ npx hardhat verify --network sepolia <DEPLOYED_ADDRESS>
 
 `scripts/deploy.ts` performs a simple deployment of the `Lockx` contract.
 
-## Contract Architecture
+## Contract architecture
 
-### Immutable Design
+### Immutable design
 
 The Lockx smart contracts are designed to be **immutable** and are not intended to be upgraded once deployed. The contracts do not implement any upgradeability patterns, proxy mechanisms, or administrative upgrade functions.
 
@@ -196,9 +197,9 @@ The Lockx smart contracts are designed to be **immutable** and are not intended 
 - **Immutable logic**: Contract code cannot be changed after deployment
 - **Permanent deployment**: Once deployed, the contract behavior is fixed
 
-This design ensures maximum security and predictability, as users can be certain that the contract logic will never change after deployment.
+This design is intended to provide predictable behavior after deployment.
 
-### Gas Optimization
+### Gas analysis
 
 Gas consumption analysis is available for all contract operations:
 
@@ -221,18 +222,11 @@ ETHERSCAN_API_KEY=YourEtherscanKey
 
 ---
 
-## Development & Testing Acknowledgments
+## Development and testing acknowledgments
 
-This project's comprehensive test suite (46 test files, 438 passing tests, 90.5% branch coverage) was developed through an intensive automated testing approach using Claude AI for systematic test generation and coverage optimization. Over multiple development cycles, Claude assisted with:
+Parts of the test suite (46 test files, 438 passing tests, 90.5% branch coverage) were assisted by automated tooling, including Claude, for test generation and coverage improvement.
 
-- **Automated Unit Test Generation**: Systematic creation of edge case tests and branch coverage optimization
-- **Property-Based Test Design**: Development of invariant tests for Foundry integration  
-- **Security Test Coverage**: Comprehensive testing of signature verification, access control, and attack vectors
-- **Test Infrastructure**: Professional test organization and documentation
-
-This AI-assisted approach enabled achieving high-quality test coverage that would have required significantly more manual development time, while maintaining rigorous security standards and professional code quality.
-
-The core smart contract logic, architecture, and security design remain entirely human-authored by the Lockx Security team.
+The core smart contract logic, architecture, and security design are authored by the Lockx team.
 
 ---
 

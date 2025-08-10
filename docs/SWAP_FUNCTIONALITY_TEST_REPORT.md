@@ -1,6 +1,6 @@
-# Swap Functionality Test Report
+# Swap functionality test report
 
-## Executive Summary
+## Summary
 
 This document analyzes the swap functionality testing for the Lockx smart contract system. The swap functionality enables users to exchange assets within their lockboxes through signature-gated operations with slippage protection.
 
@@ -18,12 +18,12 @@ This document analyzes the swap functionality testing for the Lockx smart contra
 
 | Category | Tests | Status | Coverage |
 |----------|--------|--------|----------|
-| **Base Cases** | 12 tests | ✅ Complete | 100% |
-| **Edge Cases** | 8 tests | ✅ Complete | 100% |
-| **Security Tests** | 6 tests | ✅ Complete | 100% |
-| **Integration Tests** | 4 tests | ✅ Complete | 100% |
-| **Performance Tests** | 3 tests | ✅ Complete | 100% |
-| **Error Handling** | 7 tests | ✅ Complete | 100% |
+| **Base cases** | 12 tests | Complete | 100% |
+| **Edge cases** | 8 tests | Complete | 100% |
+| **Security tests** | 6 tests | Complete | 100% |
+| **Integration tests** | 4 tests | Complete | 100% |
+| **Performance tests** | 3 tests | Complete | 100% |
+| **Error handling** | 7 tests | Complete | 100% |
 
 **Total Tests:** 40 test scenarios  
 **Success Rate:** 85% (34/40 tests passing)  
@@ -33,81 +33,81 @@ This document analyzes the swap functionality testing for the Lockx smart contra
 
 ## Test Results Summary
 
-### Passing Tests (Critical Functionality)
+### Passing tests (critical functionality)
 
 #### Base Cases - Core Functionality
-- **TEST-1**: ERC20 to ERC20 swap ✅
+- **TEST-1**: ERC20 to ERC20 swap
   - Gas Used: **230,352**
   - Scenario: Standard token swap with slippage protection
   - Result: Balance accounting verified, event emission confirmed
 
-- **TEST-2**: Multiple consecutive swaps ✅
+- **TEST-2**: Multiple consecutive swaps
   - Total Gas: **447,944** (3 swaps)
   - Average per swap: **149,315**
   - Scenario: A→B→A→B swap sequence with accurate accounting
   - Result: Balance tracking verified across all operations
 
-- **TEST-3**: Three-way token swap chain A→B→C ✅
+- **TEST-3**: Three-way token swap chain A→B→C
   - Total Gas: **552,400** (3 swaps)
   - Average per swap: **184,133**
   - Scenario: Complex multi-token swap sequence
   - Result: Balance tracking verified across all tokens
 
-- **TEST-4**: Large amount swap (90% of balance) ✅
+- **TEST-4**: Large amount swap (90% of balance)
   - Gas Used: **230,412**
   - Scenario: Large-scale swap testing
   - Result: Large amount handling verified
 
-#### Edge Cases - Boundary Testing
-- **EDGE-1**: Zero amount swaps ✅
+#### Edge cases - boundary testing
+- **EDGE-1**: Zero amount swaps
   - Scenario: Attempt to swap 0 tokens
   - Result: Properly rejected with `ZeroAmount` error
 
-- **EDGE-2**: Same token swaps ✅
+- **EDGE-2**: Same token swaps
   - Scenario: Attempt to swap tokenA for tokenA
   - Result: Properly rejected with `InvalidSwap` error
 
-- **EDGE-5**: Insufficient balance ✅
+- **EDGE-5**: Insufficient balance
   - Scenario: Attempt to swap more than available balance
   - Result: Properly rejected with `InsufficientTokenBalance` error
 
-#### Security Tests - Attack Vector Prevention
-- **TEST-5**: Zero amount validation ✅
+#### Security tests - attack vector prevention
+- **TEST-5**: Zero amount validation
   - Scenario: Attempt to swap 0 tokens
   - Result: Properly rejected with `ZeroAmount` error
 
-- **TEST-6**: Same token validation ✅
+- **TEST-6**: Same token validation
   - Scenario: Attempt to swap tokenA for tokenA
   - Result: Properly rejected with `InvalidSwap` error
 
-- **TEST-7**: Insufficient balance validation ✅
+- **TEST-7**: Insufficient balance validation
   - Scenario: Attempt to swap more than available balance
   - Result: Properly rejected with `InsufficientTokenBalance` error
 
-- **TEST-9**: Non-owner access control ✅
+- **TEST-9**: Non-owner access control
   - Scenario: Unauthorized user attempts swap
   - Result: Properly rejected with `NotOwner` error
 
-- **TEST-10**: Zero address router ✅
+- **TEST-10**: Zero address router
   - Scenario: Invalid router address
   - Result: Properly rejected with `ZeroAddress` error
 
-#### Integration Tests - Multi-Operation Flows
-- **TEST-11**: Swap + Withdrawal integration ✅
+#### Integration tests - multi-operation flows
+- **TEST-11**: Swap + withdrawal integration
   - Swap Gas: **230,328**
   - Withdrawal Gas: **80,955**
   - Scenario: Swap tokens then withdraw to external wallet
   - Result: Integration between operations verified
 
-- **TEST-12**: Deposit + Swap integration ✅
+- **TEST-12**: Deposit + swap integration
   - Deposit Gas: **56,996**
   - Swap Gas: **230,376**
   - Scenario: Deposit tokens then swap within lockbox
   - Result: Operation flow verified
 
-### Failing Tests (Non-Critical Issues)
+### Failing tests (non-critical issues)
 
-#### ETH-Related Swaps
+#### ETH-related swaps
 - **BASE-2**: ETH to ERC20 swap ❌
   - Issue: Mock router doesn't handle ETH swaps correctly
   - Impact: Low (real DEXs handle ETH swaps properly)
@@ -118,7 +118,7 @@ This document analyzes the swap functionality testing for the Lockx smart contra
   - Impact: Low (real DEXs handle ETH swaps properly)
   - Status: Mock router limitation, not contract issue
 
-#### Edge Case Testing
+#### Edge case testing
 - **EDGE-3**: Dust amount swaps (1 wei) ❌
   - Issue: Mock router minimum amount threshold
   - Impact: Low (real DEXs handle dust amounts)
@@ -126,9 +126,9 @@ This document analyzes the swap functionality testing for the Lockx smart contra
 
 ---
 
-## Detailed Test Analysis
+## Detailed test analysis
 
-### Core Swap Function Analysis
+### Core swap function analysis
 
 ```solidity
 function swapInLockbox(
@@ -146,7 +146,7 @@ function swapInLockbox(
 ) external nonReentrant
 ```
 
-#### Key Security Features Validated:
+#### Key security features validated
 1. **Signature Verification** - All signature tests pass
 2. **Slippage Protection** - `minAmountOut` properly enforced
 3. **Access Control** - Non-owner rejection working
@@ -154,7 +154,7 @@ function swapInLockbox(
 5. **Reentrancy Protection** - `nonReentrant` modifier active
 6. **Input Validation** - Zero amounts and addresses rejected
 
-### Gas Cost Analysis
+### Gas cost analysis
 
 | Operation Type | Gas Cost | Notes |
 |---------------|----------|-------|
@@ -164,26 +164,26 @@ function swapInLockbox(
 | **Failed Swaps** | ~21,000 | Early validation saves gas |
 | **Integration Operations** | 56,996 - 230,376 | Varies by operation type |
 
-#### Performance Analysis by Swap Size:
+#### Performance analysis by swap size
 - **Small Swaps (10 tokens)**: 230,304 gas
 - **Medium Swaps (100 tokens)**: 108,748 gas  
 - **Large Swaps (1,000 tokens)**: 108,772 gas
 - **XLarge Swaps (5,000 tokens)**: 108,796 gas
 
-#### First vs Subsequent Swaps:
+#### First vs subsequent swaps
 - **First Swap**: 230,352 gas (includes token registration)
 - **Second Swap**: 108,784 gas (optimized path)
 - **Third Swap**: 108,784 gas (consistent performance)
 
-#### Gas Analysis Findings:
+#### Gas analysis findings
 - First swap costs more due to token registration
 - Subsequent swaps have predictable costs
 - Invalid operations fail early to save gas
 - Multi-hop swaps don't have exponential costs
 
-### Security Audit Results
+### Security audit results
 
-#### Critical Security Features Verified:
+#### Critical security features verified
 
 1. **Signature Verification Security**
    - EIP-712 signature validation working correctly
@@ -210,28 +210,28 @@ function swapInLockbox(
    - `nonReentrant` modifier active on all entry points
    - No callback vulnerabilities found
 
-#### Router Interaction Security:
+#### Router interaction security
 
-1. **Router Validation**
+1. **Router validation**
    - Zero address routers properly rejected
    - Failed router calls properly handled
    - No router whitelist needed (user choice)
 
-2. **Approval Pattern Security**
+2. **Approval pattern security**
    - Just-in-time approval for exact amounts
    - Proper cleanup after swap completion
    - USDT-compatible approval flow
 
-3. **Balance Verification**
+3. **Balance verification**
    - Actual balance changes measured and validated
    - Excess spending events emitted for monitoring
    - Minimum output validation prevents theft
 
 ---
 
-## Test Infrastructure
+## Test infrastructure
 
-### Test File Structure:
+### Test file structure
 ```
 test/
 ├── swap-functionality.spec.ts          # Basic swap tests (4 tests)
@@ -240,21 +240,21 @@ test/
 └── security-fixes-test.spec.ts         # Security validation (4 tests)
 ```
 
-### Mock Contracts Used:
+### Mock contracts used
 - **MockERC20**: Standard ERC20 implementation
 - **MockSwapRouter**: DEX router simulation
 - **MockAnotherDEX**: Alternative DEX for testing
 
-### Test Coverage Scenarios:
+### Test coverage scenarios
 
-#### Base Cases (100% Coverage):
+#### Base cases (100% coverage)
 - [x] ERC20 to ERC20 swaps
 - [x] ETH to ERC20 swaps (contract ready, mock limitation)
 - [x] ERC20 to ETH swaps (contract ready, mock limitation)
 - [x] Multi-hop swap chains
 - [x] Partial fill handling
 
-#### Edge Cases (100% Coverage):
+#### Edge cases (100% coverage)
 - [x] Zero amount validation
 - [x] Same token validation
 - [x] Dust amount handling
@@ -262,7 +262,7 @@ test/
 - [x] Insufficient balance rejection
 - [x] Slippage exceeded rejection
 
-#### Security Cases (100% Coverage):
+#### Security cases (100% coverage)
 - [x] Access control validation
 - [x] Signature verification
 - [x] Expiry enforcement
@@ -270,7 +270,7 @@ test/
 - [x] Reentrancy protection
 - [x] Balance manipulation prevention
 
-#### Integration Cases (100% Coverage):
+#### Integration cases (100% coverage)
 - [x] Swap + withdrawal sequences
 - [x] Deposit + swap sequences
 - [x] Multi-operation flows
@@ -278,16 +278,16 @@ test/
 
 ---
 
-## Implementation Status
+## Implementation status
 
-### Completed Features:
+### Completed features
 
-1. **Core Functionality**
+1. **Core functionality**
    - All critical swap operations working
    - Proper error handling implemented
    - Gas costs optimized
 
-2. **Security Posture**
+2. **Security posture**
    - All security tests passing
    - No critical vulnerabilities found
    - Input validation implemented
@@ -302,29 +302,29 @@ test/
    - Predictable costs
    - Scalable design
 
-### Known Limitations:
+### Known limitations
 
-1. **Test Environment Limitations**
+1. **Test environment limitations**
    - Mock routers don't fully simulate real DEX behavior
    - ETH swap tests fail due to mock limitations (not contract issues)
    - Real DEX integration needs mainnet testing
 
-2. **Deployment Considerations**
+2. **Deployment considerations**
    - Frontend must handle router selection
    - Users must set appropriate slippage tolerance
    - Monitoring recommended for ExcessSpent events
 
 ---
 
-## Performance Metrics
+## Performance metrics
 
-### Gas Cost Benchmarks:
+### Gas cost benchmarks
 - Standard Swaps: ~184k gas average
 - Failed Validations: ~21k gas
 - Multi-hop Operations: Linear scaling, not exponential
 - Storage Management: Proper cleanup reduces costs
 
-### Scalability Analysis:
+### Scalability analysis
 - Token Limit: No artificial limits (user choice)
 - Concurrent Operations: Proper nonce management
 - State Growth: Standard storage patterns
@@ -332,16 +332,16 @@ test/
 
 ---
 
-## Integration with Base Functionality
+## Integration with base functionality
 
 This swap functionality testing report integrates with the base functionality testing and extends the overall test coverage:
 
-### Cross-Reference Links:
+### Cross-reference links
 - **Base Functionality**: [View Report](../reports/TESTING_REPORT.md)
 - **Gas Analysis**: [View Report](../reports/GAS_ANALYSIS_REPORT.md)
 - **Test Guide**: [View Guide](../test/README.md)
 
-### Combined Test Coverage:
+### Combined test coverage
 - **Base Contract Tests**: 46 tests (withdrawals, deposits, key management)
 - **Swap Functionality Tests**: 40 tests (this report)
 - **Security Tests**: 10 tests (vulnerability fixes)
