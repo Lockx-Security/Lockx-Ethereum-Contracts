@@ -4,7 +4,7 @@
 **Compiler:** Solc version 0.8.30  
 **Optimizer:** Enabled (200 runs)  
 **Block Limit:** 30,000,000 gas  
-**Test Coverage:** 86.78% branches (Lockx.sol: 90.54%)  
+**Test Coverage:** 90.08% branches (Lockx.sol: 90.54%)  
 
 ## Method gas usage
 

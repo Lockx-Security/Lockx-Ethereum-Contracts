@@ -8,7 +8,7 @@ Solidity contracts implementing soul-bound NFT lockboxes. Uses OpenZeppelin v5.3
 
 ## Table of contents
 
-1. [Open source & testing](#open-source--testing)
+1. [Open source and testing](#open-source-and-testing)
 2. [Testing framework](#testing-framework)
 3. [Running tests](#running-tests)
 4. [Test coverage](#test-coverage)
@@ -27,7 +27,7 @@ Solidity contracts implementing soul-bound NFT lockboxes. Uses OpenZeppelin v5.3
 
 The Lockx smart contracts are open source and tested with two frameworks:
 
-- **Hardhat unit tests**: 90.5% branch coverage across 46 test files with 438 passing tests
+- **Hardhat unit tests**: 90.08% branch coverage across 46 test files with 438 passing tests
 - **Foundry property testing**: 27 tests (invariants + fuzz) with ~25M randomized operations
 - **Signature verification and access control**: full test coverage
 - **Core contract coverage**: `Lockx.sol` 90.54% branch coverage
@@ -36,11 +36,11 @@ The Lockx smart contracts are open source and tested with two frameworks:
 ```
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
-contracts/               |    98.51 |    90.5  |      100 |    99.15 |
+contracts/               |    99.63 |    90.08 |      100 |      100 |
   Lockx.sol              |      100 |    90.54 |      100 |      100 |
   SignatureVerification  |      100 |      100 |      100 |      100 |
-  Deposits.sol           |    96.36 |    84.09 |      100 |      100 |
-  Withdrawals.sol        |    98.31 |    78.18 |      100 |    96.3  |
+  Deposits.sol           |    98.18 |    86.36 |      100 |      100 |
+  Withdrawals.sol        |      100 |       90 |      100 |      100 |
 ```
 
 All tests are publicly available and replicable:
@@ -60,13 +60,13 @@ npm run forge:test
 
 ## Testing framework
 - Phase-based tests: 20 files targeting specific branches
-- Hardhat: 90.5% branch coverage and 438 passing tests
+- Hardhat: 90.08% branch coverage and 438 passing tests
 - Foundry: 27 tests (invariants + fuzz) executing ~25 million operations
 - Core functionality tests included for replication
 - Property-based tests validate system invariants and balance consistency
 
 ## Test coverage
-- **Current coverage**: ~90.5% production branch coverage
+- **Current coverage**: 90.08% production branch coverage
 - **focus**: coverage figures refer to the production contracts only — `contracts/Lockx.sol`, `contracts/Withdrawals.sol`, `contracts/Deposits.sol`, `contracts/SignatureVerification.sol`. Aggregates that include `contracts/mocks/**` are not representative of production quality.
 - **Working Test Suite**: `systematic-core-suite.spec.ts` (5 passing tests) and systematic phases
 - **Foundry Invariants**: 25 million randomized operations across 7 test cases
@@ -108,7 +108,7 @@ npm run forge:test
 - **getFullLockbox**: 8 tests (data retrieval, pagination, complex scenarios)
 - **Array management**: 6 tests (insertion, removal, gap handling)
 
-**[Testing report →](reports/TESTING_REPORT.md)** | **[Swap testing →](docs/SWAP_FUNCTIONALITY_TEST_REPORT.md)** | **[Gas analysis →](reports/GAS_REPORT.md)** | **[Raw test output →](reports/TEST_OUTPUT_RAW.md)** | **[Test guide →](test/README.md)**
+**[Testing report →](docs/TESTING_REPORT.md)** | **[Swap testing →](docs/SWAP_FUNCTIONALITY_TEST_REPORT.md)** | **[Gas analysis →](docs/GAS_REPORT.md)** | **[Raw test output →](docs/TEST_OUTPUT_RAW.md)** | **[Test guide →](docs/TEST_GUIDE.md)**
 
 ### Running tests
 
@@ -224,7 +224,7 @@ ETHERSCAN_API_KEY=YourEtherscanKey
 
 ## Development and testing acknowledgments
 
-Parts of the test suite (46 test files, 438 passing tests, 90.5% branch coverage) were assisted by automated tooling, including Claude, for test generation and coverage improvement.
+Parts of the test suite (46 test files, 438 passing tests, 90.08% branch coverage) were assisted by automated tooling, including Claude, for test generation and coverage improvement.
 
 The core smart contract logic, architecture, and security design are authored by the Lockx team.
 
@@ -240,4 +240,4 @@ For detailed release notes, security improvements, and breaking changes, see [CH
 
 ## Gas reports
 
-Current gas consumption analysis is available at [reports/GAS_REPORT.md](reports/GAS_REPORT.md).
+Current gas consumption analysis is available at [docs/GAS_REPORT.md](docs/GAS_REPORT.md).

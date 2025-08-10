@@ -2,7 +2,7 @@
 
 ## Summary
 
-The Lockx smart contract system has reproducible tests with **Hardhat coverage (~90.5% branches overall; 90.54% for Lockx.sol)** and an expanded **Foundry property suite** (27 tests: invariants + fuzz) validating ownership/auth, nonces, accounting, swaps (min‑out/overspend/allowances/fee‑on‑transfer), key rotation, soulbound behavior, batch guards, `getFullLockbox` correctness, and direct ETH handling.
+The Lockx smart contract system has reproducible tests with **Hardhat coverage (90.08% branches overall; 90.54% for Lockx.sol)** and an expanded **Foundry property suite** (27 tests: invariants + fuzz) validating ownership/auth, nonces, accounting, swaps (min‑out/overspend/allowances/fee‑on‑transfer), key rotation, soulbound behavior, batch guards, `getFullLockbox` correctness, and direct ETH handling.
 
 ### Test Coverage Areas
 - **Dual-Key Architecture**: Separation between wallet keys and lockbox keys
@@ -82,10 +82,10 @@ Through 17 phases of systematic testing, we achieved:
 - Phase 11-13: Advanced edge cases
 - Phase 14-17: Final push toward 90%
 
-### Coverage analysis (representative)
+### Coverage analysis (current)
 Note: Coverage figures refer to the four production contracts under `contracts/` (`Lockx.sol`, `Withdrawals.sol`, `Deposits.sol`, `SignatureVerification.sol`). Numbers for `contracts/mocks/**` are test scaffolding and not representative of production.
 Systematic verification that test cases exercise all code paths:
-- 208 of 242 branches tested
+- Production contracts: 90.08% branches (contracts/)
 - All critical security paths covered
 - Remaining branches are defensive checks
 
@@ -174,14 +174,14 @@ it('should prevent all transfers', async () => {
 
 ## Coverage analysis
 
-### Coverage snapshot: 85.95% overall branch coverage
+### Coverage snapshot: 90.08% production branch coverage
 
 | Contract | Statements | Branches | Functions | Lines | Security Impact |
 |----------|-----------|----------|-----------|-------|------------------|
-| Lockx.sol | 100% (84/84) | 90.54% (67/74) | 100% (16/16) | 100% (97/97) | >= 90% branch coverage |
-| SignatureVerification.sol | 100% (12/12) | 100% (14/14) | 100% (7/7) | 100% (22/22) | full |
-| Deposits.sol | 96.36% (53/55) | 84.09% (37/44) | 100% (13/13) | 100% (72/72) | |
-| Withdrawals.sol | 98.31% (116/118) | 81.82% (90/110) | 100% (6/6) | 98.15% (159/162) | |
+| Lockx.sol | 100% (84/84) | 90.54% (67/74) | 100% (16/16) | 100% (97/97) |
+| SignatureVerification.sol | 100% (12/12) | 100% (14/14) | 100% (7/7) | 100% (22/22) |
+| Deposits.sol | 98.18% (54/55) | 86.36% (38/44) | 100% (13/13) | 100% (72/72) |
+| Withdrawals.sol | 100% (118/118) | 90% (99/110) | 100% (6/6) | 100% (162/162) |
 
 **Production (representative): ~99.6% statements, ~90.1% branches, 100% functions, 100% lines**
 

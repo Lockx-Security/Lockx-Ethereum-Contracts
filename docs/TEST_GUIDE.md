@@ -50,7 +50,7 @@ test/
 └── swap-edge-cases.spec.ts               # Swap edge cases
 ```
 
-Through these 45+ test files with 380+ individual tests, the legacy aggregate view reports **85.95% branch coverage** (historical report). The current production contracts report ~90.5% branch coverage via `npm run coverage`.
+Through these 45+ test files with 380+ individual tests, the legacy aggregate view reports 85.95% branch coverage (historical). The current production contracts report 90.08% branch coverage via `npm run coverage`.
 
 ## Running tests
 
@@ -71,16 +71,16 @@ Runs 27 property tests (invariants + fuzz), ~25 million randomized operations va
 
 ## Coverage metrics
 
-### Coverage snapshot: 85.95% overall branch coverage
+### Coverage snapshot: 90.08% overall branch coverage (production contracts)
 
 | Contract | Statements | Branches | Functions | Lines | Notes |
 |----------|-----------|----------|-----------|-------|-------|
-| Lockx.sol | 100% (84/84) | 90.54% (67/74) | 100% (16/16) | 100% (97/97) | >= 90% branch coverage |
-| SignatureVerification.sol | 100% (12/12) | 100% (14/14) | 100% (7/7) | 100% (22/22) | full |
-| Deposits.sol | 96.36% (53/55) | 84.09% (37/44) | 100% (13/13) | 100% (72/72) | |
-| Withdrawals.sol | 98.31% (116/118) | 81.82% (90/110) | 100% (6/6) | 98.15% (159/162) | |
+| Lockx.sol | 100% (84/84) | 90.54% (67/74) | 100% (16/16) | 100% (97/97) | |
+| SignatureVerification.sol | 100% (12/12) | 100% (14/14) | 100% (7/7) | 100% (22/22) | |
+| Deposits.sol | 98.18% (54/55) | 86.36% (38/44) | 100% (13/13) | 100% (72/72) | |
+| Withdrawals.sol | 100% (118/118) | 90% (99/110) | 100% (6/6) | 100% (162/162) | |
 
-Overall coverage: 85.95% branches (208/242) with 98.51% statements.
+Overall coverage (production): 90.08% branches with 99.63% statements.
 
 ### Viewing coverage report
 
@@ -236,16 +236,16 @@ npm run coverage
 npm run forge:test
 ```
 
-### Expected results
+### Expected results (production contracts)
 ```bash
 # Final Coverage Report
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
-contracts/               |    98.51 |    85.95 |      100 |    99.15 |
+contracts/               |    99.63 |    90.08 |      100 |      100 |
   Lockx.sol             |      100 |    90.54 |      100 |      100 |
   SignatureVerification |      100 |      100 |      100 |      100 |
-  Deposits.sol          |    96.36 |    84.09 |      100 |      100 |
-  Withdrawals.sol       |    98.31 |    81.82 |      100 |    98.15 |
+  Deposits.sol          |    98.18 |    86.36 |      100 |      100 |
+  Withdrawals.sol       |      100 |       90 |      100 |      100 |
 ```
 
 ### Coverage highlights
