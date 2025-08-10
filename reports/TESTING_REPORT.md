@@ -1,6 +1,6 @@
-# Lockx Smart Contract Security Testing Report
+# Lockx smart contract security testing report
 
-## Executive Summary
+## Summary
 
 The Lockx smart contract system has reproducible tests with **Hardhat coverage (~90.5% branches overall; 90.54% for Lockx.sol)** and an expanded **Foundry property suite** (27 tests: invariants + fuzz) validating ownership/auth, nonces, accounting, swaps (min‑out/overspend/allowances/fee‑on‑transfer), key rotation, soulbound behavior, batch guards, `getFullLockbox` correctness, and direct ETH handling.
 
@@ -19,9 +19,9 @@ The Lockx smart contract system has reproducible tests with **Hardhat coverage (
 
 ## Introduction
 
-Lockx implements a soulbound NFT lockbox system that fundamentally changes how users secure their digital assets. By separating asset storage from wallet control, Lockx creates a security architecture where wallet compromise does not lead to asset loss.
+Lockx implements a soulbound NFT lockbox system. Asset storage is separated from wallet control so that wallet compromise alone does not allow asset movement.
 
-### The Security Challenge
+### The security challenge
 
 Self-custody wallets face a fundamental security dilemma:
 - **Convenience requires hot wallets** - Keys must be accessible for daily use
@@ -30,7 +30,7 @@ Self-custody wallets face a fundamental security dilemma:
 
 Traditional solutions force users to choose between security and convenience. Hardware wallets are secure but cumbersome. Hot wallets are convenient but vulnerable.
 
-### The Lockx Solution
+### The Lockx approach
 
 Lockx introduces a dual-key architecture where:
 1. **Wallet keys** control the NFT ownership
@@ -42,40 +42,40 @@ This separation means:
 - Lockbox keys can be stored securely offline
 - Users maintain convenient access patterns
 
-## Why Testing Matters
+## Why testing matters
 
 Smart contract bugs are permanent and exploits are irreversible. The testing suite validates that:
 
-### 1. The Dual-Key System Works
+### 1. Dual-key system
 **What we test**: Every operation requires both NFT ownership AND valid lockbox signature
 **Why it matters**: Ensures wallet compromise alone cannot steal assets
 **Coverage**: 100% of signature verification paths tested
 
-### 2. Assets Cannot Be Stolen
+### 2. Asset theft prevention
 **What we test**: All withdrawal paths validate ownership, signatures, and balances
 **Why it matters**: Prevents unauthorized asset extraction
 **Coverage**: 81.82% of withdrawal branches covered
 
-### 3. Assets Cannot Be Lost
+### 3. Asset loss prevention
 **What we test**: Deposit tracking, array management, and burn operations
 **Why it matters**: Ensures assets remain recoverable
 **Coverage**: 84.09% of deposit branches covered
 
-### 4. The System Resists Attacks
+### 4. Resistance to attacks
 **What we test**: Replay attacks, reentrancy, malicious tokens
 **Why it matters**: Real-world attacks are prevented
 **Coverage**: All critical attack vectors validated
 
-## Testing Methodology
+## Testing methodology
 
-### Unit Testing (380+ tests across multiple files)
+### Unit testing (380+ tests across multiple files)
 Validates individual functions work correctly in isolation. Each critical function is tested with:
 - Valid inputs (success paths)
 - Invalid inputs (error paths)
 - Edge cases (boundary conditions)
 - Attack scenarios (malicious inputs)
 
-### Systematic Branch Coverage Testing
+### Systematic branch coverage testing
 Through 17 phases of systematic testing, we achieved:
 - Phase 1-5: Basic branch coverage establishment
 - Phase 6-10: Targeted missing branches
@@ -89,9 +89,9 @@ Systematic verification that test cases exercise all code paths:
 - All critical security paths covered
 - Remaining branches are defensive checks
 
-## Security Properties Validated
+## Security properties validated
 
-### 1. Signature Security (100% Coverage)
+### 1. Signature security (100% coverage)
 
 **Property**: Every operation requires a valid EIP-712 signature from the lockbox key
 
@@ -114,7 +114,7 @@ it('should reject signature reuse', async () => {
 });
 ```
 
-### 2. Access Control (100% Coverage)
+### 2. Access control (100% coverage)
 
 **Property**: Operations require both NFT ownership and valid signatures
 
@@ -132,7 +132,7 @@ it('should reject withdrawal from non-owner', async () => {
 });
 ```
 
-### 3. Asset Integrity (84.09% Coverage)
+### 3. Asset integrity (84.09% coverage)
 
 **Property**: Assets deposited can always be withdrawn by the rightful owner
 
@@ -154,7 +154,7 @@ it('should track deposits and allow withdrawal', async () => {
 });
 ```
 
-### 4. Soulbound Protection (100% Coverage)
+### 4. Soulbound protection (100% coverage)
 
 **Property**: Lockbox NFTs cannot be transferred
 
@@ -172,28 +172,28 @@ it('should prevent all transfers', async () => {
 });
 ```
 
-## Coverage Analysis
+## Coverage analysis
 
-### Final Achievement: 85.95% Overall Branch Coverage
+### Coverage snapshot: 85.95% overall branch coverage
 
 | Contract | Statements | Branches | Functions | Lines | Security Impact |
 |----------|-----------|----------|-----------|-------|------------------|
-| **Lockx.sol** | 100% (84/84) | **90.54%** (67/74) | 100% (16/16) | 100% (97/97) | **🎯 EXCEEDS 90% TARGET** |
-| **SignatureVerification.sol** | 100% (12/12) | **100%** (14/14) | 100% (7/7) | 100% (22/22) | **Perfect Security** |
-| **Deposits.sol** | 96.36% (53/55) | 84.09% (37/44) | 100% (13/13) | 100% (72/72) | Asset Storage |
-| **Withdrawals.sol** | 98.31% (116/118) | 81.82% (90/110) | 100% (6/6) | 98.15% (159/162) | Asset Extraction |
+| Lockx.sol | 100% (84/84) | 90.54% (67/74) | 100% (16/16) | 100% (97/97) | >= 90% branch coverage |
+| SignatureVerification.sol | 100% (12/12) | 100% (14/14) | 100% (7/7) | 100% (22/22) | full |
+| Deposits.sol | 96.36% (53/55) | 84.09% (37/44) | 100% (13/13) | 100% (72/72) | |
+| Withdrawals.sol | 98.31% (116/118) | 81.82% (90/110) | 100% (6/6) | 98.15% (159/162) | |
 
 **Production (representative): ~99.6% statements, ~90.1% branches, 100% functions, 100% lines**
 
-### What the Coverage Means
+### What the coverage means
 
 85.95% branch coverage includes:
-1. **90%+ coverage on core Lockx.sol contract** - exceeds marketing target
-2. **100% coverage on SignatureVerification.sol** - perfect security validation
-3. **All critical security paths** - comprehensive protection
-4. **Edge cases and error conditions** - robust error handling
+1. Coverage on `Lockx.sol` is 90.54% branches
+2. `SignatureVerification.sol` is at 100% branches
+3. Critical security paths are covered
+4. Edge cases and error conditions are exercised
 
-### Why Not 100%?
+### Why not 100%
 
 The remaining 14.05% consists of:
 1. **ReentrancyGuard detection branches** - require actual reentrancy attacks
@@ -201,41 +201,41 @@ The remaining 14.05% consists of:
 3. **Complex swap integration paths** - require sophisticated router mocking
 4. **Mathematical edge cases** - defensive checks for overflow scenarios
 
-These branches are extremely difficult to trigger and represent the most robust defensive coding practices.
+These branches are difficult to trigger and represent defensive coding practices.
 
-## Attack Vector Testing
+## Attack vector testing
 
-### 1. Replay Attack Prevention
+### 1. Replay attack prevention
 **Attack**: Reusing a valid signature for multiple withdrawals
 **Defense**: Nonce increments with each operation
 **Test**: Verified signatures cannot be reused
 
-### 2. Reentrancy Protection
+### 2. Reentrancy protection
 **Attack**: Calling back into contract during withdrawal
 **Defense**: State updates before external calls + ReentrancyGuard
 **Test**: Attempted reentrancy attacks with custom contracts
 
-### 3. Signature Malleability
+### 3. Signature malleability
 **Attack**: Modifying signatures to create valid variants
 **Defense**: EIP-712 structured data hashing
 **Test**: Verified only exact signatures validate
 
-### 4. Access Control Bypass
+### 4. Access control bypass
 **Attack**: Attempting operations without ownership
 **Defense**: Dual validation of NFT ownership and signatures
 **Test**: Verified all operations check both requirements
 
-### 5. Integer Overflow
+### 5. Integer overflow
 **Attack**: Causing arithmetic overflows in balances
 **Defense**: Solidity 0.8+ automatic checks
 **Test**: Verified with maximum value operations
 
-### 6. Denial of Service
+### 6. Denial of service
 **Attack**: Blocking withdrawals with malicious tokens
 **Defense**: Try-catch patterns for external calls
 **Test**: Verified with reverting token contracts
 
-## Special Scenarios Tested
+## Special scenarios tested
 
 ### Fee-on-Transfer Tokens
 Some tokens take fees on transfer. The system correctly accounts for actual received amounts, preventing accounting errors.
@@ -249,7 +249,7 @@ When ETH transfers fail (e.g., to contracts rejecting ETH), the system reverts s
 ### Array Management
 Dynamic arrays are managed correctly even when elements are removed in random order, preventing gaps from corrupting data.
 
-### Enhanced Swap Functionality (v2.4.0)
+### Enhanced swap functionality (v2.4.0)
 The swapInLockbox function has been updated with security and usability improvements:
 
 **Recipient Parameter Support**:
@@ -269,9 +269,9 @@ The swapInLockbox function has been updated with security and usability improvem
 - Direct existence checks using balance/data lookups
 - Memory caching for array operations to reduce gas costs
 
-## Testing Infrastructure
+## Testing infrastructure
 
-### Test Suite Organization
+### Test suite organization
 ```
 test/
 ├── systematic-coverage-phase[1-16].spec.ts    # Systematic branch coverage tests
@@ -284,7 +284,7 @@ test/
 └── [other test files]                         # Supporting test infrastructure
 ```
 
-### Test Execution Performance
+### Test execution performance
 - **Full test suite**: ~380+ tests
 - **Execution time**: ~60-90 seconds for full coverage
 - **Memory usage**: Normal
@@ -292,7 +292,7 @@ test/
 
 ## Replicating results
 
-### Easy Replication for Open Source Users
+### Replication for open source users
 
 ```bash
 # install dependencies
@@ -305,7 +305,7 @@ npm run coverage
 npm run forge:test
 ```
 
-### Expected Output
+### Expected output
 ```bash
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
@@ -316,15 +316,15 @@ contracts/               |    98.51 |    85.95 |      100 |    99.15 |
   Withdrawals.sol       |    98.31 |    81.82 |      100 |    98.15 |
 ```
 
-### Continuous Validation
+### Continuous validation
 The test suite runs on every commit, ensuring:
 - No regressions in security properties
 - Coverage remains above thresholds
 - New code includes appropriate tests
 
-## Security Conclusions
+## Security conclusions
 
-### What the Tests Prove
+### What the tests show
 
 1. **The dual-key architecture is secure**
    - Wallet compromise alone cannot steal assets
@@ -346,7 +346,7 @@ The test suite runs on every commit, ensuring:
    - Failed transfers revert safely
    - Array operations maintain integrity
 
-### Security Guarantees
+### Security properties
 
 Based on the testing performed, Lockx provides:
 
@@ -356,14 +356,14 @@ Based on the testing performed, Lockx provides:
 ✓ **Attack Resistance**: Known attack vectors are prevented
 ✓ **Recovery Options**: Key rotation enables recovery scenarios
 
-### Recommendations for Users
+### Recommendations for users
 
 1. **Store lockbox keys offline** - This is your ultimate security
 2. **Use hardware wallets for lockbox keys** - Additional protection layer
 3. **Rotate keys periodically** - Maintains security over time
 4. **Verify signatures carefully** - Always check operation details
 
-### Recommendations for Auditors
+### Recommendations for auditors
 
 1. **Focus on uncovered branches** - Verify they're truly unreachable
 2. **Test integration scenarios** - Multi-contract interactions
@@ -372,13 +372,13 @@ Based on the testing performed, Lockx provides:
 
 ## Conclusion
 
-The Lockx smart contract system has undergone extensive security testing that validates its novel approach to digital asset security. With **85.95% overall branch coverage** and **90.54% coverage on the core Lockx.sol contract** (exceeding the 90% target), the testing demonstrates that:
+The Lockx smart contract system has undergone security testing with **85.95% overall branch coverage** and **90.54% on `Lockx.sol`**. The testing demonstrates that:
 
 1. **The security model is sound** - Dual-key architecture prevents single points of failure
 2. **The implementation is correct** - All critical paths behave as designed
 3. **The system is resilient** - Attack vectors and edge cases are handled appropriately
 
-The remaining 14.05% of uncovered branches represent defensive programming practices for impossible scenarios and sophisticated attack vectors that require complex infrastructure to test. **Importantly, the core Lockx.sol contract achieves 90.54% branch coverage, exceeding the marketing-friendly 90% threshold.**
+The remaining 14.05% of uncovered branches represent defensive programming practices and complex scenarios that require additional infrastructure to test.
 
 The testing provides complete coverage of user-facing functionality, security-critical paths, and edge cases.
 

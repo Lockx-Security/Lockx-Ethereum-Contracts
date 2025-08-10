@@ -1,4 +1,4 @@
-# Gas Consumption Report
+# Gas consumption report
 
 **Contract Version:** v2.4.0  
 **Compiler:** Solc version 0.8.30  
@@ -6,7 +6,7 @@
 **Block Limit:** 30,000,000 gas  
 **Test Coverage:** 86.78% branches (Lockx.sol: 90.54%)  
 
-## Method Gas Usage
+## Method gas usage
 
 | Contract | Method | Min Gas | Max Gas | Avg Gas | # Calls |
 |----------|--------|---------|---------|---------|---------|
@@ -24,7 +24,7 @@
 | Lockx | withdrawERC721 | - | - | 80,837 | 1 |
 | Lockx | withdrawETH | - | - | 54,150 | 2 |
 
-## Mock Contract Gas Usage
+## Mock contract gas usage
 
 | Contract | Method | Min Gas | Max Gas | Avg Gas | # Calls |
 |----------|--------|---------|---------|---------|---------|
@@ -44,7 +44,7 @@
 | MockFeeOnTransferToken | transfer | 43,669 | 60,841 | 56,252 | 9 |
 | MockFeeOnTransferToken | transferFrom | - | - | 66,565 | 1 |
 
-## Deployment Gas Costs
+## Deployment gas costs
 
 | Contract | Gas Used | % of Block Limit |
 |----------|----------|------------------|
@@ -54,27 +54,27 @@
 | MockFeeOnTransferToken | 742,432 | 2.5% |
 | RejectETH | 76,567 | 0.3% |
 
-## Gas Analysis Summary
+## Gas analysis summary
 
-**Most Expensive Operations:**
+Most expensive operations:
 - Contract Deployment: 3,959,766 gas (Lockx)
 - Batch Creation: 472,527 gas average
 - Batch Deposits: 365,545 gas
 - ERC721 Deposits: 175,894 gas average
 
-**Most Efficient Operations:**
+Most efficient operations:
 - ETH Deposits: 34,181 gas
 - ETH Withdrawals: 54,150 gas
 - ERC20 Withdrawals: 72,141 gas average
 
-**Gas Optimization Notes:**
+Notes:
 - Token operations show consistent gas usage across different amounts
 - Mock contracts add overhead but provide realistic testing environment
 - Batch operations are more gas-efficient per asset than individual operations
 - Gas measurements taken during comprehensive coverage testing (86.78% branches)
 - All measurements include security validations and comprehensive error checking
 
-**Replication:**
+Replication:
 ```bash
 # Generate fresh gas report with coverage
 ./scripts/replicate-coverage.sh

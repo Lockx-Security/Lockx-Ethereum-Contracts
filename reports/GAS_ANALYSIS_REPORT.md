@@ -1,17 +1,17 @@
-# Lockx Smart Contract Gas Analysis Report
+# Lockx smart contract gas analysis report
 
-## Executive Summary
+## Summary
 
 Gas consumption data for Lockx smart contract operations based on test execution results.
 
-### Gas Usage Summary
+### Gas usage summary
 - **Lockbox Creation**: 106,847 - 472,533 gas (varies by asset type)
 - **ETH Operations**: 34,181 - 54,150 gas 
 - **ERC20 Operations**: 56,940 - 187,982 gas 
 - **ERC721 Operations**: 174,117 - 208,317 gas
 - **Batch Operations**: 111,110 - 365,545 gas
 
-## How to Generate Gas Report
+## How to generate gas report
 
 To replicate this gas analysis:
 
@@ -28,9 +28,9 @@ npx hardhat test test/consolidated-coverage.spec.ts --gas-reporter
 
 The gas data in this report comes from actual test execution captured in [gas-report.txt](./gas-report.txt).
 
-## Gas Consumption Analysis
+## Gas consumption analysis
 
-### Contract Deployment Costs
+### Contract deployment costs
 
 | Contract | Gas Cost | % of Block Limit | Notes |
 |----------|----------|------------------|-------|
@@ -42,7 +42,7 @@ The gas data in this report comes from actual test execution captured in [gas-re
 
 ### Core Operations Gas Costs
 
-#### Lockbox Creation
+#### Lockbox creation
 | Function | Min Gas | Max Gas | Avg Gas | Calls | Notes |
 |----------|---------|---------|---------|-------|-------|
 | createLockboxWithETH | 106,847 | 141,431 | 139,638 | 24 | Most efficient creation method |
@@ -52,7 +52,7 @@ The gas data in this report comes from actual test execution captured in [gas-re
 
 ETH-only lockboxes use the least gas to create. Batch creation handles multiple assets in one transaction.
 
-#### Deposit Operations
+#### Deposit operations
 | Function | Min Gas | Max Gas | Avg Gas | Calls | Notes |
 |----------|---------|---------|---------|-------|-------|
 | depositETH | - | - | 34,181 | 1 | Most efficient deposit |
@@ -62,7 +62,7 @@ ETH-only lockboxes use the least gas to create. Batch creation handles multiple 
 
 ETH deposits use the least gas. ERC20 costs vary based on token implementation. NFT deposits have consistent costs.
 
-#### Withdrawal Operations
+#### Withdrawal operations
 | Function | Min Gas | Max Gas | Avg Gas | Calls | Notes |
 |----------|---------|---------|---------|-------|-------|
 | withdrawETH | - | - | 54,150 | 2 | Efficient ETH withdrawal |
@@ -72,16 +72,16 @@ ETH deposits use the least gas. ERC20 costs vary based on token implementation. 
 
 All withdrawal operations have consistent gas costs. Batch withdrawals handle multiple assets in one transaction.
 
-#### Administrative Operations
+#### Administrative operations
 | Function | Min Gas | Max Gas | Avg Gas | Calls | Notes |
 |----------|---------|---------|---------|-------|-------|
 | burnLockbox | 55,917 | 193,843 | 124,880 | 2 | Variable cost based on assets |
 
 Burn costs vary based on the number of assets being returned.
 
-### Mock Contract Analysis
+### Mock contract analysis
 
-#### MockERC20 Operations
+#### MockERC20 operations
 | Function | Min Gas | Max Gas | Avg Gas | Calls | Notes |
 |----------|---------|---------|---------|-------|-------|
 | initialize | 95,880 | 136,246 | 135,661 | 76 | Setup cost |
@@ -89,7 +89,7 @@ Burn costs vary based on the number of assets being returned.
 | approve | 46,250 | 46,274 | 46,273 | 85 | Standard approval |
 | transfer | - | - | 51,297 | 2 | Standard transfer |
 
-#### MockERC721 Operations
+#### MockERC721 operations
 | Function | Min Gas | Max Gas | Avg Gas | Calls | Notes |
 |----------|---------|---------|---------|-------|-------|
 | initialize | 71,968 | 112,284 | 111,438 | 49 | NFT setup |
@@ -98,7 +98,7 @@ Burn costs vary based on the number of assets being returned.
 | setApprovalForAll | 46,150 | 46,174 | 46,172 | 44 | Batch approval |
 | transferFrom | 38,001 | 54,542 | 46,696 | 4 | NFT transfer |
 
-#### MockFeeOnTransferToken Operations
+#### MockFeeOnTransferToken operations
 | Function | Min Gas | Max Gas | Avg Gas | Calls | Notes |
 |----------|---------|---------|---------|-------|-------|
 | initialize | 49,672 | 89,966 | 88,877 | 37 | Fee token setup |
@@ -107,23 +107,23 @@ Burn costs vary based on the number of assets being returned.
 | transfer | 43,669 | 60,841 | 56,252 | 9 | Fee calculation overhead |
 | transferFrom | - | - | 66,565 | 1 | Higher cost due to fees |
 
-## Gas Usage Patterns
+## Gas usage patterns
 
-### ETH Operations
+### ETH operations
 - **ETH deposits**: 34,181 gas
 - **ETH withdrawals**: 54,150 gas
 - ETH operations use the least gas
 
-### Batch Operations
+### Batch operations
 - **Single ERC20 deposit**: ~155,726 gas average
 - **Batch deposit (multiple assets)**: 365,545 gas total
 - Batch operations handle multiple assets in one transaction
 
-### ERC20 Cost Variability
+### ERC20 cost variability
 - **Range**: 56,940 - 187,982 gas for deposits
 - Cost varies based on token implementation (fee-on-transfer, rebasing, etc.)
 
-### NFT Operations
+### NFT operations
 - **ERC721 deposits**: ~175,894 gas (consistent)
 - **ERC721 withdrawals**: 80,837 gas
 - NFT operations have predictable costs
