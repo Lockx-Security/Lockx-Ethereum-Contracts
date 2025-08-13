@@ -6,7 +6,7 @@ import 'forge-std/Test.sol';
 import {Lockx} from '../../contracts/Lockx.sol';
 import {LockxStateHarness} from '../../contracts/mocks/LockxHarness.sol';
 
-contract LockxBurnPurgeTest is Test {
+contract LockxBurnPurge is Test {
     LockxStateHarness internal lockx;
     address internal user = address(0xB0B);
     uint256 internal keyPk = uint256(0xC0FFEE);

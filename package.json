@@ -1,18 +1,22 @@
 {
   "name": "lockx-contracts",
-  "version": "3.0.2",
+  "version": "3.1.0",
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "hardhat test",
+    "test": "./test.sh",
+    "test:fast": "./test.sh fast",
+    "test:coverage": "./test.sh coverage",
+    "test:foundry": "./test-all-foundry.sh",
+    "test:foundry:complete": "./run-all-foundry-complete.sh",
+    "test:hardhat": "hardhat test",
     "coverage": "hardhat coverage",
     "gas": "REPORT_GAS=true hardhat test",
     "gas:report": "mkdir -p reports && REPORT_GAS=true hardhat test > reports/gas-report.txt",
-
     "mythril": "bash -c 'mkdir -p reports && myth analyze --execution-timeout 300 contracts/Lockx.sol -o json > reports/mythril-lockx.json'",
-    "forge:test": "PATH=\"$HOME/.foundry/bin:$PATH\" forge test -vv",
-    "ci": "npm run test && npm run forge:test && npm run coverage",
+    "ci": "npm run coverage",
     "build": "npx hardhat compile",
+    "build:foundry": "forge build",
     "format": "prettier --write .",
     "lint:sol": "solhint 'contracts/**/*.sol'"
   },

@@ -71,4 +71,4 @@ contract LockxNonceInvariant is Test {
         assertGe(current, _lastNonce[tokenId]);
         _lastNonce[tokenId] = current;
     }
-} 
+}

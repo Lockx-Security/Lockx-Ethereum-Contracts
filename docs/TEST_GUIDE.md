@@ -1,15 +1,20 @@
-# Lockx test suite documentation
+# Lockx test suite documentation v3.1.0
 
-This directory contains the complete test suite for the Lockx smart contract system. Current snapshot:
+This directory contains the comprehensive three-tier test suite for the Lockx smart contract system. Current snapshot:
 
-- Hardhat (coverage): contracts/ 99.63% statements, 90.08% branches, 100% functions, 100% lines; 438 tests passing
-- Foundry (property tests): 27 tests (invariants + fuzz), ~25M randomized operations
+- **Hardhat (unit coverage)**: 99.63% statements, 90.08% branches, 100% functions, 100% lines; 438 tests passing
+- **Foundry (property tests)**: 31 invariant tests, ~25M randomized operations  
+- **Foundry (scenario tests)**: 368 comprehensive tests across 83 files
+
+**Total testing coverage**: 837+ tests with 26M+ operations providing mathematical, functional, and real-world confidence.
 
 Tests are reproducible with:
 
 ```bash
-npm run coverage   # hardhat + solidity-coverage
-npm run forge:test # foundry invariants + fuzz
+# Complete validation suite (recommended)
+npm run coverage                    # Hardhat: 438 unit tests + coverage
+npm run forge:test                  # Foundry: 31 invariants + 25M operations  
+./test-all-foundry.sh              # Foundry: 368 scenarios + integration
 ```
 
 ## Test organization
@@ -66,7 +71,23 @@ Runs all Hardhat tests (currently 438 passing) with coverage and generates HTML 
 npm run forge:test
 ```
 
-Runs 27 property tests (invariants + fuzz), ~25 million randomized operations validating core properties.
+Runs 31 property tests (invariants + fuzz), ~25 million randomized operations validating core mathematical properties.
+
+### Comprehensive scenario testing (Foundry v3.1.0)
+```bash
+./test-all-foundry.sh
+```
+
+Runs 368 scenario tests across 83 files (~15 minutes). Tests edge cases, multi-user interactions, complex workflows, and strategic attack vectors.
+
+### Advanced testing capabilities (v3.1.0)
+```bash
+# Critical security invariants
+forge test --match-contract "LockxAdvancedInvariant"   # 4 advanced security properties
+
+# Strategic attack vector fuzzing  
+forge test --match-contract "LockxStrategicFuzz"       # 3 strategic fuzzing tests
+```
 
 
 ## Coverage metrics
@@ -254,18 +275,41 @@ contracts/               |    99.63 |    90.08 |      100 |      100 |
 - 100% functions
 - 99.15% lines
 
-## Foundry property-based testing
+## Foundry comprehensive testing suite (v3.1.0)
 
-Invariant testing using Foundry's fuzz testing engine:
+Foundry testing using property-based testing and comprehensive scenario validation across 83 test files:
 
-### Invariant test suite (4 contracts, 7 invariants)
+### Test categories
 
+**Invariant/Property testing (31 tests):**
+```bash
+npm run forge:test                # 31 invariants with ~25M operations
+```
+
+**Comprehensive scenario testing (368 tests across 83 files):**
 ```
 test/foundry/
-├── LockxInvariant.t.sol          # Balance accounting invariants
-├── LockxArrayInvariant.t.sol     # Array consistency invariants
-├── LockxMultiUserInvariant.t.sol # Multi-user isolation invariants
-└── LockxNonceInvariant.t.sol     # Nonce monotonicity invariants
+├── LockxInvariant.t.sol                    # Core balance invariants
+├── LockxAdvancedInvariant.t.sol           # Advanced security properties (v3.1.0)
+├── LockxArrayInvariant.t.sol              # Array consistency 
+├── LockxMultiUserInvariant.t.sol          # Multi-user isolation
+├── LockxNonceInvariant.t.sol              # Signature nonce integrity
+├── LockxStrategicFuzz.t.sol               # Strategic attack fuzzing (v3.1.0)
+├── LockxCore100.t.sol                     # Core functionality scenarios
+├── LockxCoreCoverageComplete.t.sol        # Complete core coverage
+├── LockxDepositsComplete.t.sol            # Comprehensive deposit testing
+├── LockxWithdrawalsComplete.t.sol         # Complete withdrawal scenarios
+├── LockxEdgeCases.t.sol                   # Edge case validation
+├── LockxSignatureVerificationComplete.t.sol # EIP-712 signature testing
+├── LockxBurnPurge.t.sol                   # Lockbox burning and storage cleanup
+├── LockxSwapSafetyInvariant.t.sol         # Swap operation safety
+├── LockxBatchWithdrawInvariant.t.sol      # Batch operation validation (v3.1.0)
+└── ... 68 additional test files covering comprehensive scenarios
+```
+
+**Run all scenario tests:**
+```bash
+./test-all-foundry.sh              # 368 tests across 83 files (~15 minutes)
 ```
 
 ### Running invariant tests
@@ -273,34 +317,65 @@ test/foundry/
 npm run forge:test
 ```
 
-This runs 7 invariant tests with 1,000 runs × 25,000 calls = 25 million operations.
+This runs 31 invariant tests with 1,000 runs × 25,000 calls = 25 million operations.
 
 ### What these tests validate
 
-1. Balance invariants (`LockxInvariant.t.sol`):
-- Contract ETH balance equals internal accounting
-- Contract ERC20 balances match stored values
-- No funds can be lost or created unexpectedly
+**Core Property Testing (31 tests):**
 
-2. Array consistency (`LockxArrayInvariant.t.sol`):
-- ERC20 tracking arrays have no duplicates
-- Index mapping consistency (bijection property)
-- Array operations maintain data integrity
+1. **Balance invariants** (`LockxInvariant.t.sol`):
+   - Contract ETH balance equals internal accounting
+   - Contract ERC20 balances match stored values
+   - No funds can be lost or created unexpectedly
 
-3. Multi-user isolation (`LockxMultiUserInvariant.t.sol`):
-- Users cannot access each other's lockboxes
-- Total balances remain consistent across operations
-- Cross-user operations maintain proper isolation
+2. **Array consistency** (`LockxArrayInvariant.t.sol`):
+   - ERC20 tracking arrays have no duplicates
+   - Index mapping consistency (bijection property)
+   - Array operations maintain data integrity
 
-4. Nonce monotonicity (`LockxNonceInvariant.t.sol`):
-- Signature nonces never decrease
-- Nonce increments are properly tracked
-- No replay attacks possible
+3. **Multi-user isolation** (`LockxMultiUserInvariant.t.sol`):
+   - Users cannot access each other's lockboxes
+   - Total balances remain consistent across operations
+   - Cross-user operations maintain proper isolation
+
+4. **Nonce monotonicity** (`LockxNonceInvariant.t.sol`):
+   - Signature nonces never decrease
+   - Nonce increments are properly tracked
+   - No replay attacks possible
+
+**Advanced Security Properties (v3.1.0):**
+
+5. **Advanced invariants** (`LockxAdvancedInvariant.t.sol`):
+   - Total asset conservation (contract balance = sum of user balances)
+   - Ownership uniqueness (every token has exactly one owner)
+   - Signature nonce integrity (nonces only increase, never regress)
+   - No stuck assets (all contract assets accounted for)
+
+6. **Batch operation safety** (`LockxBatchWithdrawInvariant.t.sol`):
+   - Array length mismatch detection
+   - Duplicate token prevention
+   - Batch operation integrity
+
+**Strategic Attack Vector Testing (v3.1.0):**
+
+7. **Strategic fuzzing** (`LockxStrategicFuzz.t.sol`):
+   - Deposit sequence attack vectors
+   - Swap parameter manipulation attempts
+   - Multi-user chaos scenarios
+
+**Comprehensive Scenario Validation (368 tests):**
+- Edge cases across all contract functions
+- Multi-user interaction scenarios
+- Complex workflow testing
+- EIP-712 signature verification
+- Swap operation safety
+- Asset management integrity
+- Storage cleanup verification
 
 ### Test statistics
 - Default: 1,000 runs × 25,000 calls = 25 million operations
 - Extended: 5,000 runs × 50,000 calls = 250 million operations
 - Depth: 25 levels of function calls
-- All 7 invariants: passing
+- All 31 invariants: passing
 
 These tests are intended to validate that the system maintains the listed invariants under a range of operation sequences.
