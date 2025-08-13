@@ -8,7 +8,8 @@ import {MockERC20} from '../../contracts/mocks/MockERC20.sol';
 
 /// @notice Invariant suite covering interactions across three independent lockboxes
 ///         owned by different users. Ensures contract-level ETH / ERC20 balances
-///         always equal the sum of per-lockbox accounting.
+///         always equal the sum of per-lockbox accounting, regardless of further
+///         user deposits made during fuzzing.
 contract LockxMultiUserInvariant is Test {
     LockxStateHarness internal lockx;
     MockERC20 internal tokA;
@@ -139,4 +140,4 @@ contract LockxMultiUserInvariant is Test {
         assertEq(tokA.balanceOf(address(lockx)), totalA);
         assertEq(tokB.balanceOf(address(lockx)), totalB);
     }
-} 
+}

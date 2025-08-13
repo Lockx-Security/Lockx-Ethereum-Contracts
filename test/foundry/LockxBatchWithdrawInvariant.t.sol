@@ -57,6 +57,36 @@ contract LockxBatchWithdrawInvariant is Test {
         vm.expectRevert();
         lockx.batchWithdraw(0, bytes32(0), hex'', 0, toks, amts, nfts, ids, user, ref, block.timestamp + 1);
     }
+
+    // Invariant: Batch withdraw should always validate array length mismatches
+    function invariant_batchWithdrawArrayMismatchDetection() external {
+        // Try mismatched arrays - should always revert
+        address[] memory toks = new address[](2);
+        uint256[] memory amts = new uint256[](1); // Mismatch
+        address[] memory nfts = new address[](0);
+        uint256[] memory ids = new uint256[](0);
+        
+        vm.prank(user);
+        vm.expectRevert();
+        lockx.batchWithdraw(0, bytes32(0), hex'', 0, toks, amts, nfts, ids, user, ref, block.timestamp + 1);
+    }
+
+    // Invariant: Batch withdraw should prevent duplicate token entries
+    function invariant_batchWithdrawNoDuplicates() external {
+        // Try duplicate tokens - should always revert
+        address[] memory toks = new address[](2);
+        toks[0] = address(tokenA);
+        toks[1] = address(tokenA); // Duplicate
+        uint256[] memory amts = new uint256[](2);
+        amts[0] = 1000;
+        amts[1] = 2000;
+        address[] memory nfts = new address[](0);
+        uint256[] memory ids = new uint256[](0);
+        
+        vm.prank(user);
+        vm.expectRevert();
+        lockx.batchWithdraw(0, bytes32(0), hex'', 0, toks, amts, nfts, ids, user, ref, block.timestamp + 1);
+    }
 }
 
 

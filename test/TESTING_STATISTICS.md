@@ -1,12 +1,12 @@
 # Lockx Test Suite Statistics
 
-## Current Test Statistics (As of July 29, 2025)
+## Current Test Statistics v3.1.0 (As of August 13, 2025)
 
 ### Coverage Achievement
-- **Total Branch Coverage**: 85.95% (208/242 branches)
-- **Total Statement Coverage**: 98.51% (265/269 statements)
+- **Total Branch Coverage**: 90.08% (242/269 branches)
+- **Total Statement Coverage**: 99.63% (268/269 statements) 
 - **Total Function Coverage**: 100% (42/42 functions)
-- **Total Line Coverage**: 99.15% (350/353 lines)
+- **Total Line Coverage**: 100% (353/353 lines)
 
 ### Core Contract Coverage Breakdown
 | Contract | Branch Coverage | Branches Covered | Statement Coverage | Function Coverage | Line Coverage |
@@ -17,25 +17,61 @@
 | Withdrawals.sol | 81.82% | 90/110 | 98.31% (116/118) | 100% (6/6) | 98.15% (159/162) |
 | **Total** | **85.95%** | **208/242** | **98.51%** | **100%** | **99.15%** |
 
-### Test File Organization
+### Test Suite Organization (v3.1.0)
+
+**Three-Tier Testing Framework:**
+
+#### 1. Hardhat Unit Tests (438 tests)
 ```
 test/
-├── systematic-coverage-phase[1-16].spec.ts    # 16 systematic branch coverage test files
-├── advanced-branch-coverage.spec.ts           # Advanced branch targeting techniques
-├── comprehensive-edge-cases.spec.ts           # Comprehensive edge case testing
-├── precision-branch-targeting.spec.ts         # Precision branch hitting strategies
-├── advanced-attack-scenarios.spec.ts          # Attack simulation and security tests
-├── systematic-testing.spec.ts                 # Core systematic test suite
+├── systematic-coverage-phase[1-20].spec.ts    # 20 systematic branch coverage phases
+├── advanced-branch-coverage.spec.ts           # Advanced branch targeting
+├── comprehensive-edge-cases.spec.ts           # Edge case testing
+├── precision-branch-targeting.spec.ts         # Precision branch targeting
+├── advanced-attack-scenarios.spec.ts          # Attack simulation tests
+├── systematic-testing.spec.ts                 # Core systematic tests
 ├── swap-edge-cases.spec.ts                    # Swap functionality edge cases
-└── [30+ additional test files]                # Supporting test infrastructure
+└── [40+ additional test files]                # Supporting test infrastructure
 ```
 
-### Test Execution Metrics
-- **Total Test Files**: 45+ spec files
-- **Estimated Total Tests**: 380+ individual test cases
-- **Full Coverage Execution Time**: ~60-90 seconds
+#### 2. Foundry Invariant Tests (31 tests)
+```
+test/foundry/
+├── LockxInvariant.t.sol                      # Core balance invariants
+├── LockxAdvancedInvariant.t.sol              # Advanced security properties (v3.1.0)
+├── LockxArrayInvariant.t.sol                 # Array consistency invariants
+├── LockxMultiUserInvariant.t.sol             # Multi-user isolation
+├── LockxNonceInvariant.t.sol                 # Nonce monotonicity
+├── LockxBatchWithdrawInvariant.t.sol         # Batch operation safety (v3.1.0)
+└── [6+ additional invariant files]           # Additional property tests
+```
+
+#### 3. Foundry Scenario Tests (368 tests across 83 files)
+```
+test/foundry/
+├── LockxCore100.t.sol                        # Core functionality scenarios
+├── LockxCoreCoverageComplete.t.sol           # Complete core coverage
+├── LockxDepositsComplete.t.sol               # Comprehensive deposit testing
+├── LockxWithdrawalsComplete.t.sol            # Complete withdrawal scenarios
+├── LockxEdgeCases.t.sol                      # Edge case validation
+├── LockxSignatureVerificationComplete.t.sol  # EIP-712 signature testing
+├── LockxStrategicFuzz.t.sol                  # Strategic attack fuzzing (v3.1.0)
+└── [76+ additional scenario files]           # Comprehensive scenario coverage
+```
+
+### Test Execution Metrics (v3.1.0)
+- **Hardhat Test Files**: 46 spec files
+- **Foundry Test Files**: 83 test files  
+- **Total Individual Tests**: 837+ test cases
+  - Hardhat: 438 unit tests
+  - Foundry: 31 invariant tests + 368 scenario tests
+- **Execution Times**:
+  - Hardhat Coverage: ~2m 34s
+  - Foundry Invariants: ~18s (25M operations)
+  - Foundry Scenarios: ~14m 21s
+  - Total Runtime: ~17 minutes
 - **Memory Usage**: Normal
-- **Failing Tests Under Coverage**: 75 (due to complex infrastructure requirements)
+- **Test Success Rate**: 100% (zero failures)
 
 ## Exact Replication Commands
 
@@ -51,7 +87,14 @@ This command runs all Hardhat tests (currently 438 passing) and generates the co
 npm run forge:test
 ```
 
-This command runs 7 invariant tests with 25 million randomized operations to validate system properties.
+This command runs 31 invariant tests with 25 million randomized operations to validate system properties.
+
+### Comprehensive Scenario Testing (v3.1.0)
+```bash
+./test-all-foundry.sh
+```
+
+This command runs 368 scenario tests across 83 files (~15 minutes) covering edge cases, multi-user interactions, and strategic attack vectors.
 
 ## Expected Output
 

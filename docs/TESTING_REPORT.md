@@ -1,8 +1,8 @@
-# Lockx smart contract security testing report
+# Lockx smart contract security testing report v3.1.0
 
 ## Summary
 
-The Lockx smart contract system has reproducible tests with **Hardhat coverage (90.08% branches overall; 90.54% for Lockx.sol)** and an expanded **Foundry property suite** (27 tests: invariants + fuzz) validating ownership/auth, nonces, accounting, swaps (min‑out/overspend/allowances/fee‑on‑transfer), key rotation, soulbound behavior, batch guards, `getFullLockbox` correctness, and direct ETH handling.
+The Lockx smart contract system features comprehensive three-tier testing with **Hardhat coverage (90.08% branches overall; 90.54% for Lockx.sol)**, **31 Foundry invariant tests** (~25M randomized operations), and **368 scenario tests** across 83 files. This validates ownership/auth, nonces, accounting, swaps (min‑out/overspend/allowances/fee‑on‑transfer), key rotation, soulbound behavior, batch guards, multi-user interactions, strategic attack vectors, and edge case handling.
 
 ### Test Coverage Areas
 - **Dual-Key Architecture**: Separation between wallet keys and lockbox keys

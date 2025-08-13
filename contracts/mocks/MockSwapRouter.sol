@@ -9,8 +9,31 @@ import '@openzeppelin/contracts/token/ERC20/IERC20.sol';
  */
 contract MockSwapRouter {
     
+    bool public shouldRevert = false;
+    
     // Allow contract to receive ETH
     receive() external payable {}
+    
+    function setShouldRevert(bool _shouldRevert) external {
+        shouldRevert = _shouldRevert;
+    }
+    
+    function getAmountOut(
+        address tokenIn,
+        address tokenOut, 
+        uint256 amountIn
+    ) external view returns (uint256) {
+        if (tokenIn == address(0)) {
+            // ETH to token: 950 tokens per ETH
+            return amountIn * 950;
+        } else if (tokenOut == address(0)) {
+            // Token to ETH: 0.01 ETH per token  
+            return amountIn / 100;
+        } else {
+            // Token to token: 95% rate
+            return (amountIn * 95) / 100;
+        }
+    }
     
     function swap(
         address tokenIn,
@@ -19,6 +42,10 @@ contract MockSwapRouter {
         uint256 minAmountOut,
         address recipient
     ) external payable {
+        if (shouldRevert) {
+            revert("Router: Forced revert for testing");
+        }
+        
         // If recipient is zero address, use msg.sender
         address actualRecipient = recipient == address(0) ? msg.sender : recipient;
         
