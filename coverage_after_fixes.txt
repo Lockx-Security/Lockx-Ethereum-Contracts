@@ -1,7 +1,0 @@
-
-> lockx-contracts@2.1.0 test
-> hardhat test 2
-
-
-
-

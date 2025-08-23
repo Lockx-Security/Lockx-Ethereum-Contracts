@@ -1,62 +1,38 @@
 {
-  "name": "lockx-contracts",
-  "version": "3.1.0",
-  "description": "",
+  "name": "lockx-zk-production",
+  "version": "1.0.0",
+  "description": "Production-ready zero-knowledge proof system for Lockx",
   "main": "index.js",
   "scripts": {
-    "test": "./test.sh",
-    "test:fast": "./test.sh fast",
-    "test:coverage": "./test.sh coverage",
-    "test:foundry": "./test-all-foundry.sh",
-    "test:foundry:complete": "./run-all-foundry-complete.sh",
-    "test:hardhat": "hardhat test",
-    "coverage": "hardhat coverage",
-    "gas": "REPORT_GAS=true hardhat test",
-    "gas:report": "mkdir -p reports && REPORT_GAS=true hardhat test > reports/gas-report.txt",
-    "mythril": "bash -c 'mkdir -p reports && myth analyze --execution-timeout 300 contracts/Lockx.sol -o json > reports/mythril-lockx.json'",
-    "ci": "npm run coverage",
-    "build": "npx hardhat compile",
-    "build:foundry": "forge build",
-    "format": "prettier --write .",
-    "lint:sol": "solhint 'contracts/**/*.sol'"
+    "compile": "hardhat compile",
+    "deploy:local": "hardhat run scripts/deployProductionZK.js --network localhost",
+    "deploy:mainnet": "hardhat run scripts/deployProductionZK.js --network mainnet",
+    "deploy:gcp": "./scripts/deploy-to-gcp.sh",
+    "circuits:compile": "cd circuits && npm run compile",
+    "demo": "cd circuits && node demos/fullE2EDemo.js"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/richardjaee/Lockx-Contracts.git"
+    "url": "git+https://github.com/lockx/lockx-zk-production.git"
   },
-  "keywords": [],
-  "author": "",
-  "license": "BUSL-1.1",
-  "type": "commonjs",
-  "bugs": {
-    "url": "https://github.com/richardjaee/Lockx-Contracts/issues"
-  },
-  "homepage": "https://github.com/richardjaee/Lockx-Contracts#readme",
-  "files": [
-    "artifacts",
-    "typechain-types",
-    "contracts",
-    "README.md",
-    "LICENSE"
+  "keywords": [
+    "zero-knowledge",
+    "zk-snarks",
+    "groth16",
+    "poseidon",
+    "ethereum",
+    "privacy"
   ],
-  "types": "typechain-types/index.d.ts",
-  "devDependencies": {
-    "@nomicfoundation/hardhat-chai-matchers": "^2.0.9",
+  "author": "Lockx",
+  "license": "MIT",
+  "type": "commonjs",
+  "dependencies": {
     "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@openzeppelin/contracts": "^5.3.0",
-    "@typechain/ethers-v6": "^0.5.1",
+    "circomlibjs": "^0.1.7",
     "dotenv": "^16.5.0",
+    "ethers": "^6.7.0",
     "hardhat": "^2.24.3",
-    "hardhat-gas-reporter": "^1.0.10",
-    "prettier": "2.8.8",
-    "prettier-plugin-solidity": "^1.0.0-beta.23",
-    "solhint": "^3.6.0",
-    "solidity-coverage": "^0.8.16",
-    "ts-node": "^10.9.2",
-    "typechain": "^8.3.2",
-    "typescript": "^5.8.3"
-  },
-  "dependencies": {
-    "@openzeppelin/contracts-upgradeable": "^5.3.0"
+    "snarkjs": "^0.7.0"
   }
 }

@@ -1,0 +1,34 @@
+{
+  "name": "lockx-zk-circuits",
+  "version": "1.0.0",
+  "description": "Zero-knowledge circuits for Lockx privacy features",
+  "scripts": {
+    "install:circom": "npm install -g circom",
+    "install:snarkjs": "npm install -g snarkjs",
+    "compile:deposit": "circom src/deposit.circom --r1cs --wasm --sym -o build",
+    "compile:withdraw": "circom src/withdraw.circom --r1cs --wasm --sym -o build",
+    "compile:transfer": "circom src/transfer.circom --r1cs --wasm --sym -o build",
+    "compile:all": "npm run compile:deposit && npm run compile:withdraw && npm run compile:transfer",
+    "setup:deposit": "snarkjs groth16 setup build/deposit.r1cs ptau/pot20_final.ptau build/deposit_0000.zkey",
+    "setup:withdraw": "snarkjs groth16 setup build/withdraw.r1cs ptau/pot20_final.ptau build/withdraw_0000.zkey",
+    "setup:transfer": "snarkjs groth16 setup build/transfer.r1cs ptau/pot20_final.ptau build/transfer_0000.zkey",
+    "contribute:deposit": "snarkjs zkey contribute build/deposit_0000.zkey build/deposit_0001.zkey --name=\"Lockx contribution\" -v",
+    "contribute:withdraw": "snarkjs zkey contribute build/withdraw_0000.zkey build/withdraw_0001.zkey --name=\"Lockx contribution\" -v",
+    "contribute:transfer": "snarkjs zkey contribute build/transfer_0000.zkey build/transfer_0001.zkey --name=\"Lockx contribution\" -v",
+    "export:deposit": "snarkjs zkey export solidityverifier build/deposit_0001.zkey ../contracts/zk/verifiers/DepositVerifier.sol",
+    "export:withdraw": "snarkjs zkey export solidityverifier build/withdraw_0001.zkey ../contracts/zk/verifiers/WithdrawVerifier.sol",
+    "export:transfer": "snarkjs zkey export solidityverifier build/transfer_0001.zkey ../contracts/zk/verifiers/TransferVerifier.sol",
+    "export:all": "npm run export:deposit && npm run export:withdraw && npm run export:transfer",
+    "download:ptau": "mkdir -p ptau && wget https://hermez.s3-eu-west-1.amazonaws.com/powersOfTau28_hez_final_20.ptau -O ptau/pot20_final.ptau",
+    "build": "npm run compile:all && npm run setup:all && npm run contribute:all && npm run export:all",
+    "test": "mocha test/*.test.js"
+  },
+  "dependencies": {
+    "circomlib": "^2.0.5",
+    "snarkjs": "^0.7.0"
+  },
+  "devDependencies": {
+    "chai": "^4.3.8",
+    "mocha": "^10.2.0"
+  }
+}
