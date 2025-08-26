@@ -1,10 +1,10 @@
-# Lockx smart contracts v3.1.0
+# Lockx smart contracts v4.0.0
 
 [![license](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
-[![version](https://img.shields.io/badge/version-3.1.0-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-4.0.0-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
-Solidity contracts implementing soul-bound NFT lockboxes. Uses OpenZeppelin v5.3.0. Features comprehensive three-tier testing framework (Hardhat unit tests, Foundry property testing, and strategic scenario validation) with EIP-712 v3 signature verification.
+Solidity contracts implementing soul-bound NFT lockboxes. Uses OpenZeppelin v5.3.0. Features comprehensive three-tier testing framework (Hardhat unit tests, Foundry property testing, and strategic scenario validation) with EIP-712 v4 signature verification.
 
 ## Table of contents
 
@@ -27,16 +27,16 @@ Solidity contracts implementing soul-bound NFT lockboxes. Uses OpenZeppelin v5.3
 
 The Lockx smart contracts are open source and tested with a comprehensive three-tier testing framework:
 
-- **Hardhat unit tests**: 90.08% branch coverage across 46 test files with 438 passing tests
-- **Foundry property testing**: 31 invariant tests with ~25M randomized operations
-- **Foundry scenario testing**: 368 comprehensive tests across 83 files covering edge cases, multi-user interactions, and strategic attack vectors
-- **Total coverage**: 834+ tests providing unit, property-based, and scenario validation
+- **Hardhat unit tests**: 90.94% branch coverage across 46 test files with 568 passing tests
+- **Foundry property testing**: 79 invariant tests with >22M randomized operations
+- **Foundry scenario testing**: 320 comprehensive tests across 69 files covering edge cases, multi-user interactions, and strategic attack vectors
+- **Total coverage**: 967+ tests providing unit, property-based, and scenario validation
 
 **Hardhat coverage results:**
 ```
 File                     |  % Stmts | % Branch |  % Funcs |  % Lines |
 -------------------------|----------|----------|----------|----------|
-contracts/               |    99.63 |    90.08 |      100 |      100 |
+contracts/               |    99.63 |    90.94 |      100 |      100 |
   Lockx.sol              |      100 |    90.54 |      100 |      100 |
   SignatureVerification  |      100 |      100 |      100 |      100 |
   Deposits.sol           |    98.18 |    86.36 |      100 |      100 |
@@ -47,11 +47,10 @@ contracts/               |    99.63 |    90.08 |      100 |      100 |
 ```
 Test Type                | Files | Tests | Operations |
 -------------------------|-------|-------|------------|
-Scenario & Integration   |   62  | 358+  |     N/A    |
-Property & Invariants    |   21  |  31   | ~25M calls |
-Strategic Fuzzing        |    3  |   7   | ~1M calls  |
+Scenario & Integration   |   69  | 320   |     N/A    |
+Property & Invariants    |   22  |  79   | >22M calls |
 -------------------------|-------|-------|------------|
-TOTAL                    |   83  | 368   | ~26M ops   |
+TOTAL                    |   91  | 399   | >22M ops   |
 ```
 
 All tests are publicly available and replicable:
@@ -61,13 +60,13 @@ git clone [repo-url]
 npm install
 
 # Unit tests with coverage (Hardhat)
-npm run coverage                    # 438 tests, 90.08% branch coverage
+npm run coverage                    # 568 tests, 90.94% branch coverage
 
 # Property-based testing (Foundry invariants)  
-npm run forge:test                  # 31 invariants, 25M randomized operations
+npm run test:foundry:invariants           # 79 tests across 22 suites, >22M operations
 
 # Comprehensive scenario testing (Foundry)
-./test-all-foundry.sh              # 368 tests, edge cases & integrations
+npm run test:foundry:scenarios     # 320 tests, edge cases & integrations (or npm run test:foundry for both invariants+scenarios)
 ```
 
 ---
@@ -77,19 +76,19 @@ npm run forge:test                  # 31 invariants, 25M randomized operations
 The Lockx smart contracts use a three-tier testing approach providing comprehensive validation:
 
 ### **Tier 1: Unit Testing (Hardhat)**
-- **438 deterministic tests** across 46 files
+- **568 deterministic tests** across 46 files
 - **90.08% branch coverage** of production contracts
 - **Systematic function validation** with predetermined inputs
 - **Coverage measurement** and gap analysis
 
 ### **Tier 2: Property Testing (Foundry Invariants)**
-- **31 invariant tests** across 21 files
-- **~25 million randomized operations** testing mathematical properties
+- **79 invariant tests** across 22 files  
+- **>22 million randomized operations** testing mathematical properties
 - **Critical security properties**: Asset conservation, nonce integrity, ownership uniqueness
 - **Continuous validation** that system properties hold under chaos
 
 ### **Tier 3: Scenario Testing (Foundry Comprehensive)**
-- **368 scenario tests** across 83 files  
+- **320 scenario tests** across 69 files  
 - **Real-world workflows**: Multi-user interactions, complex swaps, edge cases
 - **Strategic fuzzing**: Deposit sequences, swap parameters, attack vectors
 - **Integration testing**: Complete user journeys and cross-contract interactions
@@ -101,10 +100,10 @@ The three-tier approach provides:
 - **Real-world confidence** (scenario validation)
 
 ## Test coverage
-- **Current coverage**: 90.08% production branch coverage
+- **Current coverage**: 90.94% production branch coverage
 - **focus**: coverage figures refer to the production contracts only — `contracts/Lockx.sol`, `contracts/Withdrawals.sol`, `contracts/Deposits.sol`, `contracts/SignatureVerification.sol`. Aggregates that include `contracts/mocks/**` are not representative of production quality.
 - **Working Test Suite**: `systematic-core-suite.spec.ts` (5 passing tests) and systematic phases
-- **Foundry Invariants**: 25 million randomized operations across 7 test cases
+- **Foundry Invariants**: >22 million randomized operations across 22 test suites
 - **Security Focus**: 100% coverage of signature verification and access control paths
 - **Core Contract**: Lockx.sol achieves 90.54% branch coverage (exceeds 90% target)
 
@@ -150,21 +149,21 @@ The three-tier approach provides:
 #### **All Test Suites (Recommended)**
 ```bash
 # Complete test validation (recommended for CI/production)
-npm run coverage                    # Hardhat: 438 unit tests + coverage
-npm run forge:test                  # Foundry: 31 invariants + 25M operations  
-./test-all-foundry.sh              # Foundry: 368 scenarios + integration
+npm run coverage                    # Hardhat: 568 unit tests + coverage
+npm run test:foundry:invariants     # Foundry: 79 invariants + >22M operations  
+npm run test:foundry:scenarios     # Foundry: 320 scenarios + integration
 ```
 
 #### **Individual Test Suites**
 ```bash
 # Unit tests with coverage analysis
-npm run coverage                    # 438 tests, ~2 minutes, 90.08% branch coverage
+npm run coverage                    # 568 tests, ~2 minutes, 90.94% branch coverage
 
 # Property-based testing (mathematical invariants)
-npm run forge:test                  # 31 invariants, ~5 minutes, 25M random operations
+npm run test:foundry:invariants     # 79 invariants, ~51 minutes, >22M random operations
 
 # Comprehensive scenario testing  
-./test-all-foundry.sh              # 368 tests, ~15 minutes, real-world scenarios
+npm run test:foundry:scenarios     # 320 tests, ~10 minutes, real-world scenarios
 ```
 
 #### **Targeted Testing**
@@ -172,7 +171,7 @@ npm run forge:test                  # 31 invariants, ~5 minutes, 25M random oper
 # Test specific areas
 forge test --match-contract "LockxEdgeCases"           # Edge case validation
 forge test --match-contract "LockxMultiUser"           # Multi-user scenarios  
-forge test --match-contract "LockxAdvancedInvariant"   # Critical invariants
+forge test --match-contract "LockxAdvancedInvariant"   # Critical invariants (or use npm run test:foundry:invariants for all)
 forge test --match-contract "LockxStrategicFuzz"       # Attack vector fuzzing
 ```
 
@@ -203,8 +202,8 @@ forge test --match-contract "LockxStrategicFuzz"       # Attack vector fuzzing
 - Multi-user chaos testing ✅ (258 runs with concurrent operations)
 
 **Test execution coverage:**
-- **26+ million operations** executed across 31 invariant tests
-- **368 scenario validations** covering real-world usage patterns
+- **>22 million operations** executed across 79 invariant tests
+- **320 scenario validations** covering real-world usage patterns
 - **Strategic attack vector testing** with randomized fuzzing
 - **Mathematical confidence** in system behavior under all operation sequences
 
@@ -294,7 +293,7 @@ ETHERSCAN_API_KEY=YourEtherscanKey
 
 ## Development and testing acknowledgments
 
-Parts of the test suite (46 test files, 438 passing tests, 90.08% branch coverage) were assisted by automated tooling, including Claude, for test generation and coverage improvement.
+Parts of the test suite (46 test files, 568 passing tests, 90.94% branch coverage) were assisted by automated tooling, including Claude, for test generation and coverage improvement.
 
 The core smart contract logic, architecture, and security design are authored by the Lockx team.
 
@@ -302,12 +301,12 @@ The core smart contract logic, architecture, and security design are authored by
 
 ## Version information
 
-**Current version:** 3.1.0  
+**Current version:** 4.0.0  
 **OpenZeppelin:** v5.3.0  
-**EIP-712 domain:** 'Lockx', version '3'  
+**EIP-712 domain:** 'Lockx', version '4'  
 
-### **v3.1.0 Release Highlights:**
-- **Expanded Foundry test suite**: 368 scenario tests
+### **v4.0.0 Release Highlights:**
+- **Expanded Foundry test suite**: 320 scenario tests
 - **Advanced invariant testing**: 4 new critical security properties  
 - **Strategic fuzzing**: 3 new attack vector tests
 - **Comprehensive documentation**: Updated test commands and replication guides

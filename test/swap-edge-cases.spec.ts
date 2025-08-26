@@ -88,7 +88,7 @@ describe('🔧 SWAP FIX SUPPLEMENT - RESTORE MISSING COVERAGE', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -215,7 +215,7 @@ describe('🔧 SWAP FIX SUPPLEMENT - RESTORE MISSING COVERAGE', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

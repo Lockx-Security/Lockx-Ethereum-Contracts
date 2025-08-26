@@ -152,7 +152,7 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       
       const domain = {
         name: 'Lockx',  
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -223,6 +223,7 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       // Get the actual tokenId from the transaction
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
 
       // Withdraw all assets first (burn requires empty lockbox)
@@ -232,7 +233,7 @@ describe('🎯 LOCKX.SOL TARGETED PUSH → 90%', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };

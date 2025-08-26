@@ -26,14 +26,14 @@ contract LockxBatchWithdrawInvariant is Test {
         nft = new MockERC721();
         key = vm.addr(keyPk);
         vm.deal(user, 10 ether);
-        tokenA.mint(user, 1e24);
-        tokenB.mint(user, 1e24);
+        tokenA.mint(user, 1_000_000 ether);
+        tokenB.mint(user, 1_000_000 ether);
         vm.startPrank(user);
         tokenA.approve(address(lockx), type(uint256).max);
         tokenB.approve(address(lockx), type(uint256).max);
         lockx.createLockboxWithETH{value: 1 ether}(user, key, ref);
-        lockx.depositERC20(0, address(tokenA), 5e21, ref);
-        lockx.depositERC20(0, address(tokenB), 5e21, ref);
+        lockx.depositERC20(0, address(tokenA), 200_000 ether, ref);
+        lockx.depositERC20(0, address(tokenB), 200_000 ether, ref);
         nft.mint(user, 1);
         nft.approve(address(lockx), 1);
         lockx.depositERC721(0, address(nft), 1, ref);

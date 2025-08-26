@@ -45,7 +45,7 @@ contract LockxComplexSequenceInvariant is Test {
         'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
     );
     bytes32 internal constant NAME_HASH = keccak256(bytes('Lockx'));
-    bytes32 internal constant VERSION_HASH = keccak256(bytes('3'));
+    bytes32 internal constant VERSION_HASH = keccak256(bytes('4'));
     bytes32 internal constant OPERATION_TYPEHASH = keccak256(
         'Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)'
     );
@@ -272,7 +272,7 @@ contract LockxComplexSequenceInvariant is Test {
         }
     }
     
-    function _userDepositsETH(address user, uint256 tokenId, uint256 amount, uint256 userKey) external {
+    function _userDepositsETH(address user, uint256 tokenId, uint256 amount, uint256 /* userKey */) external {
         require(msg.sender == address(this), "Only self");
         vm.deal(user, amount + 1 ether);
         vm.prank(user);
@@ -310,7 +310,7 @@ contract LockxComplexSequenceInvariant is Test {
         sequenceState.lockboxNonces[tokenId]++;
     }
     
-    function _userDepositsNFT(address user, uint256 tokenId, uint256 nftTokenId, uint256 userKey) external {
+    function _userDepositsNFT(address user, uint256 tokenId, uint256 nftTokenId, uint256 /* userKey */) external {
         require(msg.sender == address(this), "Only self");
         
         vm.startPrank(user);
@@ -368,12 +368,12 @@ contract LockxComplexSequenceInvariant is Test {
         sequenceState.lockboxNonces[tokenId] += 3; // 3 operations
     }
     
-    function _testMixedAssetOperationSequence(uint256 amount) internal {
+    function _testMixedAssetOperationSequence(uint256 /* amount */) internal {
         sequenceState.totalOperations++;
         sequenceState.successfulSequences++; // Simple sequence for now
     }
     
-    function _testLongRunningOperationChain(uint256 amount) internal {
+    function _testLongRunningOperationChain(uint256 /* amount */) internal {
         sequenceState.totalOperations++;
         sequenceState.successfulSequences++; // Simple sequence for now
     }
@@ -412,7 +412,7 @@ contract LockxComplexSequenceInvariant is Test {
         return abi.encodePacked(r, s, v);
     }
     
-    function _computeMessageHash(uint256 tokenId, uint8 opType, bytes memory data, address user, uint256 userKey) 
+    function _computeMessageHash(uint256 tokenId, uint8 opType, bytes memory data, address user, uint256 /* userKey */) 
         internal returns (bytes32) {
         bytes32 dataHash = keccak256(data);
         

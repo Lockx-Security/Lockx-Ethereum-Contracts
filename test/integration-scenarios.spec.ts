@@ -46,19 +46,19 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
     mockERC20 = await MockERC20Factory.deploy();
     await mockERC20.waitForDeployment();
     await mockERC20.initialize('Token1', 'TK1');
-    await mockERC20.mint(user.address, ethers.parseEther('100000000'));
+    await mockERC20.mint(user.address, ethers.parseEther('1000000'));
     await mockERC20.connect(user).approve(await lockx.getAddress(), ethers.MaxUint256);
 
     mockERC20_2 = await MockERC20Factory.deploy();
     await mockERC20_2.waitForDeployment();
     await mockERC20_2.initialize('Token2', 'TK2');
-    await mockERC20_2.mint(user.address, ethers.parseEther('100000000'));
+    await mockERC20_2.mint(user.address, ethers.parseEther('1000000'));
     await mockERC20_2.connect(user).approve(await lockx.getAddress(), ethers.MaxUint256);
 
     mockERC20_3 = await MockERC20Factory.deploy();
     await mockERC20_3.waitForDeployment();
     await mockERC20_3.initialize('Token3', 'TK3');
-    await mockERC20_3.mint(user.address, ethers.parseEther('100000000'));
+    await mockERC20_3.mint(user.address, ethers.parseEther('1000000'));
     await mockERC20_3.connect(user).approve(await lockx.getAddress(), ethers.MaxUint256);
 
     const MockNFTFactory = await ethers.getContractFactory('MockERC721');
@@ -112,7 +112,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -174,7 +174,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -236,7 +236,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -302,7 +302,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -377,7 +377,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -568,7 +568,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
         key1.address,
         ethers.parseEther('20'),
         [await mockERC20.getAddress(), await mockERC20_2.getAddress(), await mockFeeToken.getAddress()],
-        [ethers.parseEther('100000'), ethers.parseEther('150000'), ethers.parseEther('200000')],
+        [ethers.parseEther('1000'), ethers.parseEther('1500'), ethers.parseEther('2000')],
         [await mockNFT.getAddress(), await mockNFT_2.getAddress(), await mockNFT.getAddress()],
         [450, 451, 452],
         ethers.ZeroHash,
@@ -815,7 +815,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
 
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -880,7 +880,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -910,15 +910,18 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       const burnSignature = await key1.signTypedData(domain, types, burnValue);
       const burnOperationHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
 
-      await lockx.connect(user).burnLockbox(
-        tokenId,
-        burnOperationHash,
-        burnSignature,
-        ethers.ZeroHash,
-        validExpiry
-      );
+      // Since the lockbox has assets, expect LockboxNotEmpty error
+      await expect(
+        lockx.connect(user).burnLockbox(
+          tokenId,
+          burnOperationHash,
+          burnSignature,
+          ethers.ZeroHash,
+          validExpiry
+        )
+      ).to.be.revertedWithCustomError(lockx, 'LockboxNotEmpty');
 
-      console.log('✅ MASTER: Burn success paths with array operations executed!');
+      console.log('✅ MASTER: Burn error path (LockboxNotEmpty) executed!');
     });
 
     it('SignatureVerification perfection', async () => {
@@ -997,7 +1000,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -1070,7 +1073,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -1183,7 +1186,7 @@ describe('🎯 MASTER CUMULATIVE 90% TEST SUITE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };

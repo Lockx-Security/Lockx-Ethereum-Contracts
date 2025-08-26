@@ -69,7 +69,7 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
     await mockTokenB.mint(await mockRouter.getAddress(), ethers.parseEther('100000'));
     await owner.sendTransaction({
       to: await mockRouter.getAddress(),
-      value: ethers.parseEther('100')
+      value: ethers.parseEther('1')
     });
   });
 
@@ -89,7 +89,7 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await lockx.getAddress()
       };
@@ -153,7 +153,7 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await lockx.getAddress()
       };
@@ -221,7 +221,7 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await lockx.getAddress()
       };
@@ -289,13 +289,14 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
       // Extract tokenId from transaction receipt
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       const currentBlock = await ethers.provider.getBlock('latest');
       const signatureExpiry = currentBlock.timestamp + 3600;
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await lockx.getAddress()
       };
@@ -395,6 +396,7 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
       // Extract tokenId from transaction receipt
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -402,7 +404,7 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await lockx.getAddress()
       };
@@ -491,13 +493,14 @@ describe('💎 ULTIMATE PUSH TO 90%+ COVERAGE - TARGETING EXACT BRANCHES!', () =
       // Get the actual tokenId from the transaction
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       const currentBlock = await ethers.provider.getBlock('latest');
       const signatureExpiry = currentBlock.timestamp + 3600;
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: (await ethers.provider.getNetwork()).chainId,
         verifyingContract: await lockx.getAddress()
       };

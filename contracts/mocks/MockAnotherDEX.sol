@@ -15,7 +15,7 @@ contract MockAnotherDEX {
         uint256 inputAmount,
         uint256 minimumOutput,
         address receiver,
-        bytes calldata additionalData
+        bytes calldata /* additionalData */
     ) external returns (uint256) {
         // Pull tokenA from caller
         IERC20(tokenA).transferFrom(msg.sender, address(this), inputAmount);

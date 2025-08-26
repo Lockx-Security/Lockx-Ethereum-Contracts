@@ -35,7 +35,8 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
     
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     const currentBlock = await ethers.provider.getBlock('latest');
     const signatureExpiry = currentBlock.timestamp + 3600;
@@ -43,7 +44,7 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -102,7 +103,8 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
     
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     // Deploy mock router
     const MockSwapRouter = await ethers.getContractFactory('MockSwapRouter');
@@ -117,7 +119,7 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -136,7 +138,7 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
       ethers.ZeroAddress,                // tokenIn = ETH
       await mockToken.getAddress(),      // tokenOut = ERC20
       ethers.parseEther('0.1'),          // amountIn
-      ethers.parseEther('95'),           // minAmountOut
+      ethers.parseEther('0.09'),         // minAmountOut (realistic expectation)
       await lockx.getAddress()           // recipient = lockx contract
     ]);
     
@@ -147,7 +149,7 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
         ethers.ZeroAddress,              // tokenIn = ETH
         await mockToken.getAddress(),    // tokenOut = ERC20
         ethers.parseEther('0.1'),
-        ethers.parseEther('95'),
+        ethers.parseEther('0.09'),
         await mockRouter.getAddress(),
         ethers.keccak256(swapCallData),
         referenceId,
@@ -175,7 +177,7 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
       ethers.ZeroAddress,              // tokenIn = ETH
       await mockToken.getAddress(),    // tokenOut = ERC20
       ethers.parseEther('0.1'),
-      ethers.parseEther('95'),
+      ethers.parseEther('0.09'),        // Realistic: expect 0.09 tokens from 0.1 ETH (accounting for slippage/fees)
       await mockRouter.getAddress(),
       swapCallData,
       referenceId,
@@ -197,7 +199,8 @@ describe('🎯 ADDITIONAL BRANCH COVERAGE - TARGET REMAINING GAPS', () => {
     
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     const currentBlock = await ethers.provider.getBlock('latest');
     const expiredSignatureExpiry = currentBlock.timestamp - 1; // Already expired

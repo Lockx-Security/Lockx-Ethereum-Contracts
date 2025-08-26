@@ -36,10 +36,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
 
     /* ───────── Storage ───────── */
 
-    // ETH
+    // ETH bookkeeping (wei)
     mapping(uint256 => uint256) internal _ethBalances;
 
-    // ERC-20 bookkeeping
+    // ERC-20 bookkeeping (raw units)
     mapping(uint256 => mapping(address => uint256)) internal _erc20Balances;
     mapping(uint256 => address[]) internal _erc20TokenAddresses;
     mapping(uint256 => mapping(address => uint256)) internal _erc20Index;
@@ -58,15 +58,6 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     function _requireOwnsLockbox(uint256 tokenId) internal view {
         if (_erc721.ownerOf(tokenId) != msg.sender) revert NotOwner();
     }
-    function _requireExists(uint256 tokenId) internal view {
-        address owner;
-        try _erc721.ownerOf(tokenId) returns (address o) {
-            owner = o;
-        } catch {
-            revert NonexistentToken();
-        }
-        if (owner == address(0)) revert NonexistentToken();
-    }
 
 
     /* ───────── IERC721Receiver ───────── */
@@ -76,6 +67,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         uint256,
         bytes calldata
     ) public pure override returns (bytes4) {
+        // Accept NFT transfers - actual deposits are protected via depositERC721
         return this.onERC721Received.selector;
     }
 
@@ -105,6 +97,11 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @param tokenAddress The ERC-20 token contract address.
      * @param amount       The amount of tokens to deposit.
      * @param referenceId  External reference ID for off-chain tracking.
+     *
+     * Requirements:
+     * - Caller must own the Lockbox.
+     * - `tokenAddress` must not be zero address.
+     * - `amount` must be > 0.
      */
     function depositERC20(
         uint256 tokenId,
@@ -126,6 +123,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @param nftContract The ERC-721 contract address to deposit.
      * @param nftTokenId  The token ID of the ERC-721 to deposit.
      * @param referenceId External reference ID for off-chain tracking.
+     *
+     * Requirements:
+     * - Caller must own the Lockbox.
+     * - `nftContract` must not be zero address.
      */
     function depositERC721(
         uint256 tokenId,
@@ -149,6 +150,13 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @param nftContracts      ERC-721 contract addresses to deposit.
      * @param nftTokenIds       Corresponding ERC-721 token IDs.
      * @param referenceId       External reference ID for off-chain tracking.
+     *
+     * Requirements:
+     * - Caller must own the Lockbox.
+     * - At least one asset type must be deposited (ETH, ERC-20, or ERC-721).
+     * - `msg.value` must equal `amountETH`.
+     * - `tokenAddresses` and `tokenAmounts` arrays must have equal length.
+     * - `nftContracts` and `nftTokenIds` arrays must have equal length.
      */
     function batchDeposit(
         uint256 tokenId,
@@ -195,8 +203,8 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         uint256 received = t.balanceOf(address(this)) - before;
         if (received == 0) revert ZeroAmount();
 
-        // Register new token with index (check balance instead of _erc20Known)
-        if (_erc20Balances[tokenId][token] == 0) {
+        // Register new token with index
+        if (_erc20Index[tokenId][token] == 0) {
             _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length + 1;
             _erc20TokenAddresses[tokenId].push(token);
         }
@@ -208,6 +216,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @dev Internal helper for ERC-721 deposits.
      */
     function _depositERC721(uint256 tokenId, address nftContract, uint256 nftTokenId) internal {
+        // nftContract is already validated in the public functions before calling this
         bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
 
         // Check if NFT is new by seeing if nftContract is zero
@@ -260,9 +269,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         uint256 idx = _erc20Index[tokenId][token];
         if (idx == 0) return;
 
-        uint256 last = _erc20TokenAddresses[tokenId].length;
-        if (idx != last) {
-            address lastToken = _erc20TokenAddresses[tokenId][last - 1];
+        uint256 arrayLength = _erc20TokenAddresses[tokenId].length;
+        if (idx != arrayLength) {
+            address lastToken = _erc20TokenAddresses[tokenId][arrayLength - 1];
             _erc20TokenAddresses[tokenId][idx - 1] = lastToken;
             _erc20Index[tokenId][lastToken] = idx;
         }
@@ -277,9 +286,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         uint256 idx = _nftIndex[tokenId][key];
         if (idx == 0) return;
 
-        uint256 last = _nftKeys[tokenId].length;
-        if (idx != last) {
-            bytes32 lastKey = _nftKeys[tokenId][last - 1];
+        uint256 arrayLength = _nftKeys[tokenId].length;
+        if (idx != arrayLength) {
+            bytes32 lastKey = _nftKeys[tokenId][arrayLength - 1];
             _nftKeys[tokenId][idx - 1] = lastKey;
             _nftIndex[tokenId][lastKey] = idx;
         }

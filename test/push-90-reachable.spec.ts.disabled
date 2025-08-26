@@ -1,0 +1,559 @@
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
+import { Lockx, MockERC20, MockERC721, MockFeeOnTransferToken } from '../typechain-types';
+import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
+
+describe('🎯 PUSH TO 90% - REACHABLE BRANCHES ONLY', () => {
+  let lockx: Lockx;
+  let mockToken: MockERC20;
+  let mockToken2: MockERC20;
+  let mockToken3: MockERC20;
+  let mockToken4: MockERC20;
+  let mockNFT: MockERC721;
+  let mockNFT2: MockERC721;
+  let feeToken: MockFeeOnTransferToken;
+  let owner: HardhatEthersSigner;
+  let user1: HardhatEthersSigner;
+  let user2: HardhatEthersSigner;
+  let keyPair: HardhatEthersSigner;
+
+  beforeEach(async () => {
+    [owner, user1, user2, keyPair] = await ethers.getSigners();
+
+    // Deploy contracts
+    const MockERC20Factory = await ethers.getContractFactory('MockERC20');
+    mockToken = await MockERC20Factory.deploy();
+    await mockToken.initialize('Mock Token', 'MOCK');
+    mockToken2 = await MockERC20Factory.deploy();
+    await mockToken2.initialize('Mock Token 2', 'MOCK2');
+    mockToken3 = await MockERC20Factory.deploy();
+    await mockToken3.initialize('Mock Token 3', 'MOCK3');
+    mockToken4 = await MockERC20Factory.deploy();
+    await mockToken4.initialize('Mock Token 4', 'MOCK4');
+
+    const MockERC721Factory = await ethers.getContractFactory('MockERC721');
+    mockNFT = await MockERC721Factory.deploy();
+    await mockNFT.initialize('Mock NFT', 'MNFT');
+    mockNFT2 = await MockERC721Factory.deploy();
+    await mockNFT2.initialize('Mock NFT 2', 'MNFT2');
+
+    const MockFeeOnTransferTokenFactory = await ethers.getContractFactory('MockFeeOnTransferToken');
+    feeToken = await MockFeeOnTransferTokenFactory.deploy();
+    await feeToken.initialize('Fee Token', 'FEE');
+    await feeToken.setFeePercentage(500); // 5% fee
+
+    const LockxFactory = await ethers.getContractFactory('Lockx');
+    lockx = await LockxFactory.deploy();
+
+    // Setup balances
+    await mockToken.mint(user1.address, ethers.parseEther('10000'));
+    await mockToken2.mint(user1.address, ethers.parseEther('10000'));
+    await mockToken3.mint(user1.address, ethers.parseEther('10000'));
+    await mockToken4.mint(user1.address, ethers.parseEther('10000'));
+    await feeToken.mint(user1.address, ethers.parseEther('10000'));
+    
+    for(let i = 1; i <= 15; i++) {
+      await mockNFT.mint(user1.address, i);
+      await mockNFT2.mint(user1.address, i);
+    }
+
+    // Setup approvals
+    await mockToken.connect(user1).approve(await lockx.getAddress(), ethers.MaxUint256);
+    await mockToken2.connect(user1).approve(await lockx.getAddress(), ethers.MaxUint256);
+    await mockToken3.connect(user1).approve(await lockx.getAddress(), ethers.MaxUint256);
+    await mockToken4.connect(user1).approve(await lockx.getAddress(), ethers.MaxUint256);
+    await feeToken.connect(user1).approve(await lockx.getAddress(), ethers.MaxUint256);
+    await mockNFT.connect(user1).setApprovalForAll(await lockx.getAddress(), true);
+    await mockNFT2.connect(user1).setApprovalForAll(await lockx.getAddress(), true);
+  });
+
+  describe('🔥 DEPOSITS.SOL - Improve from 84.78% to 90%+', () => {
+    it('should hit complex array management with 4+ tokens', async () => {
+      // Create lockbox with 4 tokens
+      await lockx.connect(user1).createLockboxWithBatch(
+        user1.address,
+        keyPair.address,
+        0,
+        [await mockToken.getAddress(), await mockToken2.getAddress(), await mockToken3.getAddress(), await mockToken4.getAddress()],
+        [ethers.parseEther('100'), ethers.parseEther('200'), ethers.parseEther('300'), ethers.parseEther('400')],
+        [],
+        [],
+        ethers.ZeroHash,
+        { value: 0 }
+      );
+      const tokenId = 0;
+
+      const domain = {
+        name: 'Lockx',
+        version: '4',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await lockx.getAddress()
+      };
+
+      const types = {
+        Operation: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'opType', type: 'uint8' },
+          { name: 'dataHash', type: 'bytes32' }
+        ]
+      };
+
+      // Remove token at index 1 (mockToken2) - triggers complex reordering
+      // mockToken4 (at index 3) will move to index 1
+      let nonce = await lockx.connect(user1).getNonce(tokenId);
+      let currentBlock = await ethers.provider.getBlock('latest');
+      let signatureExpiry = currentBlock!.timestamp + 3600;
+
+      let withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, await mockToken2.getAddress(), ethers.parseEther('200'), user1.address, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+
+      let opValue = {
+        tokenId,
+        nonce,
+        opType: 2, // WITHDRAW_ERC20
+        dataHash: ethers.keccak256(withdrawData)
+      };
+
+      let signature = await keyPair.signTypedData(domain, types, opValue);
+      let messageHash = ethers.TypedDataEncoder.hash(domain, types, opValue);
+
+      await lockx.connect(user1).withdrawERC20(
+        tokenId,
+        messageHash,
+        signature,
+        await mockToken2.getAddress(),
+        ethers.parseEther('200'),
+        user1.address,
+        ethers.ZeroHash,
+        signatureExpiry
+      );
+
+      console.log('✅ Complex token array reordering with 4 tokens');
+    });
+
+    it('should hit complex NFT array management with many NFTs', async () => {
+      // Create lockbox with 5 NFTs from different contracts
+      await lockx.connect(user1).createLockboxWithBatch(
+        user1.address,
+        keyPair.address,
+        0,
+        [],
+        [],
+        [await mockNFT.getAddress(), await mockNFT.getAddress(), await mockNFT2.getAddress(), await mockNFT2.getAddress(), await mockNFT.getAddress()],
+        [1, 2, 1, 2, 3],
+        ethers.ZeroHash,
+        { value: 0 }
+      );
+      const tokenId = 0;
+
+      const domain = {
+        name: 'Lockx',
+        version: '4',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await lockx.getAddress()
+      };
+
+      const types = {
+        Operation: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'opType', type: 'uint8' },
+          { name: 'dataHash', type: 'bytes32' }
+        ]
+      };
+
+      // Remove NFT at index 2 - triggers complex reordering
+      let nonce = await lockx.connect(user1).getNonce(tokenId);
+      let currentBlock = await ethers.provider.getBlock('latest');
+      let signatureExpiry = currentBlock!.timestamp + 3600;
+
+      let withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'address', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, await mockNFT2.getAddress(), 1, user1.address, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+
+      let opValue = {
+        tokenId,
+        nonce,
+        opType: 3, // WITHDRAW_ERC721
+        dataHash: ethers.keccak256(withdrawData)
+      };
+
+      let signature = await keyPair.signTypedData(domain, types, opValue);
+      let messageHash = ethers.TypedDataEncoder.hash(domain, types, opValue);
+
+      await lockx.connect(user1).withdrawERC721(
+        tokenId,
+        messageHash,
+        signature,
+        await mockNFT2.getAddress(),
+        1,
+        user1.address,
+        ethers.ZeroHash,
+        signatureExpiry
+      );
+
+      console.log('✅ Complex NFT array reordering with 5 NFTs');
+    });
+
+    it('should hit all deposit validation branches comprehensively', async () => {
+      // Create lockbox
+      await lockx.connect(user1).createLockboxWithETH(
+        user1.address,
+        keyPair.address,
+        ethers.ZeroHash,
+        { value: ethers.parseEther('0.1') }
+      );
+      const tokenId = 0;
+
+      // Test depositETH with non-owner
+      await expect(
+        lockx.connect(user2).depositETH(tokenId, ethers.ZeroHash, { value: ethers.parseEther('0.1') })
+      ).to.be.revertedWithCustomError(lockx, 'NotOwner');
+
+      // Test depositERC20 with non-owner
+      await expect(
+        lockx.connect(user2).depositERC20(tokenId, await mockToken.getAddress(), ethers.parseEther('100'), ethers.ZeroHash)
+      ).to.be.revertedWithCustomError(lockx, 'NotOwner');
+
+      // Test depositERC721 with non-owner
+      await expect(
+        lockx.connect(user2).depositERC721(tokenId, await mockNFT.getAddress(), 4, ethers.ZeroHash)
+      ).to.be.revertedWithCustomError(lockx, 'NotOwner');
+
+      // Test batchDeposit with non-owner
+      await expect(
+        lockx.connect(user2).batchDeposit(
+          tokenId,
+          ethers.parseEther('0.1'),
+          [],
+          [],
+          [],
+          [],
+          ethers.ZeroHash,
+          { value: ethers.parseEther('0.1') }
+        )
+      ).to.be.revertedWithCustomError(lockx, 'NotOwner');
+
+      console.log('✅ All deposit validation branches');
+    });
+
+    it('should hit fee token branches with multiple scenarios', async () => {
+      // Test 1: Create lockbox with fee token
+      await lockx.connect(user1).createLockboxWithERC20(
+        user1.address,
+        keyPair.address,
+        await feeToken.getAddress(),
+        ethers.parseEther('1000'), // Will receive 950 after 5% fee
+        ethers.ZeroHash
+      );
+      const tokenId = 0;
+
+      // Test 2: Add more fee tokens multiple times
+      await lockx.connect(user1).depositERC20(
+        tokenId,
+        await feeToken.getAddress(),
+        ethers.parseEther('500'), // Will receive 475
+        ethers.ZeroHash
+      );
+
+      await lockx.connect(user1).depositERC20(
+        tokenId,
+        await feeToken.getAddress(),
+        ethers.parseEther('200'), // Will receive 190
+        ethers.ZeroHash
+      );
+
+      // Test 3: Batch deposit with fee token
+      await lockx.connect(user1).batchDeposit(
+        tokenId,
+        0,
+        [await feeToken.getAddress()],
+        [ethers.parseEther('100')], // Will receive 95
+        [],
+        [],
+        ethers.ZeroHash
+      );
+
+      console.log('✅ Fee token calculation branches');
+    });
+  });
+
+  describe('🔥 WITHDRAWALS.SOL - Improve from 88.14% to 90%+', () => {
+    it('should hit complex batch withdrawal scenarios', async () => {
+      // Create lockbox with many assets
+      await lockx.connect(user1).createLockboxWithBatch(
+        user1.address,
+        keyPair.address,
+        ethers.parseEther('1'),
+        [await mockToken.getAddress(), await mockToken2.getAddress(), await mockToken3.getAddress()],
+        [ethers.parseEther('100'), ethers.parseEther('200'), ethers.parseEther('300')],
+        [await mockNFT.getAddress(), await mockNFT2.getAddress()],
+        [5, 3],
+        ethers.ZeroHash,
+        { value: ethers.parseEther('1') }
+      );
+      const tokenId = 0;
+
+      const domain = {
+        name: 'Lockx',
+        version: '4',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await lockx.getAddress()
+      };
+
+      const types = {
+        Operation: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'opType', type: 'uint8' },
+          { name: 'dataHash', type: 'bytes32' }
+        ]
+      };
+
+      // Test 1: Partial batch withdrawal
+      let nonce = await lockx.connect(user1).getNonce(tokenId);
+      let currentBlock = await ethers.provider.getBlock('latest');
+      let signatureExpiry = currentBlock!.timestamp + 3600;
+
+      let batchData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'uint256', 'address[]', 'uint256[]', 'address[]', 'uint256[]', 'address', 'bytes32', 'address', 'uint256'],
+        [
+          tokenId,
+          ethers.parseEther('0.5'),
+          [await mockToken.getAddress()],
+          [ethers.parseEther('50')],
+          [await mockNFT.getAddress()],
+          [5],
+          user1.address,
+          ethers.ZeroHash,
+          user1.address,
+          signatureExpiry
+        ]
+      );
+
+      let opValue = {
+        tokenId,
+        nonce,
+        opType: 6, // BATCH_WITHDRAW
+        dataHash: ethers.keccak256(batchData)
+      };
+
+      let signature = await keyPair.signTypedData(domain, types, opValue);
+      let messageHash = ethers.TypedDataEncoder.hash(domain, types, opValue);
+
+      await lockx.connect(user1).batchWithdraw(
+        tokenId,
+        messageHash,
+        signature,
+        ethers.parseEther('0.5'),
+        [await mockToken.getAddress()],
+        [ethers.parseEther('50')],
+        [await mockNFT.getAddress()],
+        [5],
+        user1.address,
+        ethers.ZeroHash,
+        signatureExpiry
+      );
+
+      // Test 2: Withdraw remaining with complete removal
+      nonce = await lockx.connect(user1).getNonce(tokenId);
+      currentBlock = await ethers.provider.getBlock('latest');
+      signatureExpiry = currentBlock!.timestamp + 3600;
+
+      batchData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'uint256', 'address[]', 'uint256[]', 'address[]', 'uint256[]', 'address', 'bytes32', 'address', 'uint256'],
+        [
+          tokenId,
+          ethers.parseEther('0.5'),
+          [await mockToken.getAddress(), await mockToken2.getAddress(), await mockToken3.getAddress()],
+          [ethers.parseEther('50'), ethers.parseEther('200'), ethers.parseEther('300')],
+          [await mockNFT2.getAddress()],
+          [3],
+          user1.address,
+          ethers.ZeroHash,
+          user1.address,
+          signatureExpiry
+        ]
+      );
+
+      opValue = {
+        tokenId,
+        nonce,
+        opType: 6,
+        dataHash: ethers.keccak256(batchData)
+      };
+
+      signature = await keyPair.signTypedData(domain, types, opValue);
+      messageHash = ethers.TypedDataEncoder.hash(domain, types, opValue);
+
+      await lockx.connect(user1).batchWithdraw(
+        tokenId,
+        messageHash,
+        signature,
+        ethers.parseEther('0.5'),
+        [await mockToken.getAddress(), await mockToken2.getAddress(), await mockToken3.getAddress()],
+        [ethers.parseEther('50'), ethers.parseEther('200'), ethers.parseEther('300')],
+        [await mockNFT2.getAddress()],
+        [3],
+        user1.address,
+        ethers.ZeroHash,
+        signatureExpiry
+      );
+
+      console.log('✅ Complex batch withdrawal scenarios');
+    });
+
+    it('should hit all withdrawal validation error branches', async () => {
+      // Create lockbox
+      await lockx.connect(user1).createLockboxWithBatch(
+        user1.address,
+        keyPair.address,
+        ethers.parseEther('0.1'),
+        [await mockToken.getAddress()],
+        [ethers.parseEther('100')],
+        [await mockNFT.getAddress()],
+        [6],
+        ethers.ZeroHash,
+        { value: ethers.parseEther('0.1') }
+      );
+      const tokenId = 0;
+
+      const domain = {
+        name: 'Lockx',
+        version: '4',
+        chainId: await ethers.provider.getNetwork().then(n => n.chainId),
+        verifyingContract: await lockx.getAddress()
+      };
+
+      const types = {
+        Operation: [
+          { name: 'tokenId', type: 'uint256' },
+          { name: 'nonce', type: 'uint256' },
+          { name: 'opType', type: 'uint8' },
+          { name: 'dataHash', type: 'bytes32' }
+        ]
+      };
+
+      // Test withdrawing more than available
+      let nonce = await lockx.connect(user1).getNonce(tokenId);
+      let currentBlock = await ethers.provider.getBlock('latest');
+      let signatureExpiry = currentBlock!.timestamp + 3600;
+
+      let withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+        ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+        [tokenId, ethers.parseEther('1'), user1.address, ethers.ZeroHash, user1.address, signatureExpiry]
+      );
+
+      let opValue = {
+        tokenId,
+        nonce,
+        opType: 1, // WITHDRAW_ETH
+        dataHash: ethers.keccak256(withdrawData)
+      };
+
+      let signature = await keyPair.signTypedData(domain, types, opValue);
+      let messageHash = ethers.TypedDataEncoder.hash(domain, types, opValue);
+
+      await expect(
+        lockx.connect(user1).withdrawETH(
+          tokenId,
+          messageHash,
+          signature,
+          ethers.parseEther('1'),
+          user1.address,
+          ethers.ZeroHash,
+          signatureExpiry
+        )
+      ).to.be.revertedWithCustomError(lockx, 'NoETHBalance');
+
+      console.log('✅ Withdrawal validation error branches');
+    });
+  });
+
+  describe('🔥 LOCKX.SOL - Additional reachable branches', () => {
+    it('should hit all creation validation branches', async () => {
+      // Test with zero key
+      await expect(
+        lockx.connect(user1).createLockboxWithETH(
+          user1.address,
+          ethers.ZeroAddress,
+          ethers.ZeroHash,
+          { value: ethers.parseEther('0.1') }
+        )
+      ).to.be.revertedWithCustomError(lockx, 'ZeroKey');
+
+      // Test with zero owner - reverts with SelfMintOnly because _safeMint checks this first
+      await expect(
+        lockx.connect(user1).createLockboxWithETH(
+          ethers.ZeroAddress,
+          keyPair.address,
+          ethers.ZeroHash,
+          { value: ethers.parseEther('0.1') }
+        )
+      ).to.be.revertedWithCustomError(lockx, 'SelfMintOnly');
+
+      // Test createLockboxWithERC20 with ETH
+      await expect(
+        lockx.connect(user1).createLockboxWithERC20(
+          user1.address,
+          keyPair.address,
+          await mockToken.getAddress(),
+          ethers.parseEther('100'),
+          ethers.ZeroHash,
+          { value: ethers.parseEther('0.1') }
+        )
+      ).to.be.revertedWithCustomError(lockx, 'EthSent');
+
+      // Test createLockboxWithERC721 with ETH
+      await expect(
+        lockx.connect(user1).createLockboxWithERC721(
+          user1.address,
+          keyPair.address,
+          await mockNFT.getAddress(),
+          7,
+          ethers.ZeroHash,
+          { value: ethers.parseEther('0.1') }
+        )
+      ).to.be.revertedWithCustomError(lockx, 'EthSent');
+
+      console.log('✅ Creation validation branches');
+    });
+
+    it('should hit metadata and interface branches', async () => {
+      // Create lockbox
+      await lockx.connect(user1).createLockboxWithETH(
+        user1.address,
+        keyPair.address,
+        ethers.ZeroHash,
+        { value: ethers.parseEther('0.01') }
+      );
+      const tokenId = 0;
+
+      // Test tokenURI without default URI
+      await expect(
+        lockx.tokenURI(tokenId)
+      ).to.be.revertedWithCustomError(lockx, 'NoURI');
+
+      // Set default URI
+      await lockx.connect(owner).setDefaultMetadataURI('https://default.com/');
+
+      // Now tokenURI should work
+      const uri = await lockx.tokenURI(tokenId);
+      expect(uri).to.equal('https://default.com/0');
+
+      // Test supportsInterface
+      expect(await lockx.supportsInterface('0x80ac58cd')).to.be.true; // ERC721
+      expect(await lockx.supportsInterface('0xb45a3c0e')).to.be.true; // IERC5192
+      expect(await lockx.supportsInterface('0x00000000')).to.be.false; // Invalid
+
+      // Test locked function
+      expect(await lockx.locked(tokenId)).to.be.true;
+
+      console.log('✅ Metadata and interface branches');
+    });
+  });
+});

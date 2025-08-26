@@ -105,7 +105,54 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
+
+    // First withdraw all ETH from the lockbox before burning
+    const withdrawSignatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
+    const withdrawReferenceId = ethers.keccak256(ethers.toUtf8Bytes('withdraw_before_burn'));
+    
+    const withdrawDomain = {
+      name: 'Lockx',
+      version: '4',
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: await lockx.getAddress()
+    };
+    
+    const withdrawTypes = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
+    
+    const withdrawData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'uint256', 'address', 'bytes32', 'address', 'uint256'],
+      [tokenId, ethers.parseEther('1'), user1.address, withdrawReferenceId, user1.address, withdrawSignatureExpiry]
+    );
+    
+    const withdrawValue = {
+      tokenId: tokenId,
+      nonce: 1, // First operation after creation
+      opType: 1, // WITHDRAW_ETH
+      dataHash: ethers.keccak256(withdrawData)
+    };
+    
+    const withdrawSignature = await lockboxKeyPair.signTypedData(withdrawDomain, withdrawTypes, withdrawValue);
+    const withdrawMessageHash = ethers.TypedDataEncoder.hash(withdrawDomain, withdrawTypes, withdrawValue);
+
+    // Withdraw all ETH
+    await lockx.connect(user1).withdrawETH(
+      tokenId,
+      withdrawMessageHash,
+      withdrawSignature,
+      ethers.parseEther('1'),
+      user1.address,
+      withdrawReferenceId,
+      withdrawSignatureExpiry
+    );
 
     // Create proper TypedData signature for burnLockbox
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -113,7 +160,7 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: (await ethers.provider.getNetwork()).chainId,
       verifyingContract: await lockx.getAddress()
     };
@@ -165,7 +212,8 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // Create proper TypedData signature for rotateLockboxKey
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -173,7 +221,7 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: (await ethers.provider.getNetwork()).chainId,
       verifyingContract: await lockx.getAddress()
     };
@@ -226,7 +274,8 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // Create proper TypedData signature for setTokenMetadataURI
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -235,7 +284,7 @@ describe('🎯 PHASE 11: FINAL BREAKTHROUGH - 86.78%+ TARGET!', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: (await ethers.provider.getNetwork()).chainId,
       verifyingContract: await lockx.getAddress()
     };

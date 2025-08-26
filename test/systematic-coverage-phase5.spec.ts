@@ -167,6 +167,7 @@ describe('🎯 BRANCH COVERAGE PHASE 6 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Now try to deposit the same NFT again using depositERC721 directly
@@ -177,7 +178,7 @@ describe('🎯 BRANCH COVERAGE PHASE 6 - FINAL PUSH TO 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };

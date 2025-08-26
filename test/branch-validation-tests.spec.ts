@@ -42,7 +42,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
     const { chainId } = await ethers.provider.getNetwork();
     return {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId,
       verifyingContract,
     };
@@ -438,7 +438,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
       it('should hit NONEXISTENT TOKEN branch in various view functions (Lockx.sol)', async () => {
         console.log('🎯 Testing nonexistent token branches...');
         
-        // Test tokenURI with nonexistent token
+        // Test tokenURI with nonexistent token  
         await expect(
           lockx.tokenURI(999)
         ).to.be.revertedWithCustomError(lockx, 'NonexistentToken');
@@ -446,7 +446,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
         // Test getFullLockbox with nonexistent token
         await expect(
           lockx.connect(user).getFullLockbox(999)
-        ).to.be.revertedWithCustomError(lockx, 'NonexistentToken');
+        ).to.be.revertedWithCustomError(lockx, 'ERC721NonexistentToken');
         
         console.log('✅ BRANCH HIT: NonexistentToken branches in view functions');
       });
@@ -529,6 +529,7 @@ describe('🚀 BRANCH COVERAGE 90%+ TARGET TESTS', () => {
       // Get actual tokenId from transaction
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       const nftTokenId = 2; // Withdraw middle NFT
       const referenceId = ethers.ZeroHash;

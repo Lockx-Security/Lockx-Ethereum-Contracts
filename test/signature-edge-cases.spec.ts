@@ -26,7 +26,8 @@ describe('🎯 SIGNATURE VERIFICATION MISSING BRANCHES', () => {
     // Get the token ID from the event
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     // Test 1: user2 (non-owner) tries to call getActiveLockboxPublicKeyForToken
     // This should hit the onlyTokenOwner modifier revert branch

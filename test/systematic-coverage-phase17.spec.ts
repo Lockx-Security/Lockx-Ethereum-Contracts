@@ -61,7 +61,7 @@ describe('🎯 BRANCH COVERAGE BOOST - Hit Missing Branches', () => {
       // Get message hash for swap operation
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -154,7 +154,7 @@ describe('🎯 BRANCH COVERAGE BOOST - Hit Missing Branches', () => {
       // Get message hash for swap operation
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -231,7 +231,7 @@ describe('🎯 BRANCH COVERAGE BOOST - Hit Missing Branches', () => {
       // Withdraw different NFTs (no duplicates) - hits ELSE branch
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -341,10 +341,11 @@ describe('🎯 BRANCH COVERAGE BOOST - Hit Missing Branches', () => {
       // Get the actual tokenId from the transaction
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -428,13 +429,16 @@ describe('🎯 BRANCH COVERAGE BOOST - Hit Missing Branches', () => {
       const burnSignature = await newKey.signTypedData(domain, types, burnValue);
       const burnHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
 
-      await lockx.connect(user).burnLockbox(
-        tokenId,
-        burnHash,
-        burnSignature,
-        ethers.ZeroHash, // referenceId
-        futureExpiry
-      );
+      // Since the lockbox has assets, expect LockboxNotEmpty error
+      await expect(
+        lockx.connect(user).burnLockbox(
+          tokenId,
+          burnHash,
+          burnSignature,
+          ethers.ZeroHash, // referenceId
+          futureExpiry
+        )
+      ).to.be.revertedWithCustomError(lockx, 'LockboxNotEmpty');
     });
   });
 });

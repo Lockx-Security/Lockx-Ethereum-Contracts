@@ -24,7 +24,7 @@ contract LockxSwapAllowanceInvariant is Test {
         'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
     );
     bytes32 internal constant NAME_HASH = keccak256(bytes('Lockx'));
-    bytes32 internal constant VERSION_HASH = keccak256(bytes('3'));
+    bytes32 internal constant VERSION_HASH = keccak256(bytes('4'));
     bytes32 internal constant OPERATION_TYPEHASH = keccak256(
         'Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)'
     );
@@ -39,15 +39,15 @@ contract LockxSwapAllowanceInvariant is Test {
         vm.deal(user, 100 ether);
 
         // seed router and user
-        tokenB.mint(address(router), 1e26);
+        tokenB.mint(address(router), 5_000_000 ether);
         vm.deal(address(router), 500 ether);
-        tokenA.mint(user, 1e24);
+        tokenA.mint(user, 1_000_000 ether);
         vm.prank(user);
         tokenA.approve(address(lockx), type(uint256).max);
 
         // create lockbox with tokenA
         vm.prank(user);
-        lockx.createLockboxWithERC20(user, lockboxKey, address(tokenA), 5e21, ref);
+        lockx.createLockboxWithERC20(user, lockboxKey, address(tokenA), 200_000 ether, ref);
 
         // target this handler contract
         targetContract(address(this));
@@ -130,7 +130,7 @@ contract LockxSwapAllowanceInvariant is Test {
             );
         } else if (kind % 3 == 1) {
             // tokenA -> ETH, send to recipient
-            uint256 amountIn = uint256(raw) % 1e21; // up to 1,000 tokenA
+            uint256 amountIn = uint256(raw) % 1_000_000 ether; // up to 1,000 tokenA
             if (amountIn == 0) return;
             address recipient = address(0xCAFE);
             uint256 minOut = 0; // recipient external; contract ETH delta is 0

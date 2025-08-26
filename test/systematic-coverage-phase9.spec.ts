@@ -46,7 +46,7 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
     // For now, let's test the function by calling operations on non-existent tokens
     const nonExistentTokenId = 99999;
     
-    // This should revert with NonexistentToken due to the try/catch in _requireExists
+    // This should revert with ERC721NonexistentToken due to the try/catch in _requireExists
     await expect(
       lockx.connect(user1).depositETH(nonExistentTokenId, ethers.ZeroHash, { value: ethers.parseEther('1') })
     ).to.be.revertedWithCustomError(lockx, 'ERC721NonexistentToken'); // OpenZeppelin error comes first
@@ -63,7 +63,8 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // This should successfully hit the "else" (successful) path of nonReentrant modifier
     await expect(
@@ -82,7 +83,8 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // This should successfully hit the "else" (successful) path of nonReentrant modifier
     await expect(
@@ -106,7 +108,8 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // This should successfully hit the "else" (successful) path of nonReentrant modifier
     await expect(
@@ -130,7 +133,8 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // This should successfully hit the "else" (successful) path of nonReentrant modifier
     await expect(
@@ -158,7 +162,8 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // First deposit the NFT
     await lockx.connect(user1).depositERC721(
@@ -192,7 +197,8 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // Try to call _removeERC20Token indirectly by trying to remove a token that was never added
     // This would happen if we try to withdraw a token that doesn't exist in the lockbox
@@ -228,7 +234,8 @@ describe('🎯 PHASE 10: Deposits.sol Branch Coverage Breakthrough', () => {
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
 
     // Test successful NFT deposit (the normal path)
     await expect(

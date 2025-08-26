@@ -44,6 +44,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error UseDepositETH();
     error FallbackNotAllowed();
     error SelfMintOnly();
+    error LockboxNotEmpty();
 
 
     /* ───────────────────────── Metadata storage ────────────────────────── */
@@ -84,14 +85,17 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         address lockboxPublicKey,
         bytes32 referenceId
     ) external payable nonReentrant {
+        // 1) Checks
         if (to != msg.sender) revert SelfMintOnly();
         if (lockboxPublicKey == address(0)) revert ZeroKey();
         if (msg.value == 0) revert ZeroAmount();
 
+        // 2) Effects
         uint256 tokenId = _nextId++;
+        initialize(tokenId, lockboxPublicKey);
         _mint(to, tokenId);
 
-        initialize(tokenId, lockboxPublicKey);
+        // 3) Interactions
         _depositETH(tokenId, msg.value);
 
         emit Locked(tokenId);
@@ -118,15 +122,18 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 amount,
         bytes32 referenceId
     ) external nonReentrant {
+        // 1) Checks
         if (to != msg.sender) revert SelfMintOnly();
         if (lockboxPublicKey == address(0)) revert ZeroKey();
         if (tokenAddress == address(0)) revert ZeroTokenAddress();
         if (amount == 0) revert ZeroAmount();
 
+        // 2) Effects
         uint256 tokenId = _nextId++;
-        _mint(to, tokenId);
-
         initialize(tokenId, lockboxPublicKey);
+        _mint(to, tokenId);
+        
+        // 3) Interactions
         _depositERC20(tokenId, tokenAddress, amount);
 
         emit Locked(tokenId);
@@ -151,14 +158,17 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 externalNftTokenId,
         bytes32 referenceId
     ) external nonReentrant {
+        // 1) Checks
         if (to != msg.sender) revert SelfMintOnly();
         if (lockboxPublicKey == address(0)) revert ZeroKey();
         if (nftContract == address(0)) revert ZeroTokenAddress();
 
+        // 2) Effects
         uint256 tokenId = _nextId++;
-        _mint(to, tokenId);
-
         initialize(tokenId, lockboxPublicKey);
+        _mint(to, tokenId);
+        
+        // 3) Interactions
         _depositERC721(tokenId, nftContract, externalNftTokenId);
 
         emit Locked(tokenId);
@@ -192,6 +202,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256[] calldata nftTokenIds,
         bytes32 referenceId
     ) external payable nonReentrant {
+        // 1) Checks
         if (to != msg.sender) revert SelfMintOnly();
         if (lockboxPublicKey == address(0)) revert ZeroKey();
         if (
@@ -200,10 +211,12 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         ) revert ArrayLengthMismatch();
         if (msg.value != amountETH) revert EthValueMismatch();
 
+        // 2) Effects
         uint256 tokenId = _nextId++;
-        _mint(to, tokenId);
-
         initialize(tokenId, lockboxPublicKey);
+        _mint(to, tokenId);
+        
+        // 3) Interactions
         _batchDeposit(tokenId, amountETH, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
 
         emit Locked(tokenId);
@@ -250,6 +263,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         bytes32 referenceId,
         uint256 signatureExpiry
     ) external nonReentrant {
+        // 1) Checks
         if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         if (ownerOf(tokenId) != msg.sender) revert NotOwner();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -270,7 +284,10 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             data
         );
 
+        // 2) Effects
         _tokenMetadataURIs[tokenId] = newMetadataURI;
+        
+        // 3) Interactions (none in this case, just emit event)
         emit TokenMetadataURISet(tokenId, referenceId);
     }
 
@@ -384,34 +401,18 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
      *      - Delegates the actual ERC-721 burn to `_burnLockboxNFT` (implemented above).
      */
     function _finalizeBurn(uint256 tokenId) internal {
+        // Check if lockbox is empty before burning
+        if (_ethBalances[tokenId] > 0) revert LockboxNotEmpty();
+        if (_erc20TokenAddresses[tokenId].length > 0) revert LockboxNotEmpty();
+        if (_nftKeys[tokenId].length > 0) revert LockboxNotEmpty();
+        
         /* ---- ETH ---- */
         delete _ethBalances[tokenId];
 
         /* ---- ERC-20 balances ---- */
-        address[] storage toks = _erc20TokenAddresses[tokenId];
-        // Cache array in memory to avoid repeated SLOADs
-        address[] memory toksCached = toks;
-        for (uint256 i; i < toksCached.length; ) {
-            address t = toksCached[i];
-            delete _erc20Balances[tokenId][t];
-            delete _erc20Index[tokenId][t];
-            unchecked {
-                ++i;
-            }
-        }
         delete _erc20TokenAddresses[tokenId];
 
         /* ---- ERC-721 bookkeeping ---- */
-        bytes32[] storage keys = _nftKeys[tokenId];
-        // Cache array in memory to avoid repeated SLOADs
-        bytes32[] memory keysCached = keys;
-        for (uint256 i; i < keysCached.length; ) {
-            bytes32 k = keysCached[i];
-            delete _lockboxNftData[tokenId][k];
-            unchecked {
-                ++i;
-            }
-        }
         delete _nftKeys[tokenId];
 
         /* ---- finally burn the NFT itself ---- */
@@ -423,7 +424,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /* ────────────────────── Soul-bound mechanics (ERC-5192) ────────────── */
 
     /**
-     * @notice Always returns true for existing Lockboxes (soul‐bound).
+     * @notice Always returns true for existing Lockboxes (soulbound).
      * @param tokenId The ID of the Lockbox.
      * @return Always true.
      * @dev Reverts if token does not exist.
@@ -459,10 +460,16 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
 
     /* ───────────────────────── Fallback handlers ───────────────────────── */
+    
+    /**
+     * @notice Receive ETH from swaps and other legitimate sources.
+     * @dev Empty by design - accounting handled by calling functions.
+     */
     receive() external payable {
-        // Empty function allows ETH reception without re-entrancy risks
+        // Accept ETH transfers - accounting handled by caller
     }
-    fallback() external payable {
+    
+    fallback() external {
         revert FallbackNotAllowed();
     }
 }

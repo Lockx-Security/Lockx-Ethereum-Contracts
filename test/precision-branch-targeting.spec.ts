@@ -60,7 +60,7 @@ describe('🚀 OPUS PRECISION 90%: Target Exact Missing Branches', () => {
 
     domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: (await ethers.provider.getNetwork()).chainId,
       verifyingContract: await lockx.getAddress()
     }

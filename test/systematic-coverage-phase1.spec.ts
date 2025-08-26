@@ -65,6 +65,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Use expired signature timestamp - should hit signature expiry branch
@@ -73,7 +74,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -132,6 +133,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -139,7 +141,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -198,6 +200,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -205,7 +208,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -264,6 +267,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -271,7 +275,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -357,6 +361,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt1 = await tx1.wait();
       const transferEvent1 = receipt1.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent1) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent1.topics[3], 16);
       
       // Add ERC20 to the same lockbox
@@ -373,7 +378,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -460,6 +465,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Use expired timestamp for metadata update - should hit signature expiry branch
@@ -468,7 +474,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -515,11 +521,11 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
     });
 
     it('🎯 BRANCH: Hit nonexistent token check in operations', async () => {
-      // Try to perform operation on non-existent token - should hit NonexistentToken branch
+      // Try to perform operation on non-existent token - should hit ERC721NonexistentToken branch
       const nonExistentTokenId = 999999;
       const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
       
-      // This should hit the NonexistentToken branch
+      // This should hit the ERC721NonexistentToken branch
       await expect(
         lockx.connect(user1).withdrawETH(
           nonExistentTokenId, // Non-existent token triggers branch!
@@ -549,6 +555,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Try to deposit zero amount of ERC20 - should hit zero amount branch
@@ -577,6 +584,7 @@ describe('🎯 BRANCH COVERAGE PHASE 2 - Push to 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Try to deposit with zero address token - should hit zero address branch

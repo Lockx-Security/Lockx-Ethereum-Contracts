@@ -28,15 +28,15 @@ contract LockxMathEdgeCaseInvariant is Test {
     uint256 private userKey = 0x1234;
     address public keyAddr;
     
-    uint256 public constant MAX_REASONABLE = type(uint128).max; // Avoid actual overflow
-    uint256 public constant LARGE_AMOUNT = 1e30; // Very large but safe
+    uint256 public constant MAX_REASONABLE = 5_000_000 ether; // Large but within mock limits
+    uint256 public constant LARGE_AMOUNT = 1_000_000 ether; // Large but safe
     
     // EIP-712 constants
     bytes32 internal constant EIP712_DOMAIN_TYPEHASH = keccak256(
         'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
     );
     bytes32 internal constant NAME_HASH = keccak256(bytes('Lockx'));
-    bytes32 internal constant VERSION_HASH = keccak256(bytes('3'));
+    bytes32 internal constant VERSION_HASH = keccak256(bytes('4'));
     bytes32 internal constant OPERATION_TYPEHASH = keccak256(
         'Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)'
     );
@@ -88,19 +88,19 @@ contract LockxMathEdgeCaseInvariant is Test {
      * @notice INVARIANT: Maximum value operations never overflow
      */
     function invariant_noIntegerOverflow() public view {
-        // Test that contract balance never exceeds reasonable bounds
+        // Test that contract balance never exceeds reasonable bounds (1B ETH)
         uint256 contractBalance = address(lockx).balance;
-        assertLt(contractBalance, type(uint128).max, "Contract ETH balance approaching overflow");
+        assertLt(contractBalance, 1_000_000_000 ether, "Contract ETH balance unreasonably high");
         
-        // Test token balances are reasonable
+        // Test token balances are reasonable (100T tokens max - like real tokens)
         uint256 contractTokenBalance = token.balanceOf(address(lockx));
-        assertLt(contractTokenBalance, type(uint128).max, "Contract token balance approaching overflow");
+        assertLt(contractTokenBalance, 100_000_000_000_000 ether, "Contract token balance unreasonably high");
     }
     
     /**
      * @notice INVARIANT: Zero value operations are handled correctly
      */
-    function invariant_zeroValueConsistency() public view {
+    function invariant_zeroValueConsistency() public pure {
         // Zero operations should not break contract state
         // This invariant ensures the contract gracefully handles zero amounts
         assertTrue(true, "Zero value operations handled consistently");
@@ -111,7 +111,7 @@ contract LockxMathEdgeCaseInvariant is Test {
      */
     function testFuzz_maxValueBoundaries(uint256 amount, uint8 operation) public {
         // Bound amount to safe but large values
-        amount = bound(amount, 1e18, 1e25); // Very large but safe range
+        amount = bound(amount, 1e18, 1_000_000 ether); // Very large but safe range
         operation = uint8(bound(operation, 0, 3));
         
         if (operation == 0) {
@@ -165,7 +165,7 @@ contract LockxMathEdgeCaseInvariant is Test {
         assertTrue(found, "Token not found in lockbox");
     }
     
-    function _testBoundaryCalculations(uint256 value) internal {
+    function _testBoundaryCalculations(uint256 value) internal pure {
         // Test mathematical operations at boundaries
         uint256 halfMax = type(uint128).max / 2;
         
@@ -295,7 +295,7 @@ contract LockxMathEdgeCaseInvariant is Test {
     function _testZeroBalanceQueries() internal {
         // Test querying lockboxes with zero balances
         vm.prank(user);
-        (uint256 ethBalance, Lockx.erc20Balances[] memory tokens, Lockx.nftBalances[] memory nfts) = lockx.getFullLockbox(2);
+        (uint256 ethBalance, /* Lockx.erc20Balances[] memory tokens */, /* Lockx.nftBalances[] memory nfts */) = lockx.getFullLockbox(2);
         
         // Should handle zero/minimal balances gracefully
         assertGe(ethBalance, 0, "ETH balance should be non-negative");

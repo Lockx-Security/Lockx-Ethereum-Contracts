@@ -95,7 +95,8 @@ describe('🚨 COMPREHENSIVE RECOVERY - RESTORE ALL LOST COVERAGE', () => {
     // Get actual tokenId from transaction
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     // Get current block timestamp for signatures
     const currentBlock = await ethers.provider.getBlock('latest');
@@ -103,7 +104,7 @@ describe('🚨 COMPREHENSIVE RECOVERY - RESTORE ALL LOST COVERAGE', () => {
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -241,15 +242,18 @@ describe('🚨 COMPREHENSIVE RECOVERY - RESTORE ALL LOST COVERAGE', () => {
     const burnValue = { tokenId, nonce: nonce++, opType: 4, dataHash: ethers.keccak256(burnData) };
     const burnSig = await newKeyPair.signTypedData(domain, types, burnValue);
     const burnHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
-    await lockx.connect(user1).burnLockbox(
-      tokenId, 
-      burnHash, 
-      burnSig,
-      ethers.ZeroHash,
-      signatureExpiry
-    );
+    // Since the lockbox has assets, expect LockboxNotEmpty error
+    await expect(
+      lockx.connect(user1).burnLockbox(
+        tokenId, 
+        burnHash, 
+        burnSig,
+        ethers.ZeroHash,
+        signatureExpiry
+      )
+    ).to.be.revertedWithCustomError(lockx, 'LockboxNotEmpty');
     
-    console.log('✅ FUNCTIONS: All 15+ functions successfully executed');
+    console.log('✅ FUNCTIONS: Burn error path (LockboxNotEmpty) executed');
   });
 
   it('🎯 RESTORE LINES COVERAGE (99.15% TARGET)', async () => {
@@ -308,11 +312,12 @@ describe('🚨 COMPREHENSIVE RECOVERY - RESTORE ALL LOST COVERAGE', () => {
     // Get actual tokenId from transaction
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -438,7 +443,7 @@ describe('🚨 COMPREHENSIVE RECOVERY - RESTORE ALL LOST COVERAGE', () => {
     await mockToken.connect(owner).transfer(await swapRouter.getAddress(), ethers.parseEther('10000'));
     await owner.sendTransaction({
       to: await swapRouter.getAddress(),
-      value: ethers.parseEther('100')
+      value: ethers.parseEther('10')
     });
     
     // Create lockbox with assets to swap
@@ -454,11 +459,12 @@ describe('🚨 COMPREHENSIVE RECOVERY - RESTORE ALL LOST COVERAGE', () => {
     // Get actual tokenId from transaction
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

@@ -101,7 +101,7 @@ describe('🎯 WITHDRAWALS.SOL SUPPLEMENT → 90% COVERAGE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -166,7 +166,7 @@ describe('🎯 WITHDRAWALS.SOL SUPPLEMENT → 90% COVERAGE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -231,7 +231,7 @@ describe('🎯 WITHDRAWALS.SOL SUPPLEMENT → 90% COVERAGE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -303,7 +303,7 @@ describe('🎯 WITHDRAWALS.SOL SUPPLEMENT → 90% COVERAGE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -430,7 +430,7 @@ describe('🎯 WITHDRAWALS.SOL SUPPLEMENT → 90% COVERAGE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -498,7 +498,7 @@ describe('🎯 WITHDRAWALS.SOL SUPPLEMENT → 90% COVERAGE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -692,7 +692,7 @@ describe('🎯 WITHDRAWALS.SOL SUPPLEMENT → 90% COVERAGE', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };

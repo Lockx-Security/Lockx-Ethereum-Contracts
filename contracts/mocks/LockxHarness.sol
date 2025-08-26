@@ -56,9 +56,10 @@ contract LockxStateHarness is Lockx {
         initialize(tokenId, lockboxPublicKey);
     }
 
-    /// @dev Exposes the internal _requireExists function for harnesses
+    /// @dev Test function to check token existence (via ownerOf)
     function harnessRequireExists(uint256 tokenId) external view {
-        _requireExists(tokenId);
+        // Just call ownerOf - it will revert if token doesn't exist
+        _erc721.ownerOf(tokenId);
     }
 }
 

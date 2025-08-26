@@ -42,6 +42,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Create proper signature with wrong signer to test InvalidSignature branch
@@ -51,7 +52,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -105,6 +106,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -165,6 +167,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -173,7 +176,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -204,16 +207,16 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       const signature = await lockboxKeyPair.signTypedData(domain, types, burnValue);
       const messageHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
       
-      // Burn lockbox - should hit successful burn branches
-      const burnTx = await lockx.connect(user1).burnLockbox(
-        tokenId,
-        messageHash, // messageHash
-        signature, // signature
-        referenceId, // referenceId
-        signatureExpiry // signatureExpiry
-      );
-      
-      expect(burnTx).to.emit(lockx, 'Transfer');
+      // Since the lockbox has assets, expect LockboxNotEmpty error
+      await expect(
+        lockx.connect(user1).burnLockbox(
+          tokenId,
+          messageHash, // messageHash
+          signature, // signature
+          referenceId, // referenceId
+          signatureExpiry // signatureExpiry
+        )
+      ).to.be.revertedWithCustomError(lockx, 'LockboxNotEmpty');
     });
 
     it('🎯 BRANCH: Hit zero ETH in createLockboxWithETH', async () => {
@@ -239,6 +242,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -247,7 +251,7 @@ describe('🎯 BRANCH COVERAGE PHASE 8 - SIMPLE VALIDATION FOCUS', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };

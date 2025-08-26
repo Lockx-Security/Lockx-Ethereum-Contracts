@@ -46,7 +46,8 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
     // Get the token ID from the event
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     // Prepare swap signature
     const currentBlock = await ethers.provider.getBlock('latest');
@@ -55,7 +56,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -87,7 +88,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
         await mockToken.getAddress(),      // tokenIn
         await mockTokenB.getAddress(),     // tokenOut  
         ethers.parseEther('10'),           // amountIn
-        ethers.parseEther('9.5'),          // minAmountOut (95% of 10 = 9.5)
+        ethers.parseEther('9.481'),        // minAmountOut (95% of 10 minus 0.2% fee = ~9.481)
         await mockRouter.getAddress(),     // target
         ethers.keccak256(swapCallData),    // keccak256(data)
         referenceId,                       // referenceId
@@ -141,7 +142,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
       await mockToken.getAddress(),      // tokenIn
       await mockTokenB.getAddress(),     // tokenOut
       ethers.parseEther('10'),           // amountIn
-      ethers.parseEther('9.5'),          // minAmountOut
+      ethers.parseEther('9.481'),         // minAmountOut
       await mockRouter.getAddress(),     // target
       swapCallData,                      // data
       referenceId,                       // referenceId
@@ -166,14 +167,15 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
     // Get the token ID from the event
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const currentBlock = await ethers.provider.getBlock('latest');
     const signatureExpiry = currentBlock.timestamp + 3600;
     const referenceId = ethers.keccak256(ethers.toUtf8Bytes('swap2'));
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -192,7 +194,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
       await mockToken.getAddress(),      // tokenIn
       await mockTokenB.getAddress(),     // tokenOut
       ethers.parseEther('5'),            // amountIn
-      ethers.parseEther('4.75'),         // minAmountOut (95% of 5 = 4.75)
+      ethers.parseEther('4.74'),         // minAmountOut (95% of 5 minus 0.2% fee = ~4.7405)
       await lockx.getAddress()           // recipient = lockx contract
     ]);
     
@@ -204,7 +206,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
         await mockToken.getAddress(),
         await mockTokenB.getAddress(),
         ethers.parseEther('5'),
-        ethers.parseEther('4.75'),         // minAmountOut (95% of 5 = 4.75)
+        ethers.parseEther('4.74'),         // minAmountOut (95% of 5 minus 0.2% fee = ~4.7405)
         await mockRouter.getAddress(),
         ethers.keccak256(swapCallData2),   // keccak256(data)
         referenceId,
@@ -232,7 +234,7 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
       await mockToken.getAddress(),
       await mockTokenB.getAddress(),
       ethers.parseEther('5'),
-      ethers.parseEther('4.75'),         // minAmountOut (95% of 5 = 4.75)
+      ethers.parseEther('4.74'),         // minAmountOut (95% of 5 minus 0.2% fee = ~4.7405)
       await mockRouter.getAddress(),
       swapCallData2,                     // data
       referenceId,
@@ -257,14 +259,15 @@ describe('🔥 SWAP COVERAGE BOOST - TARGET MISSING WITHDRAWALS COVERAGE', () =>
     // Get the token ID from the event
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const currentBlock = await ethers.provider.getBlock('latest');
     const signatureExpiry = currentBlock.timestamp + 3600;
     const referenceId = ethers.keccak256(ethers.toUtf8Bytes('error'));
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

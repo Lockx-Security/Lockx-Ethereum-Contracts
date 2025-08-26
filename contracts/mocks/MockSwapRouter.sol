@@ -22,7 +22,7 @@ contract MockSwapRouter {
         address tokenIn,
         address tokenOut, 
         uint256 amountIn
-    ) external view returns (uint256) {
+    ) external pure returns (uint256) {
         if (tokenIn == address(0)) {
             // ETH to token: 950 tokens per ETH
             return amountIn * 950;

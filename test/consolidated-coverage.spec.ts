@@ -47,7 +47,7 @@ describe('Consolidated Branch Coverage Tests', () => {
     const { chainId } = await ethers.provider.getNetwork();
     return {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId,
       verifyingContract,
     };
@@ -1124,25 +1124,23 @@ describe('Consolidated Branch Coverage Tests', () => {
         const signature = await burnKeyWallet.signTypedData(domain, types, opStruct);
         const messageHash = ethers.TypedDataEncoder.hash(domain, types, opStruct);
 
-        await lockx.connect(user).burnLockbox(
-          burnTokenId,
-          messageHash,
-          signature,
-          ethers.ZeroHash,
-          (await ethers.provider.getBlock('latest'))!.timestamp + 36000
-        );
-
-        // Verify the lockbox NFT no longer exists
         await expect(
-          lockx.ownerOf(burnTokenId)
-        ).to.be.revertedWithCustomError(lockx, 'ERC721NonexistentToken');
+          lockx.connect(user).burnLockbox(
+            burnTokenId,
+            messageHash,
+            signature,
+            ethers.ZeroHash,
+            (await ethers.provider.getBlock('latest'))!.timestamp + 36000
+          )
+        ).to.be.revertedWithCustomError(lockx, 'LockboxNotEmpty');
+
+        // Since burn failed, verify the lockbox NFT still exists
+        expect(await lockx.ownerOf(burnTokenId)).to.equal(user.address);
         
-        // Verify assets were forfeited (not returned to user)
-        const tokenBalanceAfter = await erc20.balanceOf(user.address);
-        expect(tokenBalanceAfter).to.equal(tokenBalanceBefore); // No change - assets forfeited
-        
-        // Verify NFT is still owned by the contract (forfeited)
-        expect(await nft.ownerOf(60)).to.equal(await lockx.getAddress());
+        // Verify assets are still in the lockbox (burn failed)
+        const lockboxDataAfter = await lockx.connect(user).getFullLockbox(burnTokenId);
+        expect(lockboxDataAfter.erc20Tokens).to.have.length.greaterThan(0);
+        expect(lockboxDataAfter.nftContracts).to.have.length.greaterThan(0);
       });
     });
 
@@ -1156,7 +1154,7 @@ describe('Consolidated Branch Coverage Tests', () => {
       it('should revert getFullLockbox for non-existent token', async () => {
         await expect(
           lockx.connect(user).getFullLockbox(999)
-        ).to.be.revertedWithCustomError(lockx, 'NonexistentToken');
+        ).to.be.revertedWithCustomError(lockx, 'ERC721NonexistentToken');
       });
 
       it('should handle getFullLockbox with NFT gaps', async () => {
@@ -2331,7 +2329,7 @@ describe('Consolidated Branch Coverage Tests', () => {
         // Verify custom URI is set
         expect(await lockx.tokenURI(edgeTokenId)).to.equal(customURI);
 
-        // Now burn the lockbox to test metadata cleanup
+        // Try to burn the lockbox with assets - should fail with LockboxNotEmpty
         const burnNonce = await lockx.connect(user).getNonce(edgeTokenId);
         const burnData = ethers.AbiCoder.defaultAbiCoder().encode(
           ['uint256', 'bytes32', 'address', 'uint256'],
@@ -2342,14 +2340,15 @@ describe('Consolidated Branch Coverage Tests', () => {
         const burnSignature = await edgeKeyWallet.signTypedData(domain, types, burnOpStruct);
         const burnMessageHash = ethers.TypedDataEncoder.hash(domain, types, burnOpStruct);
 
-        await lockx.connect(user).burnLockbox(
-          edgeTokenId, burnMessageHash, burnSignature, ethers.ZeroHash, expiry + 3600
-        );
-
-        // Verify the NFT no longer exists (and metadata was cleaned up)
         await expect(
-          lockx.tokenURI(edgeTokenId)
-        ).to.be.revertedWithCustomError(lockx, 'NonexistentToken');
+          lockx.connect(user).burnLockbox(
+            edgeTokenId, burnMessageHash, burnSignature, ethers.ZeroHash, expiry + 3600
+          )
+        ).to.be.revertedWithCustomError(lockx, 'LockboxNotEmpty');
+
+        // Since burn failed, verify the lockbox still exists and metadata is still there
+        expect(await lockx.tokenURI(edgeTokenId)).to.equal(customURI);
+        expect(await lockx.ownerOf(edgeTokenId)).to.equal(user.address);
       });
     });
 

@@ -182,7 +182,7 @@ describe('🎯 PHASE 15: FINAL PUSH - Target Signature & Withdrawal Branches!', 
     ).to.be.revertedWithCustomError(lockx, 'NotOwner');
   });
 
-  it('🎯 TARGET 8: Hit NonexistentToken in withdrawal functions', async () => {
+  it('🎯 TARGET 8: Hit ERC721NonexistentToken in withdrawal functions', async () => {
     const messageHash = ethers.ZeroHash;
     const signature = '0x00';
     const futureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;

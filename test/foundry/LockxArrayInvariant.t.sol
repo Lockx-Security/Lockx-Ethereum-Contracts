@@ -21,8 +21,8 @@ contract LockxArrayInvariant is Test {
         tknB = new MockERC20();
 
         // fund user & approve tokens
-        tknA.mint(user, 1e24); // large supply
-        tknB.mint(user, 1e24);
+        tknA.mint(user, 1_000_000 ether); // large supply
+        tknB.mint(user, 1_000_000 ether);
         vm.prank(user);
         tknA.approve(address(lockx), type(uint256).max);
         vm.prank(user);

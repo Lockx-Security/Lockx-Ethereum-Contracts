@@ -36,12 +36,12 @@ contract LockxMultiUserInvariant is Test {
         vm.deal(user3, 100 ether);
 
         // mint ERC20s to users and approve lockx
-        tokA.mint(user1, 1e24);
-        tokA.mint(user2, 1e24);
-        tokA.mint(user3, 1e24);
-        tokB.mint(user1, 1e24);
-        tokB.mint(user2, 1e24);
-        tokB.mint(user3, 1e24);
+        tokA.mint(user1, 1_000_000 ether);
+        tokA.mint(user2, 1_000_000 ether);
+        tokA.mint(user3, 1_000_000 ether);
+        tokB.mint(user1, 1_000_000 ether);
+        tokB.mint(user2, 1_000_000 ether);
+        tokB.mint(user3, 1_000_000 ether);
 
         vm.startPrank(user1);
         tokA.approve(address(lockx), type(uint256).max);
@@ -86,7 +86,7 @@ contract LockxMultiUserInvariant is Test {
 
     /// @dev Fuzz handler: users deposit ERC20 A into their lockboxes.
     function depositTokA(uint8 which, uint96 rawAmt) external {
-        uint256 amt = uint256(rawAmt) % 1e21; // up to 1,000 tokA
+        uint256 amt = uint256(rawAmt) % 1_000_000 ether; // up to 1,000 tokA
         if (amt == 0) return;
         if (which % 3 == 0) {
             vm.prank(user1);
@@ -102,7 +102,7 @@ contract LockxMultiUserInvariant is Test {
 
     /// @dev Fuzz handler: users deposit ERC20 B into their lockboxes.
     function depositTokB(uint8 which, uint96 rawAmt) external {
-        uint256 amt = uint256(rawAmt) % 1e21;
+        uint256 amt = uint256(rawAmt) % 1_000_000 ether;
         if (amt == 0) return;
         if (which % 3 == 0) {
             vm.prank(user1);

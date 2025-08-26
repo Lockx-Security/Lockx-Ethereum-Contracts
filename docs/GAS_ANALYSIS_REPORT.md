@@ -2,7 +2,7 @@
 
 ## Summary
 
-Gas consumption data for Lockx v3.1.0 smart contract operations based on comprehensive test execution results across 837+ tests (438 Hardhat unit tests + 31 Foundry invariant tests + 368 Foundry scenario tests).
+Gas consumption data for Lockx v3.1.0 smart contract operations based on comprehensive test execution results across 885+ tests (438 Hardhat unit tests + 79 Foundry invariant tests + 368 Foundry scenario tests).
 
 ### Gas usage summary
 - **Lockbox Creation**: 106,847 - 472,533 gas (varies by asset type)

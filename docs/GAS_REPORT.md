@@ -1,11 +1,11 @@
 # Gas consumption report
 
-**Contract Version:** v3.1.0  
+**Contract Version:** v4.0.0  
 **Compiler:** Solc version 0.8.30  
 **Optimizer:** Enabled (200 runs)  
 **Block Limit:** 30,000,000 gas  
-**Test Coverage:** 90.08% branches (Lockx.sol: 90.54%)  
-**Test Suite:** 837+ tests (438 Hardhat + 31 Foundry invariants + 368 Foundry scenarios)  
+**Test Coverage:** 90.94% branches (Lockx.sol: 90.54%)  
+**Test Suite:** 967+ tests (568 Hardhat + 79 Foundry invariants + 320 Foundry scenarios)  
 
 ## Method gas usage
 

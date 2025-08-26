@@ -20,6 +20,7 @@ const config: HardhatUserConfig = {
   },
   networks: {
     hardhat: {
+      allowUnlimitedContractSize: true,
       /* Uncomment to fork mainnet
       forking: {
         url: process.env.MAINNET_RPC_URL || "",

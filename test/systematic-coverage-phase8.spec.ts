@@ -68,13 +68,14 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     // Create signature for batch withdraw with mismatched NFT arrays
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -138,12 +139,13 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -203,14 +205,15 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     // Router already funded in beforeEach
 
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -278,14 +281,15 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     // Router uses fixed 950 tokens per ETH rate
 
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -353,12 +357,13 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -427,12 +432,13 @@ describe('🎯 PHASE 9: Breakthrough - Target Uncovered Withdrawals Branches', (
 
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
 
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

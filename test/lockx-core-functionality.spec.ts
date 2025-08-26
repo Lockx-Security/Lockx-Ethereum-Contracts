@@ -51,7 +51,8 @@ describe('🚀 LOCKX BRANCH RECOVERY - TARGET 90%+', () => {
     // Extract tokenId from transaction receipt
     const receipt = await tx.wait();
     const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent.topics[3], 16);
+      if (!transferEvent) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent.topics[3], 16);
     
     // ✅ HIT BRANCH: Test swap functionality branches
     const SwapRouter = await ethers.getContractFactory('MockSwapRouter');
@@ -63,7 +64,7 @@ describe('🚀 LOCKX BRANCH RECOVERY - TARGET 90%+', () => {
     // Create swap signature
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -237,11 +238,12 @@ describe('🚀 LOCKX BRANCH RECOVERY - TARGET 90%+', () => {
     // Extract tokenId from transaction receipt
     const receipt2 = await tx2.wait();
     const transferEvent2 = receipt2.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent2.topics[3], 16);
+    if (!transferEvent2) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent2.topics[3], 16);
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -316,11 +318,12 @@ describe('🚀 LOCKX BRANCH RECOVERY - TARGET 90%+', () => {
     // Extract tokenId from transaction receipt
     const receipt3 = await tx3.wait();
     const transferEvent3 = receipt3.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId = parseInt(transferEvent3.topics[3], 16);
+    if (!transferEvent3) throw new Error('Transfer event not found');
+      const tokenId = parseInt(transferEvent3.topics[3], 16);
     
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };

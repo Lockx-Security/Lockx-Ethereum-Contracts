@@ -62,6 +62,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -69,7 +70,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -155,6 +156,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // First, add TokenC to the lockbox manually to create existing balance
@@ -171,7 +173,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -257,6 +259,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Use OverpayingRouter which consumes more than specified amount
@@ -272,7 +275,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -359,6 +362,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const signatureExpiry = (await ethers.provider.getBlock('latest'))!.timestamp + 3600;
@@ -366,7 +370,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };
@@ -439,6 +443,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       // Add some tokens to the lockbox
@@ -455,7 +460,7 @@ describe('🎯 BRANCH COVERAGE PHASE 3 - FINAL PUSH TO 86.78%+', () => {
       
       const domain = {
         name: 'Lockx',
-        version: '3',
+        version: '4',
         chainId: await ethers.provider.getNetwork().then(n => n.chainId),
         verifyingContract: await lockx.getAddress()
       };

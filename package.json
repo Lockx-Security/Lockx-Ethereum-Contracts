@@ -1,6 +1,6 @@
 {
   "name": "lockx-contracts",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -8,6 +8,8 @@
     "test:fast": "./test.sh fast",
     "test:coverage": "./test.sh coverage",
     "test:foundry": "./test-all-foundry.sh",
+    "test:foundry:scenarios": "forge test --skip '*Invariant*'",
+    "test:foundry:invariants": "forge test --match-path '*Invariant*'",
     "test:foundry:complete": "./run-all-foundry-complete.sh",
     "test:hardhat": "hardhat test",
     "coverage": "hardhat coverage",

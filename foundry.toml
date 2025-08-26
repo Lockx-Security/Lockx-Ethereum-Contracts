@@ -29,8 +29,8 @@ fuzz_runs = 10
 invariant_runs = 10
 
 [invariant]
-runs = 256
-depth = 15
+runs = 10000
+depth = 50
 fail_on_revert = false
 call_override = false
 dictionary_weight = 80
@@ -39,5 +39,5 @@ include_push_bytes = true
 
 [profile.production]
 fuzz_runs = 50000
-invariant_runs = 5000
+invariant_runs = 10000
 verbosity = 2

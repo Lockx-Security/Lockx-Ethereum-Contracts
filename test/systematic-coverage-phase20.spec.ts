@@ -49,7 +49,7 @@ describe('🎯 BRANCH COVERAGE PHASE 5 - FINAL PUSH TO 86.78%+', () => {
     const { chainId } = await ethers.provider.getNetwork();
     return {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId,
       verifyingContract: await lockx.getAddress(),
     };
@@ -94,6 +94,7 @@ describe('🎯 BRANCH COVERAGE PHASE 5 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -151,6 +152,7 @@ describe('🎯 BRANCH COVERAGE PHASE 5 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -204,6 +206,7 @@ describe('🎯 BRANCH COVERAGE PHASE 5 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -257,6 +260,7 @@ describe('🎯 BRANCH COVERAGE PHASE 5 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -309,6 +313,7 @@ describe('🎯 BRANCH COVERAGE PHASE 5 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');
@@ -365,6 +370,7 @@ describe('🎯 BRANCH COVERAGE PHASE 5 - FINAL PUSH TO 86.78%+', () => {
       
       const receipt = await tx.wait();
       const transferEvent = receipt.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
+      if (!transferEvent) throw new Error('Transfer event not found');
       const tokenId = parseInt(transferEvent.topics[3], 16);
       
       const currentBlock = await ethers.provider.getBlock('latest');

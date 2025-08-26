@@ -21,8 +21,8 @@ contract LockxAccessIsolationInvariant is Test {
         token = new MockERC20();
         vm.deal(owner0, 10 ether);
         vm.deal(owner1, 10 ether);
-        token.mint(owner0, 1e21);
-        token.mint(owner1, 1e21);
+        token.mint(owner0, 1_000_000 ether);
+        token.mint(owner1, 1_000_000 ether);
 
         vm.prank(owner0);
         lockx.createLockboxWithETH{value: 1 ether}(owner0, key0, bytes32('a'));

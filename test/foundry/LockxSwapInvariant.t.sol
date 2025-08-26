@@ -24,7 +24,7 @@ contract LockxSwapInvariant is Test {
         'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
     );
     bytes32 internal constant NAME_HASH = keccak256(bytes('Lockx'));
-    bytes32 internal constant VERSION_HASH = keccak256(bytes('3'));
+    bytes32 internal constant VERSION_HASH = keccak256(bytes('4'));
     bytes32 internal constant OPERATION_TYPEHASH = keccak256(
         'Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)'
     );
@@ -39,17 +39,17 @@ contract LockxSwapInvariant is Test {
         vm.deal(user, 100 ether);
 
         // fund router with tokenB and ETH for swaps
-        tokenB.mint(address(router), 1e26);
+        tokenB.mint(address(router), 5_000_000 ether);
         vm.deal(address(router), 500 ether);
 
         // mint tokenA to user and approve
-        tokenA.mint(user, 1e24);
+        tokenA.mint(user, 1_000_000 ether);
         vm.prank(user);
         tokenA.approve(address(lockx), type(uint256).max);
 
         // create lockbox with tokenA deposited
         vm.prank(user);
-        lockx.createLockboxWithERC20(user, lockboxKey, address(tokenA), 5e21, ref);
+        lockx.createLockboxWithERC20(user, lockboxKey, address(tokenA), 500_000 ether, ref);
     }
 
     function _domainSeparator() internal view returns (bytes32) {
@@ -70,7 +70,7 @@ contract LockxSwapInvariant is Test {
         return keccak256(abi.encodePacked('\x19\x01', _domainSeparator(), structHash));
     }
 
-    function _sign(bytes32 digest) internal returns (bytes memory sig) {
+    function _sign(bytes32 digest) internal view returns (bytes memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(keyPk, digest);
         sig = abi.encodePacked(r, s, v);
     }
@@ -79,7 +79,7 @@ contract LockxSwapInvariant is Test {
         uint256 tokenId = 0;
         vm.prank(user);
         uint256 nonce = lockx.getNonce(tokenId);
-        uint256 amountIn = 1e21; // 1,000 tokenA
+        uint256 amountIn = 100_000 ether; // 100,000 tokenA
         uint256 minOut = (amountIn * 90) / 100; // safe slippage target
         bytes memory data = abi.encodeWithSignature(
             'swap(address,address,uint256,uint256,address)',
@@ -327,11 +327,20 @@ contract LockxSwapInvariant is Test {
         uint256 ethAfter = address(lockx).balance;
 
         uint256 actualIn = inBefore - inAfter;
-        // ETH sent to external recipient, lockx ETH should not increase because ETH left via router
+        uint256 ethIncrease = ethAfter - ethBefore;
+        
+        // Post-conditions
         assertLe(actualIn, amountIn);
         assertEq(tokenA.allowance(address(lockx), address(router)), 0, 'allowance not cleared');
-        // ETH credited to lockbox when recipient == address(0)
-        assertGt(ethAfter, ethBefore, 'eth not credited to lockbox');
+        
+        // ETH credited to lockbox after 0.2% fee
+        // Expected: amountOut from router minus 0.2% fee
+        uint256 expectedEthFromRouter = amountIn / 100; // Router rate: 0.01 ETH per token
+        uint256 feeAmount = (expectedEthFromRouter * 20) / 10000; // 0.2% fee
+        uint256 expectedUserAmount = expectedEthFromRouter - feeAmount;
+        
+        assertGt(ethIncrease, 0, 'no eth credited to lockbox');
+        assertGe(ethIncrease, expectedUserAmount * 95 / 100, 'insufficient eth credited (allowing 5% tolerance)');
     }
 }
 

@@ -20,7 +20,7 @@ contract LockxReplayInvariant is Test {
         'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
     );
     bytes32 internal constant NAME_HASH = keccak256(bytes('Lockx'));
-    bytes32 internal constant VERSION_HASH = keccak256(bytes('3'));
+    bytes32 internal constant VERSION_HASH = keccak256(bytes('4'));
     bytes32 internal constant OPERATION_TYPEHASH = keccak256(
         'Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)'
     );
@@ -30,11 +30,11 @@ contract LockxReplayInvariant is Test {
         tokenA = new MockERC20();
         lockboxKey = vm.addr(keyPk);
         vm.deal(user, 100 ether);
-        tokenA.mint(user, 1e24);
+        tokenA.mint(user, 1_000_000 ether);
         vm.prank(user);
         tokenA.approve(address(lockx), type(uint256).max);
         vm.prank(user);
-        lockx.createLockboxWithERC20(user, lockboxKey, address(tokenA), 1e21, ref);
+        lockx.createLockboxWithERC20(user, lockboxKey, address(tokenA), 1_000_000 ether, ref);
     }
 
     function _domainSeparator() internal view returns (bytes32) {

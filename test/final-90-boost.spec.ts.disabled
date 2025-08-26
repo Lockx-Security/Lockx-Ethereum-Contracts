@@ -1,0 +1,164 @@
+import { expect } from 'chai';
+import { ethers } from 'hardhat';
+
+describe('🎯 FINAL BOOST TO 90% BRANCH COVERAGE', () => {
+  let lockx, mockToken, mockNFT, owner, user1, keyPair;
+
+  beforeEach(async () => {
+    [owner, user1] = await ethers.getSigners();
+    keyPair = ethers.Wallet.createRandom();
+
+    // Deploy contracts
+    const Lockx = await ethers.getContractFactory('Lockx');
+    lockx = await Lockx.deploy();
+
+    const MockERC20 = await ethers.getContractFactory('MockERC20');
+    mockToken = await MockERC20.deploy();
+    await mockToken.initialize('Mock', 'MCK');
+
+    const MockERC721 = await ethers.getContractFactory('MockERC721');
+    mockNFT = await MockERC721.deploy();
+    await mockNFT.initialize('NFT', 'NFT');
+
+    // Fund and setup
+    await mockToken.transfer(user1.address, ethers.parseEther('1000'));
+    for (let i = 1; i <= 5; i++) {
+      await mockNFT.mint(user1.address, i);
+    }
+    await mockNFT.connect(user1).setApprovalForAll(await lockx.getAddress(), true);
+    await mockToken.connect(user1).approve(await lockx.getAddress(), ethers.parseEther('1000'));
+  });
+
+  it('should hit key edge case branches', async () => {
+    // Create lockbox with batch to hit multiple branches
+    await lockx.connect(user1).createLockboxWithBatch(
+      user1.address,
+      keyPair.address,
+      ethers.parseEther('0.5'),
+      [await mockToken.getAddress()],
+      [ethers.parseEther('100')],
+      [await mockNFT.getAddress(), await mockNFT.getAddress()],
+      [1, 2],
+      ethers.ZeroHash,
+      { value: ethers.parseEther('0.5') }
+    );
+
+    // Create empty lockbox to hit different branch
+    await lockx.connect(user1).createLockboxWithBatch(
+      user1.address,
+      keyPair.address,
+      0,
+      [],
+      [],
+      [],
+      [],
+      ethers.ZeroHash
+    );
+
+    // Create lockbox with only ETH
+    await lockx.connect(user1).createLockboxWithETH(
+      user1.address,
+      keyPair.address,
+      ethers.ZeroHash,
+      { value: ethers.parseEther('0.1') }
+    );
+
+    // Test supportsInterface branches
+    expect(await lockx.supportsInterface('0x01ffc9a7')).to.be.true; // ERC165
+    expect(await lockx.supportsInterface('0x80ac58cd')).to.be.true; // ERC721
+    expect(await lockx.supportsInterface('0x5b5e139f')).to.be.true; // ERC721Metadata
+    expect(await lockx.supportsInterface('0x150b7a02')).to.be.true; // ERC721Receiver
+    expect(await lockx.supportsInterface('0xffffffff')).to.be.false; // Invalid
+
+    // Test tokenURI branches
+    await lockx.setDefaultMetadataURI('https://default.com/');
+    const uri = await lockx.tokenURI(0);
+    expect(uri).to.include('https://default.com/');
+
+    console.log('✅ Hit additional edge case branches');
+  });
+
+  it('should hit withdrawal edge cases', async () => {
+    // Create lockbox with assets
+    await lockx.connect(user1).createLockboxWithBatch(
+      user1.address,
+      keyPair.address,
+      ethers.parseEther('1'),
+      [await mockToken.getAddress()],
+      [ethers.parseEther('200')],
+      [await mockNFT.getAddress(), await mockNFT.getAddress(), await mockNFT.getAddress()],
+      [3, 4, 5],
+      ethers.ZeroHash,
+      { value: ethers.parseEther('1') }
+    );
+
+    const tokenId = 0;
+    const currentBlock = await ethers.provider.getBlock('latest');
+    const signatureExpiry = currentBlock.timestamp + 86400;
+
+    const domain = {
+      name: 'Lockx',
+      version: '4',
+      chainId: (await ethers.provider.getNetwork()).chainId,
+      verifyingContract: await lockx.getAddress()
+    };
+
+    const types = {
+      Operation: [
+        { name: 'tokenId', type: 'uint256' },
+        { name: 'nonce', type: 'uint256' },
+        { name: 'opType', type: 'uint8' },
+        { name: 'dataHash', type: 'bytes32' }
+      ]
+    };
+
+    // Batch withdraw with partial amounts to hit specific branches
+    const batchData = ethers.AbiCoder.defaultAbiCoder().encode(
+      ['uint256', 'uint256', 'address[]', 'uint256[]', 'address[]', 'uint256[]', 'address', 'bytes32', 'address', 'uint256'],
+      [
+        tokenId,
+        ethers.parseEther('0.5'), // Partial ETH
+        [await mockToken.getAddress()],
+        [ethers.parseEther('100')], // Partial token
+        [await mockNFT.getAddress()],
+        [3, 4], // Partial NFTs
+        user1.address,
+        ethers.ZeroHash,
+        user1.address,
+        signatureExpiry
+      ]
+    );
+
+    const batchValue = {
+      tokenId,
+      nonce: 1,
+      opType: 6, // BATCH_WITHDRAW
+      dataHash: ethers.keccak256(batchData)
+    };
+
+    const batchSig = await keyPair.signTypedData(domain, types, batchValue);
+    const batchHash = ethers.TypedDataEncoder.hash(domain, types, batchValue);
+
+    await lockx.connect(user1).batchWithdraw(
+      tokenId,
+      batchHash,
+      batchSig,
+      ethers.parseEther('0.5'),
+      [await mockToken.getAddress()],
+      [ethers.parseEther('100')],
+      [await mockNFT.getAddress()],
+      [3, 4],
+      user1.address,
+      ethers.ZeroHash,
+      signatureExpiry
+    );
+
+    // Verify partial withdrawal state
+    const lockboxData = await lockx.connect(user1).getFullLockbox(tokenId);
+    expect(lockboxData[0]).to.equal(ethers.parseEther('0.5')); // Half ETH left
+    expect(lockboxData[1][0].balance).to.equal(ethers.parseEther('100')); // Half tokens left
+    expect(lockboxData[2].length).to.equal(1); // 1 NFT left
+
+    console.log('✅ Hit withdrawal edge case branches');
+  });
+});

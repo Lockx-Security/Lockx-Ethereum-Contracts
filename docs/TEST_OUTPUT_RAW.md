@@ -24,9 +24,9 @@ All files                          |   98.63 |    89.66 |   98.94 |   98.75 |
 ------------------------------------|---------|----------|---------|---------|-------------------
 ```
 
-### Foundry Invariant Testing Results (31 Tests, ~25M Operations)
+### Foundry Invariant Testing Results (79 Tests, >22M Operations)
 ```
-Ran 11 test suites in 18.49s (32.31s CPU time): 31 tests passed, 0 failed, 0 skipped
+Ran 22 test suites in 3051.91s (22766.48s CPU time): 79 tests passed, 0 failed, 0 skipped
 
 test/foundry/LockxInvariant.t.sol:LockxInvariant
 [PASS] invariant_contractERC20MatchesAccounting() (runs: 1000, calls: 25000, reverts: 0)
@@ -188,7 +188,7 @@ Ran 11 test suites in 18.49s (32.31s CPU time): 31 tests passed, 0 failed, 0 ski
 
 ### Comprehensive Scenario Test Execution (Partial Log)
 ```bash
-$ ./test-all-foundry.sh
+$ npm run test:foundry
 
 🚀 Running ALL Foundry Tests
 This will take approximately 10-15 minutes...

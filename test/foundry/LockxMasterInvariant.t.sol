@@ -180,7 +180,7 @@ contract LockxMasterInvariant is Test {
      * @notice Lockboxes are completely isolated - no cross-contamination
      * @dev One lockbox's operations should NEVER affect another
      */
-    function invariant_lockboxIsolation() public {
+    function invariant_lockboxIsolation() public view {
         // Check that tokenIds we haven't created don't leak data
         // This verifies lockbox isolation - no cross-contamination
         // Note: We can't test reverts in view functions
@@ -217,7 +217,7 @@ contract LockxMasterInvariant is Test {
      * @notice The same signature can NEVER be used twice
      * @dev Critical for preventing replay attacks
      */
-    function invariant_noSignatureReplay() public {
+    function invariant_noSignatureReplay() public pure {
         // This is implicitly tested by nonce monotonicity
         // Each signature includes the nonce, so if nonce increases, signature changes
         assertTrue(true, "Signature replay prevention via nonce");
@@ -300,7 +300,7 @@ contract LockxMasterInvariant is Test {
      * @notice Fee-on-transfer tokens must be handled correctly
      * @dev Ensures accounting matches actual received amounts
      */
-    function invariant_feeOnTransferTokensHandled() public view {
+    function invariant_feeOnTransferTokensHandled() public pure {
         // Fee tokens should have correct accounting
         // The contract should track actual received amount, not sent amount
         assertTrue(true, "Fee-on-transfer token accounting verified");
@@ -312,7 +312,7 @@ contract LockxMasterInvariant is Test {
      * @notice Swaps must maintain value (minus fees)
      * @dev Ensures swaps don't lose value unexpectedly
      */
-    function invariant_swapsMaintainValue() public view {
+    function invariant_swapsMaintainValue() public pure {
         // After a swap, total value should be approximately maintained
         // (accounting for swap fees/slippage)
         assertTrue(true, "Swap value maintenance verified");
@@ -358,7 +358,7 @@ contract LockxMasterInvariant is Test {
      * @notice No function should be reentrant
      * @dev All state-changing functions must have reentrancy protection
      */
-    function invariant_noReentrancy() public view {
+    function invariant_noReentrancy() public pure {
         // This is tested by the nonReentrant modifier on all functions
         // If reentrancy was possible, other invariants would break
         assertTrue(true, "Reentrancy protection verified");
@@ -370,7 +370,7 @@ contract LockxMasterInvariant is Test {
      * @notice Operations should not consume unreasonable gas
      * @dev Prevents DoS via gas exhaustion
      */
-    function invariant_reasonableGasConsumption() public view {
+    function invariant_reasonableGasConsumption() public pure {
         // Checked implicitly - if gas was unreasonable, tests would timeout
         assertTrue(true, "Gas consumption reasonable");
     }

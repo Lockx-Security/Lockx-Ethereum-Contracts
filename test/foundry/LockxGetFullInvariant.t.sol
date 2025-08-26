@@ -24,8 +24,8 @@ contract LockxGetFullInvariant is Test {
         n = new MockERC721();
 
         vm.deal(user, 5 ether);
-        tA.mint(user, 1e24);
-        tB.mint(user, 1e24);
+        tA.mint(user, 1_000_000 ether);
+        tB.mint(user, 1_000_000 ether);
 
         vm.startPrank(user);
         tA.approve(address(lockx), type(uint256).max);

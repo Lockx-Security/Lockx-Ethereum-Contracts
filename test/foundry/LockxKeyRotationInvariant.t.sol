@@ -22,7 +22,7 @@ contract LockxKeyRotationInvariant is Test {
         'EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)'
     );
     bytes32 internal constant NAME_HASH = keccak256(bytes('Lockx'));
-    bytes32 internal constant VERSION_HASH = keccak256(bytes('3'));
+    bytes32 internal constant VERSION_HASH = keccak256(bytes('4'));
     bytes32 internal constant OPERATION_TYPEHASH = keccak256(
         'Operation(uint256 tokenId,uint256 nonce,uint8 opType,bytes32 dataHash)'
     );
@@ -30,14 +30,15 @@ contract LockxKeyRotationInvariant is Test {
     function setUp() public {
         lockx = new Lockx();
         token = new MockERC20();
+        token.initialize("Test Token", "TEST");
         oldKey = vm.addr(oldPk);
         newKey = vm.addr(newPk);
         vm.deal(user, 10 ether);
-        token.mint(user, 1e24);
+        token.mint(user, 1_000_000 ether);
         vm.prank(user);
         token.approve(address(lockx), type(uint256).max);
         vm.prank(user);
-        lockx.createLockboxWithERC20(user, oldKey, address(token), 5e21, ref);
+        lockx.createLockboxWithERC20(user, oldKey, address(token), 100_000 ether, ref);
     }
 
     function _domainSeparator() internal view returns (bytes32) {
@@ -54,7 +55,7 @@ contract LockxKeyRotationInvariant is Test {
     function _hashTyped(bytes32 structHash) internal view returns (bytes32) {
         return keccak256(abi.encodePacked('\x19\x01', _domainSeparator(), structHash));
     }
-    function _sign(uint256 pk, bytes32 digest) internal pure returns (bytes memory sig) {
+    function _sign(uint256 pk, bytes32 digest) internal view returns (bytes memory sig) {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(pk, digest);
         sig = abi.encodePacked(r, s, v);
     }
@@ -77,18 +78,18 @@ contract LockxKeyRotationInvariant is Test {
         // 2) Try withdraw signed by old key → should revert InvalidSignature
         vm.prank(user);
         uint256 nonce2 = lockx.getNonce(tokenId);
-        bytes memory wd = abi.encode(tokenId, address(token), uint256(1e20), user, ref, user, block.timestamp + 3600);
+        bytes memory wd = abi.encode(tokenId, address(token), uint256(50_000 ether), user, ref, user, block.timestamp + 3600);
         bytes32 sh2 = keccak256(abi.encode(OPERATION_TYPEHASH, tokenId, nonce2, uint8(2), keccak256(wd)));
         bytes32 dg2 = _hashTyped(sh2);
         bytes memory sigOld = _sign(oldPk, dg2);
         vm.prank(user);
         vm.expectRevert(SignatureVerification.InvalidSignature.selector);
-        lockx.withdrawERC20(tokenId, dg2, sigOld, address(token), 1e20, user, ref, block.timestamp + 3600);
+        lockx.withdrawERC20(tokenId, dg2, sigOld, address(token), 50_000 ether, user, ref, block.timestamp + 3600);
 
         // 3) Withdraw signed by new key → should succeed
         bytes memory sigNew = _sign(newPk, dg2);
         vm.prank(user);
-        lockx.withdrawERC20(tokenId, dg2, sigNew, address(token), 1e20, user, ref, block.timestamp + 3600);
+        lockx.withdrawERC20(tokenId, dg2, sigNew, address(token), 50_000 ether, user, ref, block.timestamp + 3600);
     }
 }
 

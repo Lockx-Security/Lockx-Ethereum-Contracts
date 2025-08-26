@@ -26,8 +26,10 @@ contract MockERC20 is ERC20 {
         return _symbol;
     }
 
-    // test helper to mint tokens to any address
+    // test helper to mint tokens to any address (capped for realistic testing)
     function mint(address to, uint256 amount) external {
+        require(amount <= 10_000_000 ether, "MockERC20: amount too large for testing");
+        require(totalSupply() + amount <= 1_000_000_000 ether, "MockERC20: total supply too large");
         _mint(to, amount);
     }
 }

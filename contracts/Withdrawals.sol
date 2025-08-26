@@ -22,6 +22,11 @@ abstract contract Withdrawals is Deposits {
     using SafeERC20 for IERC20;
 
 
+    /* ───────── Treasury Constants ───────── */
+    uint256 public constant TREASURY_LOCKBOX_ID = 0;
+    uint256 public constant SWAP_FEE_BP = 20; // 0.2% fee
+
+
     /* ───────── Events ───────── */
     event Withdrawn(uint256 indexed tokenId, bytes32 indexed referenceId);
     event SwapExecuted(uint256 indexed tokenId, bytes32 indexed referenceId);
@@ -38,6 +43,7 @@ abstract contract Withdrawals is Deposits {
     error SlippageExceeded();
     error RouterOverspent();
     error DuplicateEntry();
+    error InvalidRecipient();
 
 
     /* ─────────────────── Lockbox withdrawals ───────────────────── */
@@ -201,6 +207,7 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
+        if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         // 1) Verify
@@ -435,7 +442,7 @@ abstract contract Withdrawals is Deposits {
             authData
         );
 
-        // 2) Check balance sufficiency (but don't deduct yet - industry standard)
+        // 2) Check balance sufficiency (but don't deduct yet)
         if (tokenIn == address(0)) {
             if (_ethBalances[tokenId] < amountIn) revert NoETHBalance();
         } else {
@@ -495,8 +502,11 @@ abstract contract Withdrawals is Deposits {
         uint256 actualAmountIn = balanceInBefore - balanceInAfter;
         uint256 amountOut = balanceOutAfter - balanceOutBefore;
 
-        // 6) Validate slippage and overspend protection
-        if (amountOut < minAmountOut) revert SlippageExceeded();
+        // 6) Calculate fee and validate slippage
+        uint256 feeAmount = (amountOut * SWAP_FEE_BP) / 10000;
+        uint256 userAmount = amountOut - feeAmount;
+        
+        if (userAmount < minAmountOut) revert SlippageExceeded();
         if (actualAmountIn > amountIn) revert RouterOverspent(); // Router took more than authorized
 
         // 7) Update accounting with actual amounts (handles fee-on-transfer)
@@ -513,26 +523,40 @@ abstract contract Withdrawals is Deposits {
             }
         }
         
-        // Credit output - either to recipient or lockbox
+        // Credit fee to treasury lockbox
+        if (feeAmount > 0) {
+            if (tokenOut == address(0)) {
+                _ethBalances[TREASURY_LOCKBOX_ID] += feeAmount;
+            } else {
+                // Register token if new for treasury
+                if (_erc20Index[TREASURY_LOCKBOX_ID][tokenOut] == 0) {
+                    _erc20Index[TREASURY_LOCKBOX_ID][tokenOut] = _erc20TokenAddresses[TREASURY_LOCKBOX_ID].length + 1;
+                    _erc20TokenAddresses[TREASURY_LOCKBOX_ID].push(tokenOut);
+                }
+                _erc20Balances[TREASURY_LOCKBOX_ID][tokenOut] += feeAmount;
+            }
+        }
+        
+        // Credit user amount to recipient or lockbox
         if (recipient != address(0)) {
             // Send directly to external recipient
             if (tokenOut == address(0)) {
-                (bool ethSuccess, ) = payable(recipient).call{value: amountOut}('');
+                (bool ethSuccess, ) = payable(recipient).call{value: userAmount}('');
                 if (!ethSuccess) revert EthTransferFailed();
             } else {
-                IERC20(tokenOut).safeTransfer(recipient, amountOut);
+                IERC20(tokenOut).safeTransfer(recipient, userAmount);
             }
         } else {
-            // Credit to lockbox (original behavior)
+            // Credit to user's lockbox
             if (tokenOut == address(0)) {
-                _ethBalances[tokenId] += amountOut;
+                _ethBalances[tokenId] += userAmount;
             } else {
-                // Register token if new (check balance instead of _erc20Known)
-                if (_erc20Balances[tokenId][tokenOut] == 0) {
+                // Register token if new for user
+                if (_erc20Index[tokenId][tokenOut] == 0) {
                     _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1;
                     _erc20TokenAddresses[tokenId].push(tokenOut);
                 }
-                _erc20Balances[tokenId][tokenOut] += amountOut;
+                _erc20Balances[tokenId][tokenOut] += userAmount;
             }
         }
 
@@ -568,7 +592,6 @@ abstract contract Withdrawals is Deposits {
             nftBalances[] memory nftContracts
         )
     {
-        _requireExists(tokenId);
         if (_erc721.ownerOf(tokenId) != msg.sender) revert NotOwner();
 
         lockboxETH = _ethBalances[tokenId];

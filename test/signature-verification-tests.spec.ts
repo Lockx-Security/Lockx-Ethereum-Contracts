@@ -71,7 +71,7 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     // ✅ HIT BRANCH: verifySignature - valid signature path
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -226,7 +226,8 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     // Get actual tokenId from transaction
     const receipt2 = await tx2.wait();
     const transferEvent2 = receipt2.logs.find(log => log.topics[0] === ethers.id('Transfer(address,address,uint256)'));
-    const tokenId2 = parseInt(transferEvent2.topics[3], 16);
+    if (!transferEvent2) throw new Error('Transfer event not found');
+      const tokenId2 = parseInt(transferEvent2.topics[3], 16);
     
     // Test getNonce with different token
     const secondTokenNonce = await lockx.connect(user1).getNonce(tokenId2);
@@ -235,7 +236,7 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     // Test operations that don't rotate keys to hit the non-rotation branch
     const domain = {
       name: 'Lockx',
-      version: '3',
+      version: '4',
       chainId: await ethers.provider.getNetwork().then(n => n.chainId),
       verifyingContract: await lockx.getAddress()
     };
@@ -269,13 +270,16 @@ describe('🚀 SIGNATURE VERIFICATION BREAKTHROUGH - 0% TO 100%', () => {
     const burnMessageHash = ethers.TypedDataEncoder.hash(domain, types, burnValue);
     
     // This should hit the non-key-rotation branch in verifySignature
-    await lockx.connect(user1).burnLockbox(
-      tokenId2,
-      burnMessageHash,
-      burnSignature,
-      ethers.ZeroHash,
-      signatureExpiry
-    );
+    // But since the lockbox has ETH, it will revert with LockboxNotEmpty
+    await expect(
+      lockx.connect(user1).burnLockbox(
+        tokenId2,
+        burnMessageHash,
+        burnSignature,
+        ethers.ZeroHash,
+        signatureExpiry
+      )
+    ).to.be.revertedWithCustomError(lockx, 'LockboxNotEmpty');
     
     console.log('✅ Additional SignatureVerification branches covered!');
   });
