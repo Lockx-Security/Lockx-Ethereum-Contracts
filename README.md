@@ -1,7 +1,7 @@
-# Lockx smart contracts v4.0.0
+# Lockx smart contracts v4.1.0
 
 [![license](https://img.shields.io/badge/license-BUSL--1.1-blue)](LICENSE)
-[![version](https://img.shields.io/badge/version-4.0.0-green)](CHANGELOG.md)
+[![version](https://img.shields.io/badge/version-4.1.0-green)](CHANGELOG.md)
 [![openzeppelin](https://img.shields.io/badge/OpenZeppelin-v5.3.0-blue)](https://github.com/OpenZeppelin/openzeppelin-contracts/releases/tag/v5.3.0)
 
 Solidity contracts implementing soul-bound NFT lockboxes. Uses OpenZeppelin v5.3.0. Features comprehensive three-tier testing framework (Hardhat unit tests, Foundry property testing, and strategic scenario validation) with EIP-712 v4 signature verification.
@@ -301,15 +301,14 @@ The core smart contract logic, architecture, and security design are authored by
 
 ## Version information
 
-**Current version:** 4.0.0  
+**Current version:** 4.1.0  
 **OpenZeppelin:** v5.3.0  
 **EIP-712 domain:** 'Lockx', version '4'  
 
-### **v4.0.0 Release Highlights:**
-- **Expanded Foundry test suite**: 320 scenario tests
-- **Advanced invariant testing**: 4 new critical security properties  
-- **Strategic fuzzing**: 3 new attack vector tests
-- **Comprehensive documentation**: Updated test commands and replication guides
+### **v4.1.0 Release Highlights:**
+- **Security fix**: Resolved selector filtering bypass vulnerability
+- **Enhanced swap security**: Fixed function selector extraction in `swapInLockbox`
+- **Attack vector testing**: Added tests for approval-based exploits
 - **Zero breaking changes**: All existing functionality preserved
 
 For detailed release notes, security improvements, and breaking changes, see [CHANGELOG.md](CHANGELOG.md).

@@ -1,4 +1,4 @@
-# Lockx test suite documentation v4.0.0
+# Lockx test suite documentation v4.1.0
 
 This directory contains the comprehensive three-tier test suite for the Lockx smart contract system. Current snapshot:
 
@@ -73,14 +73,14 @@ npm run test:foundry:invariants
 
 Runs 79 invariant tests across 22 test suites with >22 million randomized operations validating core mathematical properties across 9 comprehensive categories.
 
-### Comprehensive scenario testing (Foundry v4.0.0)
+### Comprehensive scenario testing (Foundry v4.1.0)
 ```bash
 npm run test:foundry:scenarios
 ```
 
 Runs 320 scenario tests across 69 files (~15 minutes). Tests edge cases, multi-user interactions, complex workflows, and strategic attack vectors.
 
-### Advanced testing capabilities (v4.0.0)
+### Advanced testing capabilities (v4.1.0)
 ```bash
 # Treasury fee system invariants
 forge test --match-contract "LockxTreasuryFeeInvariant"   # 10 treasury fee validation tests
@@ -281,7 +281,7 @@ contracts/               |    99.63 |    90.94 |      100 |      100 |
 - 100% functions
 - 99.15% lines
 
-## Foundry comprehensive testing suite (v4.0.0)
+## Foundry comprehensive testing suite (v4.1.0)
 
 Foundry testing using property-based testing and comprehensive scenario validation across 83 test files:
 
@@ -307,8 +307,8 @@ npm run test:foundry:invariants   # 79 invariants across 22 suites with >22M ope
 ```
 test/foundry/
 ├── LockxInvariant.t.sol                    # Core balance invariants (Fund Safety)
-├── LockxTreasuryFeeInvariant.t.sol        # Treasury fee system (v4.0.0)
-├── LockxFeeTokenCompatibilityInvariant.t.sol # Fee-on-transfer compatibility (v4.0.0)
+├── LockxTreasuryFeeInvariant.t.sol        # Treasury fee system (v4.1.0)
+├── LockxFeeTokenCompatibilityInvariant.t.sol # Fee-on-transfer compatibility (v4.1.0)
 ├── LockxAdvancedInvariant.t.sol           # Advanced security properties 
 ├── LockxArrayInvariant.t.sol              # Array consistency (Data Structure Integrity)
 ├── LockxMultiUserInvariant.t.sol          # Multi-user isolation
@@ -322,7 +322,7 @@ test/foundry/
 ├── LockxSignatureVerificationComplete.t.sol # EIP-712 signature testing
 ├── LockxBurnPurge.t.sol                   # Lockbox burning and storage cleanup
 ├── LockxSwapSafetyInvariant.t.sol         # Swap operation safety
-├── LockxBatchWithdrawInvariant.t.sol      # Batch operation validation (v4.0.0)
+├── LockxBatchWithdrawInvariant.t.sol      # Batch operation validation (v4.1.0)
 └── ... 68 additional test files covering comprehensive scenarios
 ```
 

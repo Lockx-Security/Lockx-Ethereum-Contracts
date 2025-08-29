@@ -53,6 +53,13 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     mapping(uint256 => mapping(bytes32 => nftBalances)) internal _lockboxNftData;
     mapping(uint256 => mapping(bytes32 => uint256)) internal _nftIndex;
 
+    // Global asset tracking for security (prevents calling contracts we hold assets in)
+    mapping(address => uint256) internal _heldErc20Count;  // token address => number of lockboxes holding it
+    mapping(address => uint256) internal _heldNftCount;    // NFT contract => number of lockboxes holding it
+    
+    // O(1) NFT contract presence tracking per lockbox
+    mapping(uint256 => mapping(address => uint256)) internal _nftContractCounts;  // tokenId => nftContract => count
+
 
     /* ───────── Guards ───────── */
     function _requireOwnsLockbox(uint256 tokenId) internal view {
@@ -204,9 +211,12 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         if (received == 0) revert ZeroAmount();
 
         // Register new token with index
-        if (_erc20Index[tokenId][token] == 0) {
+        bool isNewToken = (_erc20Index[tokenId][token] == 0);
+        if (isNewToken) {
             _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length + 1;
             _erc20TokenAddresses[tokenId].push(token);
+            // Increment global count when lockbox first holds this token
+            _heldErc20Count[token]++;
         }
 
         _erc20Balances[tokenId][token] += received;
@@ -223,6 +233,12 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         if (_lockboxNftData[tokenId][key].nftContract == address(0)) {
             _nftIndex[tokenId][key] = _nftKeys[tokenId].length + 1;
             _nftKeys[tokenId].push(key);
+            
+            // O(1) tracking: increment contract count, check if first from this contract
+            if (_nftContractCounts[tokenId][nftContract] == 0) {
+                _heldNftCount[nftContract]++;
+            }
+            _nftContractCounts[tokenId][nftContract]++;
         }
         _lockboxNftData[tokenId][key] = nftBalances(nftContract, nftTokenId);
 

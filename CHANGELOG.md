@@ -5,6 +5,35 @@ All notable changes to the Lockx smart contracts project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2025-08-29
+
+### Fixed
+- **Function selector extraction bypass vulnerability**: Fixed broken selector filtering in `swapInLockbox`
+  - Previous assembly-based extraction returned 0x00000000 instead of actual function selectors
+  - Changed from `selector := shr(224, calldataload(data.offset))` to `bytes4 selector = bytes4(data[:4]);`
+  - Prevents approval-based attacks on tracked ERC20 contracts (approve, transfer, transferFrom blocked)
+  - Asset tracking protection (`_heldErc20Count`, `_heldNftCount`) was working correctly
+- **Enhanced security testing**: Added attack vector validation tests
+  - Signature replay protection verification
+  - Unauthorized withdrawal prevention tests
+  - Self-call prevention validation
+  - Approval attack prevention tests
+
+### Security
+- **Attack prevention**: Function selector filtering now properly blocks dangerous calls
+  - `approve()` calls to tracked tokens are prevented
+  - `transfer()` and `transferFrom()` calls to tracked tokens are blocked
+  - Prevents draining of contract-held assets via swap functionality
+- **Zero breaking changes**: All existing functionality preserved
+
+### Test Results
+- **Hardhat**: 568 tests passing (90.94% branch coverage maintained)
+- **Foundry invariants**: 79 tests passing across 22 suites (>22M randomized operations)
+- **Foundry scenarios**: 320 tests passing (edge cases, integration, multi-user scenarios)
+- **Security tests**: All attack vector tests passing with proper protection
+
+---
+
 ## [4.0.0] - 2025-08-25
 
 ### Added

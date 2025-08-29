@@ -1,6 +1,6 @@
 # Gas consumption report
 
-**Contract Version:** v4.0.0  
+**Contract Version:** v4.1.0  
 **Compiler:** Solc version 0.8.30  
 **Optimizer:** Enabled (200 runs)  
 **Block Limit:** 30,000,000 gas  

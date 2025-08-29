@@ -44,6 +44,12 @@ abstract contract Withdrawals is Deposits {
     error RouterOverspent();
     error DuplicateEntry();
     error InvalidRecipient();
+    error UnauthorizedRouter();
+
+
+    /* ───────── Storage for O(n) duplicate detection ───────── */
+    mapping(bytes32 => uint256) private _seenEpoch;
+    uint256 private _currentEpoch = 1;
 
 
     /* ─────────────────── Lockbox withdrawals ───────────────────── */
@@ -318,18 +324,19 @@ abstract contract Withdrawals is Deposits {
 
         // — ERC-20s —
         mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
-        // Check for duplicates first
-        for (uint256 i; i < tokenAddresses.length; ) {
-            for (uint256 j = i + 1; j < tokenAddresses.length; ) {
-                if (tokenAddresses[i] == tokenAddresses[j]) revert DuplicateEntry();
-                unchecked { ++j; }
-            }
-            unchecked { ++i; }
-        }
+        
+        // Use epoch-based O(n) duplicate detection
+        uint256 epoch = ++_currentEpoch;
         
         for (uint256 i; i < tokenAddresses.length; ) {
             address tok = tokenAddresses[i];
             uint256 amt = tokenAmounts[i];
+            
+            // Check for duplicates in O(1) using epoch
+            bytes32 tokenKey = keccak256(abi.encode(tok));
+            if (_seenEpoch[tokenKey] == epoch) revert DuplicateEntry();
+            _seenEpoch[tokenKey] = epoch;
+            
             uint256 bal = balMap[tok];
 
             if (bal < amt) revert InsufficientTokenBalance();
@@ -348,20 +355,14 @@ abstract contract Withdrawals is Deposits {
             }
         }
 
-        // — ERC-721s —
-        // Check for duplicate NFTs first
-        for (uint256 i; i < nftContracts.length; ) {
-            for (uint256 j = i + 1; j < nftContracts.length; ) {
-                if (nftContracts[i] == nftContracts[j] && nftTokenIds[i] == nftTokenIds[j]) {
-                    revert DuplicateEntry();
-                }
-                unchecked { ++j; }
-            }
-            unchecked { ++i; }
-        }
-        
+        // — ERC-721s —        
         for (uint256 i; i < nftContracts.length; ) {
             bytes32 key = keccak256(abi.encodePacked(nftContracts[i], nftTokenIds[i]));
+            
+            // Check for duplicates in O(1) using epoch
+            if (_seenEpoch[key] == epoch) revert DuplicateEntry();
+            _seenEpoch[key] = epoch;
+            
             if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
 
             delete _lockboxNftData[tokenId][key];
