@@ -5,6 +5,27 @@ All notable changes to the Lockx smart contracts project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2025-08-29
+
+### Changed
+- **Router whitelist system**: Replaced complex selector filtering with immutable router whitelist
+  - Hardcoded list of trusted DEX routers (Uniswap, 1inch, 0x, Paraswap, Cowswap)
+  - Prevents arbitrary contract calls through swap functionality
+  - Simpler and more secure approach than function selector validation
+- **Updated EIP-712 domain version**: Changed from version '4' to '5'
+
+### Added
+- `getAllowedRouters()`: Public function to view all whitelisted routers
+- `isAllowedRouter()`: Public helper to check if a router is allowed
+- `UnauthorizedRouter` error for non-whitelisted router attempts
+
+### Security
+- **Simplified security model**: Router whitelist provides clearer security boundaries
+- **Reduced attack surface**: Only pre-approved DEX contracts can be called
+- **Zero breaking changes**: All existing functionality preserved
+
+---
+
 ## [4.1.0] - 2025-08-29
 
 ### Fixed

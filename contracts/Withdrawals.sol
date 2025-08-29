@@ -419,6 +419,11 @@ abstract contract Withdrawals is Deposits {
         if (target == address(0)) revert ZeroAddress();
         if (amountIn == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
+        
+        // Only allow hardcoded immutable routers
+        if (!_isAllowedRouter(target)) {
+            revert UnauthorizedRouter();
+        }
 
         // 1) Verify signature
         bytes memory authData = abi.encode(
@@ -629,5 +634,50 @@ abstract contract Withdrawals is Deposits {
                 ++i;
             }
         }
+    }
+
+    /**
+     * @dev Check if a router is in the immutable allowlist.
+     * @param router The router address to check.
+     * @return bool True if the router is allowed.
+     */
+    function _isAllowedRouter(address router) private pure returns (bool) {
+        return
+            // Uniswap Universal Router (standard - supports V2/V3/V4)
+            router == 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD ||
+            // Uniswap V4 Universal Router (V4-specific)
+            router == 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af ||
+            // 1inch v6 Aggregation Router (latest)
+            router == 0x111111125421cA6dc452d289314280a0f8842A65 ||
+            // 0x Exchange Proxy
+            router == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
+            // Paraswap v5 Augustus Swapper
+            router == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
+            // Cowswap GPv2Settlement
+            router == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+    }
+
+    /**
+     * @notice Get list of all allowed routers (for transparency).
+     * @return address[] Array of allowed router addresses.
+     */
+    function getAllowedRouters() external pure returns (address[] memory) {
+        address[] memory routers = new address[](6);
+        routers[0] = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD; // Uniswap Universal Router
+        routers[1] = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af; // Uniswap V4 Universal Router
+        routers[2] = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
+        routers[3] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x
+        routers[4] = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57; // Paraswap
+        routers[5] = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41; // Cowswap
+        return routers;
+    }
+
+    /**
+     * @notice Check if a router is allowed (public helper).
+     * @param router The router address to check.
+     * @return bool True if the router is allowed.
+     */
+    function isAllowedRouter(address router) external pure returns (bool) {
+        return _isAllowedRouter(router);
     }
 }
