@@ -45,11 +45,29 @@ abstract contract Withdrawals is Deposits {
     error DuplicateEntry();
     error InvalidRecipient();
     error UnauthorizedRouter();
+    error UnauthorizedSelector();
 
 
     /* ───────── Storage for O(n) duplicate detection ───────── */
     mapping(bytes32 => uint256) private _seenEpoch;
     uint256 private _currentEpoch = 1;
+
+    /* ───────── Static router allowlist (mainnet) ───────── */
+    function _isAllowedRouter(address target) private pure returns (bool) {
+        return
+            // Uniswap V3 SwapRouter02
+            target == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
+            // Uniswap Universal Router (canonical)
+            target == 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B ||
+            // 1inch Aggregation Router v6
+            target == 0x111111125421cA6dc452d289314280a0f8842A65 ||
+            // 0x Exchange Proxy
+            target == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
+            // Paraswap Augustus
+            target == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
+            // CowSwap GPv2 Settlement
+            target == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+    }
 
 
     /* ─────────────────── Lockbox withdrawals ───────────────────── */
@@ -420,6 +438,10 @@ abstract contract Withdrawals is Deposits {
         if (amountIn == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
 
+        // Validate router and calldata selector
+        if (!_isAllowedRouter(target)) revert UnauthorizedRouter();
+        if (!_isAllowedSelector(data)) revert UnauthorizedSelector();
+        
         // 1) Verify signature
         bytes memory authData = abi.encode(
             tokenId,
@@ -629,5 +651,42 @@ abstract contract Withdrawals is Deposits {
                 ++i;
             }
         }
+    }
+    
+    /**
+     * @dev Check if the calldata selector is allowed for swap operations.
+     * Prevents arbitrary function calls by whitelisting safe swap selectors.
+     * @param data The calldata to validate
+     * @return bool True if the selector is allowed for swaps
+     */
+    function _isAllowedSelector(bytes calldata data) private pure returns (bool) {
+        if (data.length < 4) return false;
+        
+        bytes4 selector = bytes4(data[:4]);
+        
+        return
+            // Uniswap V3 Router
+            selector == 0x04e45aaf || // exactInputSingle(address,address,uint24,address,uint256,uint256,uint160)
+            selector == 0x5023b4df || // exactOutputSingle(address,address,uint24,address,uint256,uint256,uint160)  
+            selector == 0xc04b8d59 || // exactInput
+            selector == 0xf28c0498 || // exactOutput
+            
+            // Uniswap Universal Router
+            selector == 0x3593564c || // execute(bytes,bytes[],uint256)
+            selector == 0x24856bc3 || // execute(bytes,bytes[])
+            
+            // 1inch v6 (AggregationRouterV6.swap(address,(..),bytes))
+            selector == 0x6b1ef56f || // swap(address,(...),bytes)
+            
+            // 0x Protocol (Exchange Proxy)
+            selector == 0x415565b0 || // transformERC20
+            selector == 0xd9627aa4 || // sellToUniswap
+            
+            // Paraswap Augustus
+            selector == 0x54e3f31b || // simpleSwap
+            selector == 0xa94e78ef || // multiSwap
+            
+            // CowSwap GPv2 Settlement
+            selector == 0x13d79a0b;   // settle
     }
 }
