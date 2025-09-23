@@ -210,6 +210,11 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             nftContracts.length != nftTokenIds.length
         ) revert ArrayLengthMismatch();
         if (msg.value != amountETH) revert EthValueMismatch();
+        
+        // Prevent empty lockbox creation - at least one asset must be provided
+        if (amountETH == 0 && tokenAddresses.length == 0 && nftContracts.length == 0) {
+            revert ZeroAmount();
+        }
 
         // 2) Effects
         uint256 tokenId = _nextId++;
