@@ -264,7 +264,6 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 signatureExpiry
     ) external nonReentrant {
         // 1) Checks
-        if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         if (ownerOf(tokenId) != msg.sender) revert NotOwner();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
