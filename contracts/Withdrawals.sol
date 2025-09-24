@@ -57,7 +57,7 @@ abstract contract Withdrawals is Deposits {
         return
             // Uniswap V3 SwapRouter02
             target == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
-            // Uniswap Universal Router
+            // Uniswap Universal Router (canonical)
             target == 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B ||
             // 1inch Aggregation Router v6
             target == 0x111111125421cA6dc452d289314280a0f8842A65 ||
