@@ -82,6 +82,7 @@ abstract contract Withdrawals is Deposits {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -143,6 +144,7 @@ abstract contract Withdrawals is Deposits {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -215,6 +217,7 @@ abstract contract Withdrawals is Deposits {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -290,6 +293,7 @@ abstract contract Withdrawals is Deposits {
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length
         ) revert MismatchedInputs();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -424,6 +428,7 @@ abstract contract Withdrawals is Deposits {
         if (!_isAllowedRouter(target)) {
             revert UnauthorizedRouter();
         }
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify signature
         bytes memory authData = abi.encode(
