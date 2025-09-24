@@ -63,8 +63,16 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /**
      * @dev Deploys the contract and initializes the EIP-712 domain used for
      *      signature authorization in SignatureVerification.
+     *      Creates the treasury lockbox (tokenId=0) and assigns it to the deployer.
      */
-    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {}
+    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {
+        // Mint the treasury lockbox (tokenId = 0) to the deployer
+        uint256 treasuryTokenId = _nextId++;
+        initialize(treasuryTokenId, msg.sender); // Use deployer address as initial treasury key (can be rotated later)
+        _mint(msg.sender, treasuryTokenId);
+        emit Locked(treasuryTokenId);
+        emit Minted(treasuryTokenId, bytes32(0));
+    }
 
 
     /* ───────────────────────── Minting + wrapping flows ───────────────────────── */
