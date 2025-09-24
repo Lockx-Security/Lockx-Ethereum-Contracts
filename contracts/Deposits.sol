@@ -93,6 +93,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
 
     /*
      * @notice Deposit ERC-20 tokens into a Lockbox.
+     * @dev WARNING: Rebasing tokens (e.g., stETH, AMPL) are NOT supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param tokenId      The ID of the Lockbox.
      * @param tokenAddress The ERC-20 token contract address.
      * @param amount       The amount of tokens to deposit.
@@ -143,6 +146,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
 
     /*
      * @notice Batch-deposit ETH, multiple ERC-20s, and multiple ERC-721s.
+     * @dev WARNING: Rebasing tokens (e.g., stETH, AMPL) are NOT supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param tokenId           The ID of the Lockbox.
      * @param amountETH         ETH amount (`msg.value` must match).
      * @param tokenAddresses    ERC-20 token addresses to deposit.
