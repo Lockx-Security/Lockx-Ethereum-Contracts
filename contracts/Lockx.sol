@@ -330,8 +330,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         address newPublicKey,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         bytes memory data = abi.encode(
@@ -377,8 +376,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         bytes memory signature,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);

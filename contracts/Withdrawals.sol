@@ -78,8 +78,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
@@ -139,8 +138,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
@@ -210,8 +208,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -282,8 +279,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         if (
@@ -413,8 +409,7 @@ abstract contract Withdrawals is Deposits {
         bytes32 referenceId,
         uint256 signatureExpiry,
         address recipient
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         if (target == address(0)) revert ZeroAddress();
         if (amountIn == 0) revert ZeroAmount();

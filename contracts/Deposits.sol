@@ -54,9 +54,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     mapping(uint256 => mapping(bytes32 => uint256)) internal _nftIndex;
 
 
-    /* ───────── Guards ───────── */
-    function _requireOwnsLockbox(uint256 tokenId) internal view {
+    /* ───────── Modifiers ───────── */
+    modifier onlyLockboxOwner(uint256 tokenId) {
         if (_erc721.ownerOf(tokenId) != msg.sender) revert NotOwner();
+        _;
     }
 
 
@@ -83,8 +84,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * - Caller must own the Lockbox.
      * - `msg.value` must be > 0.
      */
-    function depositETH(uint256 tokenId, bytes32 referenceId) external payable nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    function depositETH(uint256 tokenId, bytes32 referenceId) external payable nonReentrant onlyLockboxOwner(tokenId) {
         if (msg.value == 0) revert ZeroAmount();
 
         _ethBalances[tokenId] += msg.value;
@@ -108,8 +108,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         address tokenAddress,
         uint256 amount,
         bytes32 referenceId
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (tokenAddress == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
 
@@ -133,8 +132,7 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         address nftContract,
         uint256 nftTokenId,
         bytes32 referenceId
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (nftContract == address(0)) revert ZeroAddress();
 
         _depositERC721(tokenId, nftContract, nftTokenId);
@@ -166,11 +164,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         address[] calldata nftContracts,
         uint256[] calldata nftTokenIds,
         bytes32 referenceId
-    ) external payable nonReentrant {
+    ) external payable nonReentrant onlyLockboxOwner(tokenId) {
         if (amountETH == 0 && tokenAddresses.length == 0 && nftContracts.length == 0)
             revert ZeroAmount();
-
-        _requireOwnsLockbox(tokenId);
         if (msg.value != amountETH) revert ETHMismatch();
         if (
             tokenAddresses.length != tokenAmounts.length ||
