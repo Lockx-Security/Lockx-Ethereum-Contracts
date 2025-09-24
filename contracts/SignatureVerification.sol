@@ -85,7 +85,7 @@ contract SignatureVerification is EIP712 {
         }
 
         _tokenAuth[tokenId].activeLockboxPublicKey = lockboxPublicKey;
-        _tokenAuth[tokenId].nonce = 1;
+        _tokenAuth[tokenId].nonce = 0;
     }
 
     /**

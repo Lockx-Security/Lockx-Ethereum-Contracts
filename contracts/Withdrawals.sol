@@ -535,9 +535,9 @@ abstract contract Withdrawals is Deposits {
                 _ethBalances[TREASURY_LOCKBOX_ID] += feeAmount;
             } else {
                 // Register token if new for treasury
-                if (_erc20Index[TREASURY_LOCKBOX_ID][tokenOut] == 0) {
-                    _erc20Index[TREASURY_LOCKBOX_ID][tokenOut] = _erc20TokenAddresses[TREASURY_LOCKBOX_ID].length + 1;
+                if (_erc20Balances[TREASURY_LOCKBOX_ID][tokenOut] == 0) {
                     _erc20TokenAddresses[TREASURY_LOCKBOX_ID].push(tokenOut);
+                    _erc20Index[TREASURY_LOCKBOX_ID][tokenOut] = _erc20TokenAddresses[TREASURY_LOCKBOX_ID].length - 1;
                 }
                 _erc20Balances[TREASURY_LOCKBOX_ID][tokenOut] += feeAmount;
             }
@@ -557,10 +557,10 @@ abstract contract Withdrawals is Deposits {
             if (tokenOut == address(0)) {
                 _ethBalances[tokenId] += userAmount;
             } else {
-                // Register token if new for user
-                if (_erc20Index[tokenId][tokenOut] == 0) {
-                    _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1;
+                // Register token if new for user (presence derived from balance)
+                if (_erc20Balances[tokenId][tokenOut] == 0) {
                     _erc20TokenAddresses[tokenId].push(tokenOut);
+                    _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length - 1;
                 }
                 _erc20Balances[tokenId][tokenOut] += userAmount;
             }
@@ -625,10 +625,10 @@ abstract contract Withdrawals is Deposits {
             }
         }
         nftContracts = new nftBalances[](count);
-        uint256 idx;
+        uint256 index;
         for (uint256 i; i < nftList.length; ) {
             if (_lockboxNftData[tokenId][nftList[i]].nftContract != address(0)) {
-                nftContracts[idx++] = _lockboxNftData[tokenId][nftList[i]];
+                nftContracts[index++] = _lockboxNftData[tokenId][nftList[i]];
             }
             unchecked {
                 ++i;
