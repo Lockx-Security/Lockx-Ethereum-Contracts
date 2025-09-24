@@ -79,7 +79,7 @@ contract SignatureVerification is EIP712 {
      * @param tokenId The ID of the Lockbox being initialized.
      * @param lockboxPublicKey The public key that will sign operations for this Lockbox.
      */
-    function initialize(uint256 tokenId, address lockboxPublicKey) internal {
+    function _initialize(uint256 tokenId, address lockboxPublicKey) internal {
         if (_tokenAuth[tokenId].activeLockboxPublicKey != address(0)) {
             revert AlreadyInitialized();
         }
@@ -112,7 +112,7 @@ contract SignatureVerification is EIP712 {
      * - On successful verification, the nonce increments.
      * - If `opType` is `ROTATE_KEY`, the Lockbox public key is updated to `newLockboxPublicKey`.
      */
-    function verifySignature(
+    function _verifySignature(
         uint256 tokenId,
         bytes32 messageHash,
         bytes memory signature,

@@ -92,7 +92,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        _initialize(tokenId, lockboxPublicKey);
         _mint(to, tokenId);
 
         // 3) Interactions
@@ -130,7 +130,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        _initialize(tokenId, lockboxPublicKey);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -165,7 +165,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        _initialize(tokenId, lockboxPublicKey);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -213,7 +213,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        _initialize(tokenId, lockboxPublicKey);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -275,7 +275,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             msg.sender,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -341,7 +341,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             msg.sender,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -382,7 +382,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,

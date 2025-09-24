@@ -92,7 +92,7 @@ abstract contract Withdrawals is Deposits {
             msg.sender,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -154,7 +154,7 @@ abstract contract Withdrawals is Deposits {
             msg.sender,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -226,7 +226,7 @@ abstract contract Withdrawals is Deposits {
             msg.sender,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -304,7 +304,7 @@ abstract contract Withdrawals is Deposits {
             msg.sender,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -439,7 +439,7 @@ abstract contract Withdrawals is Deposits {
             signatureExpiry,
             recipient
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
