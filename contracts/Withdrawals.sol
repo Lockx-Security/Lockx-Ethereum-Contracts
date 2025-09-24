@@ -641,7 +641,7 @@ abstract contract Withdrawals is Deposits {
      * @param router The router address to check.
      * @return bool True if the router is allowed.
      */
-    function _isAllowedRouter(address router) private pure returns (bool) {
+    function _isAllowedRouter(address router) internal pure returns (bool) {
         return
             // Uniswap Universal Router (standard - supports V2/V3/V4)
             router == 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD ||

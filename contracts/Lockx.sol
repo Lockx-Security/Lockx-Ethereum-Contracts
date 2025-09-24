@@ -43,6 +43,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error TransfersDisabled();
     error UseDepositETH();
     error FallbackNotAllowed();
+    error DirectETHTransferNotAllowed();
     error SelfMintOnly();
     error LockboxNotEmpty();
 
@@ -462,11 +463,15 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /* ───────────────────────── Fallback handlers ───────────────────────── */
     
     /**
-     * @notice Receive ETH from swaps and other legitimate sources.
-     * @dev Empty by design - accounting handled by calling functions.
+     * @notice Receive ETH only from allowed routers.
+     * @dev Prevents orphaned ETH from direct transfers.
+     *      Legitimate ETH comes through deposit functions routers.
      */
     receive() external payable {
-        // Accept ETH transfers - accounting handled by caller
+        // Only accept ETH from allowed routers
+        if (!_isAllowedRouter(msg.sender)) {
+            revert DirectETHTransferNotAllowed();
+        }
     }
     
     fallback() external {
