@@ -179,4 +179,13 @@ contract SignatureVerification is EIP712 {
     function getNonce(uint256 tokenId) external view onlyTokenOwner(tokenId) returns (uint256) {
         return uint256(_tokenAuth[tokenId].nonce);
     }
+    
+    /**
+     * @dev Internal function to get the current active key for a Lockbox.
+     * @param tokenId The ID of the Lockbox.
+     * @return The currently active Lockbox public key.
+     */
+    function _getActiveLockboxPublicKey(uint256 tokenId) internal view returns (address) {
+        return _tokenAuth[tokenId].activeLockboxPublicKey;
+    }
 }

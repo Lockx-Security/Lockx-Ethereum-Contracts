@@ -45,6 +45,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error FallbackNotAllowed();
     error SelfMintOnly();
     error LockboxNotEmpty();
+    error DuplicateKey();
 
 
     /* ───────────────────────── Metadata storage ────────────────────────── */
@@ -333,6 +334,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        
+        // Check that the new key is different from the current key
+        if (_getActiveLockboxPublicKey(tokenId) == newPublicKey) revert DuplicateKey();
 
         bytes memory data = abi.encode(
             tokenId,
