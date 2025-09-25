@@ -470,21 +470,16 @@ abstract contract Withdrawals is Deposits {
             balanceOutBefore = IERC20(tokenOut).balanceOf(address(this));
         }
 
-        // 4) Execute swap with USDT-safe approval pattern
+        // 4) Execute swap with approval
         if (tokenIn != address(0)) {
-            // Only reset to 0 if there's an existing approval to save gas
-            uint256 currentAllowance = IERC20(tokenIn).allowance(address(this), target);
-            if (currentAllowance != 0) {
-                IERC20(tokenIn).forceApprove(target, 0);     // Reset first for USDT
-            }
             IERC20(tokenIn).forceApprove(target, amountIn);
         }
         
         (bool success,) = target.call{value: tokenIn == address(0) ? amountIn : 0}(data);
         
-        // Clean up approval
+        // Clean up approval  
         if (tokenIn != address(0)) {
-            IERC20(tokenIn).forceApprove(target, 0);
+            IERC20(tokenIn).approve(target, 0);
         }
         
         if (!success) revert SwapCallFailed();
