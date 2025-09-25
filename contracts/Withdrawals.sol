@@ -416,7 +416,6 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
-        if (target == address(0)) revert ZeroAddress();
         if (amountIn == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
         
