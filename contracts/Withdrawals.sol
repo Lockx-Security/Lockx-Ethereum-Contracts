@@ -85,11 +85,9 @@ abstract contract Withdrawals is Deposits {
 
         // 1) Verify
         bytes memory data = abi.encode(
-            tokenId,
             amountETH,
             recipient,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -146,12 +144,10 @@ abstract contract Withdrawals is Deposits {
 
         // 1) Verify
         bytes memory data = abi.encode(
-            tokenId,
             tokenAddress,
             amount,
             recipient,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -218,12 +214,10 @@ abstract contract Withdrawals is Deposits {
 
         // 1) Verify
         bytes memory data = abi.encode(
-            tokenId,
             nftContract,
             nftTokenId,
             recipient,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -293,7 +287,6 @@ abstract contract Withdrawals is Deposits {
 
         // 1) Verify
         bytes memory data = abi.encode(
-            tokenId,
             amountETH,
             tokenAddresses,
             tokenAmounts,
@@ -301,7 +294,6 @@ abstract contract Withdrawals is Deposits {
             nftTokenIds,
             recipient,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -427,7 +419,6 @@ abstract contract Withdrawals is Deposits {
 
         // 1) Verify signature
         bytes memory authData = abi.encode(
-            tokenId,
             tokenIn,
             tokenOut,
             amountIn,
@@ -435,7 +426,6 @@ abstract contract Withdrawals is Deposits {
             target,
             keccak256(data),
             referenceId,
-            msg.sender,
             signatureExpiry,
             recipient
         );
