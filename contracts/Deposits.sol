@@ -203,10 +203,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         uint256 received = t.balanceOf(address(this)) - before;
         if (received == 0) revert ZeroAmount();
 
-        // Register new token with index
-        if (_erc20Index[tokenId][token] == 0) {
-            _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length + 1;
+        // Register new token
+        if (_erc20Balances[tokenId][token] == 0) {
             _erc20TokenAddresses[tokenId].push(token);
+            _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length - 1;
         }
 
         _erc20Balances[tokenId][token] += received;
@@ -219,10 +219,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         // nftContract is already validated in the public functions before calling this
         bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
 
-        // Check if NFT is new by seeing if nftContract is zero
+        // Register new NFT key
         if (_lockboxNftData[tokenId][key].nftContract == address(0)) {
-            _nftIndex[tokenId][key] = _nftKeys[tokenId].length + 1;
             _nftKeys[tokenId].push(key);
+            _nftIndex[tokenId][key] = _nftKeys[tokenId].length - 1;
         }
         _lockboxNftData[tokenId][key] = nftBalances(nftContract, nftTokenId);
 
@@ -266,14 +266,18 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @dev Remove an ERC-20 token address from the tracking array.
      */
     function _removeERC20Token(uint256 tokenId, address token) internal {
-        uint256 idx = _erc20Index[tokenId][token];
-        if (idx == 0) return;
-
         uint256 arrayLength = _erc20TokenAddresses[tokenId].length;
-        if (idx != arrayLength) {
-            address lastToken = _erc20TokenAddresses[tokenId][arrayLength - 1];
-            _erc20TokenAddresses[tokenId][idx - 1] = lastToken;
-            _erc20Index[tokenId][lastToken] = idx;
+        if (arrayLength == 0) return;
+
+        uint256 index = _erc20Index[tokenId][token];
+        if (index >= arrayLength) return;
+        if (_erc20TokenAddresses[tokenId][index] != token) return;
+
+        uint256 lastIndex = arrayLength - 1;
+        if (index != lastIndex) {
+            address lastToken = _erc20TokenAddresses[tokenId][lastIndex];
+            _erc20TokenAddresses[tokenId][index] = lastToken;
+            _erc20Index[tokenId][lastToken] = index;
         }
         _erc20TokenAddresses[tokenId].pop();
         delete _erc20Index[tokenId][token];
@@ -283,14 +287,18 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @dev Remove an ERC-721 key from the tracking array.
      */
     function _removeNFTKey(uint256 tokenId, bytes32 key) internal {
-        uint256 idx = _nftIndex[tokenId][key];
-        if (idx == 0) return;
-        
         uint256 arrayLength = _nftKeys[tokenId].length;
-        if (idx != arrayLength) {
-            bytes32 lastKey = _nftKeys[tokenId][arrayLength - 1];
-            _nftKeys[tokenId][idx - 1] = lastKey;
-            _nftIndex[tokenId][lastKey] = idx;
+        if (arrayLength == 0) return;
+
+        uint256 index = _nftIndex[tokenId][key];
+        if (index >= arrayLength) return;
+        if (_nftKeys[tokenId][index] != key) return;
+
+        uint256 lastIndex = arrayLength - 1;
+        if (index != lastIndex) {
+            bytes32 lastKey = _nftKeys[tokenId][lastIndex];
+            _nftKeys[tokenId][index] = lastKey;
+            _nftIndex[tokenId][lastKey] = index;
         }
         _nftKeys[tokenId].pop();
         delete _nftIndex[tokenId][key];
