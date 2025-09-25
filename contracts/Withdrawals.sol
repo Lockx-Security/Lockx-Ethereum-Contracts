@@ -22,9 +22,16 @@ abstract contract Withdrawals is Deposits {
     using SafeERC20 for IERC20;
 
 
+    /* ───────── Enums ───────── */
+    enum SwapMode {
+        EXACT_IN,   // Specify exact input amount, get variable output
+        EXACT_OUT   // Specify exact output amount, use variable input
+    }
+
     /* ───────── Treasury Constants ───────── */
     uint256 public constant TREASURY_LOCKBOX_ID = 0;
     uint256 public constant SWAP_FEE_BP = 20; // 0.2% fee
+    uint256 private constant FEE_DIVISOR = 10000;
 
 
     /* ───────── Events ───────── */
@@ -42,9 +49,11 @@ abstract contract Withdrawals is Deposits {
     error InvalidSwap();
     error SlippageExceeded();
     error RouterOverspent();
+    error InsufficientOutput();
     error DuplicateEntry();
     error InvalidRecipient();
     error UnauthorizedRouter();
+    error UnauthorizedSelector();
 
 
     /* ───────── Storage for O(n) duplicate detection ───────── */
@@ -384,8 +393,9 @@ abstract contract Withdrawals is Deposits {
      * @param signature       The EIP-712 signature by the active Lockbox key.
      * @param tokenIn         The input token address (address(0) for ETH).
      * @param tokenOut        The output token address (address(0) for ETH).
-     * @param amountIn        The amount of input tokens to swap.
-     * @param minAmountOut    Minimum amount of output tokens expected (slippage protection).
+     * @param swapMode        Whether this is EXACT_IN or EXACT_OUT swap.
+     * @param amountSpecified For EXACT_IN: input amount. For EXACT_OUT: desired output amount.
+     * @param amountLimit     For EXACT_IN: min output. For EXACT_OUT: max input allowed.
      * @param target          The router/aggregator contract address to execute swap.
      * @param data            The pre-built calldata for the swap execution.
      * @param referenceId     External reference ID for off-chain tracking.
@@ -395,9 +405,11 @@ abstract contract Withdrawals is Deposits {
      * Requirements:
      * - `tokenId` must exist and caller must be its owner.
      * - `block.timestamp` must be < `signatureExpiry`.
-     * - Lockbox must have ≥ `amountIn` balance of `tokenIn`.
-     * - `target` must not be the zero address.
-     * - The swap must return ≥ `minAmountOut` tokens.
+     * - For EXACT_IN: Lockbox must have ≥ amountSpecified of tokenIn.
+     * - For EXACT_OUT: Lockbox must have ≥ amountLimit of tokenIn (max you're willing to spend).
+     * - `target` must be an allowed router.
+     * - For EXACT_IN: Must receive ≥ amountLimit of tokenOut (min acceptable output).
+     * - For EXACT_OUT: Must receive ≥ amountSpecified of tokenOut and spend ≤ amountLimit of tokenIn.
      * - If `recipient` is address(0), output is credited to lockbox, otherwise sent to recipient.
      */
     function swapInLockbox(
@@ -406,8 +418,9 @@ abstract contract Withdrawals is Deposits {
         bytes memory signature,
         address tokenIn,
         address tokenOut,
-        uint256 amountIn,
-        uint256 minAmountOut,
+        SwapMode swapMode,
+        uint256 amountSpecified,
+        uint256 amountLimit,
         address target,
         bytes calldata data,
         bytes32 referenceId,
@@ -416,22 +429,21 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
-        if (target == address(0)) revert ZeroAddress();
-        if (amountIn == 0) revert ZeroAmount();
+        if (amountSpecified == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
-        
-        // Only allow hardcoded immutable routers
-        if (!_isAllowedRouter(target)) {
-            revert UnauthorizedRouter();
-        }
+
+        // Validate router and calldata selector (also handles zero address)
+        if (!_isAllowedRouter(target)) revert UnauthorizedRouter();
+        if (!_isAllowedSelector(data)) revert UnauthorizedSelector();
 
         // 1) Verify signature
         bytes memory authData = abi.encode(
             tokenId,
             tokenIn,
             tokenOut,
-            amountIn,
-            minAmountOut,
+            uint8(swapMode),
+            amountSpecified,
+            amountLimit,
             target,
             keccak256(data),
             referenceId,
@@ -448,11 +460,20 @@ abstract contract Withdrawals is Deposits {
             authData
         );
 
-        // 2) Check balance sufficiency (but don't deduct yet)
-        if (tokenIn == address(0)) {
-            if (_ethBalances[tokenId] < amountIn) revert NoETHBalance();
+        // 2) For EXACT_IN, check balance sufficiency upfront
+        if (swapMode == SwapMode.EXACT_IN) {
+            if (tokenIn == address(0)) {
+                if (_ethBalances[tokenId] < amountSpecified) revert NoETHBalance();
+            } else {
+                if (_erc20Balances[tokenId][tokenIn] < amountSpecified) revert InsufficientTokenBalance();
+            }
         } else {
-            if (_erc20Balances[tokenId][tokenIn] < amountIn) revert InsufficientTokenBalance();
+            // For EXACT_OUT, check maximum input allowed
+            if (tokenIn == address(0)) {
+                if (_ethBalances[tokenId] < amountLimit) revert NoETHBalance();
+            } else {
+                if (_erc20Balances[tokenId][tokenIn] < amountLimit) revert InsufficientTokenBalance();
+            }
         }
 
         // 3) Measure balances before swap
@@ -470,21 +491,28 @@ abstract contract Withdrawals is Deposits {
             balanceOutBefore = IERC20(tokenOut).balanceOf(address(this));
         }
 
-        // 4) Execute swap with USDT-safe approval pattern
-        if (tokenIn != address(0)) {
-            // Only reset to 0 if there's an existing approval to save gas
-            uint256 currentAllowance = IERC20(tokenIn).allowance(address(this), target);
-            if (currentAllowance != 0) {
-                IERC20(tokenIn).forceApprove(target, 0);     // Reset first for USDT
-            }
-            IERC20(tokenIn).forceApprove(target, amountIn);
+        // 4) Execute swap with approval
+        uint256 approvalAmount;
+        uint256 ethValue;
+        
+        if (swapMode == SwapMode.EXACT_IN) {
+            approvalAmount = amountSpecified;
+            ethValue = (tokenIn == address(0)) ? amountSpecified : 0;
+        } else {
+            // For EXACT_OUT, approve the maximum we're willing to spend
+            approvalAmount = amountLimit;
+            ethValue = (tokenIn == address(0)) ? amountLimit : 0;
         }
         
-        (bool success,) = target.call{value: tokenIn == address(0) ? amountIn : 0}(data);
+        if (tokenIn != address(0)) {
+            IERC20(tokenIn).forceApprove(target, approvalAmount);
+        }
+        
+        (bool success,) = target.call{value: ethValue}(data);
         
         // Clean up approval
         if (tokenIn != address(0)) {
-            IERC20(tokenIn).forceApprove(target, 0);
+            IERC20(tokenIn).approve(target, 0);
         }
         
         if (!success) revert SwapCallFailed();
@@ -506,14 +534,24 @@ abstract contract Withdrawals is Deposits {
         
         // Calculate actual amounts (handles fee-on-transfer tokens)
         uint256 actualAmountIn = balanceInBefore - balanceInAfter;
-        uint256 amountOut = balanceOutAfter - balanceOutBefore;
+        uint256 actualAmountOut = balanceOutAfter - balanceOutBefore;
 
-        // 6) Calculate fee and validate slippage
-        uint256 feeAmount = (amountOut * SWAP_FEE_BP) / 10000;
-        uint256 userAmount = amountOut - feeAmount;
+        // 6) Validate swap based on mode
+        if (swapMode == SwapMode.EXACT_IN) {
+            // For EXACT_IN: verify we got at least minimum output
+            if (actualAmountOut < amountLimit) revert SlippageExceeded();
+            // Router shouldn't take more than specified
+            if (actualAmountIn > amountSpecified) revert RouterOverspent();
+        } else {
+            // For EXACT_OUT: verify we didn't spend more than maximum
+            if (actualAmountIn > amountLimit) revert SlippageExceeded();
+            // We should get at least the specified output
+            if (actualAmountOut < amountSpecified) revert InsufficientOutput();
+        }
         
-        if (userAmount < minAmountOut) revert SlippageExceeded();
-        if (actualAmountIn > amountIn) revert RouterOverspent(); // Router took more than authorized
+        // 6) Calculate fee and validate slippage
+        uint256 feeAmount = (actualAmountOut * SWAP_FEE_BP + FEE_DIVISOR - 1) / FEE_DIVISOR;
+        uint256 userAmount = actualAmountOut - feeAmount;
 
         // 7) Update accounting with actual amounts (handles fee-on-transfer)
         // Deduct actual input amount
@@ -531,16 +569,7 @@ abstract contract Withdrawals is Deposits {
         
         // Credit fee to treasury lockbox
         if (feeAmount > 0) {
-            if (tokenOut == address(0)) {
-                _ethBalances[TREASURY_LOCKBOX_ID] += feeAmount;
-            } else {
-                // Register token if new for treasury
-                if (_erc20Index[TREASURY_LOCKBOX_ID][tokenOut] == 0) {
-                    _erc20Index[TREASURY_LOCKBOX_ID][tokenOut] = _erc20TokenAddresses[TREASURY_LOCKBOX_ID].length + 1;
-                    _erc20TokenAddresses[TREASURY_LOCKBOX_ID].push(tokenOut);
-                }
-                _erc20Balances[TREASURY_LOCKBOX_ID][tokenOut] += feeAmount;
-            }
+            _creditToLockbox(TREASURY_LOCKBOX_ID, tokenOut, feeAmount);
         }
         
         // Credit user amount to recipient or lockbox
@@ -554,16 +583,7 @@ abstract contract Withdrawals is Deposits {
             }
         } else {
             // Credit to user's lockbox
-            if (tokenOut == address(0)) {
-                _ethBalances[tokenId] += userAmount;
-            } else {
-                // Register token if new for user
-                if (_erc20Index[tokenId][tokenOut] == 0) {
-                    _erc20Index[tokenId][tokenOut] = _erc20TokenAddresses[tokenId].length + 1;
-                    _erc20TokenAddresses[tokenId].push(tokenOut);
-                }
-                _erc20Balances[tokenId][tokenOut] += userAmount;
-            }
+            _creditToLockbox(tokenId, tokenOut, userAmount);
         }
 
         emit SwapExecuted(tokenId, referenceId);
@@ -637,6 +657,25 @@ abstract contract Withdrawals is Deposits {
     }
 
     /**
+     * @dev Internal helper to credit tokens to a lockbox.
+     * @param tokenId The lockbox token ID.
+     * @param token The token address (address(0) for ETH).
+     * @param amount Amount to credit.
+     */
+    function _creditToLockbox(uint256 tokenId, address token, uint256 amount) internal {
+        if (token == address(0)) {
+            _ethBalances[tokenId] += amount;
+        } else {
+            // Register token if new
+            if (_erc20Balances[tokenId][token] == 0) {
+                _erc20TokenAddresses[tokenId].push(token);
+                _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length - 1;
+            }
+            _erc20Balances[tokenId][token] += amount;
+        }
+    }
+
+    /**
      * @dev Check if a router is in the immutable allowlist.
      * @param router The router address to check.
      * @return bool True if the router is allowed.
@@ -655,6 +694,43 @@ abstract contract Withdrawals is Deposits {
             router == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
             // Cowswap GPv2Settlement
             router == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+    }
+
+    /**
+     * @dev Check if the calldata selector is allowed for swap operations.
+     * Prevents arbitrary function calls by whitelisting safe swap selectors.
+     * @param data The calldata to validate
+     * @return bool True if the selector is allowed for swaps
+     */
+    function _isAllowedSelector(bytes calldata data) private pure returns (bool) {
+        if (data.length < 4) return false;
+        
+        bytes4 selector = bytes4(data[:4]);
+        
+        return
+            // Uniswap V3 Router
+            selector == 0x04e45aaf || // exactInputSingle(address,address,uint24,address,uint256,uint256,uint160)
+            selector == 0x5023b4df || // exactOutputSingle(address,address,uint24,address,uint256,uint256,uint160)  
+            selector == 0xc04b8d59 || // exactInput
+            selector == 0xf28c0498 || // exactOutput
+            
+            // Uniswap Universal Router
+            selector == 0x3593564c || // execute(bytes,bytes[],uint256)
+            selector == 0x24856bc3 || // execute(bytes,bytes[])
+            
+            // 1inch v6 (AggregationRouterV6.swap(address,(..),bytes))
+            selector == 0x6b1ef56f || // swap(address,(...),bytes)
+            
+            // 0x Protocol (Exchange Proxy)
+            selector == 0x415565b0 || // transformERC20
+            selector == 0xd9627aa4 || // sellToUniswap
+            
+            // Paraswap Augustus
+            selector == 0x54e3f31b || // simpleSwap
+            selector == 0xa94e78ef || // multiSwap
+            
+            // CowSwap GPv2 Settlement
+            selector == 0x13d79a0b;   // settle
     }
 
     /**
