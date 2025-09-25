@@ -269,10 +269,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         bytes memory data = abi.encode(
-            tokenId,
             newMetadataURI,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -335,10 +333,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         bytes memory data = abi.encode(
-            tokenId,
             newPublicKey,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -381,7 +377,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
-        bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
+        bytes memory data = abi.encode(referenceId, signatureExpiry);
         verifySignature(
             tokenId,
             messageHash,
