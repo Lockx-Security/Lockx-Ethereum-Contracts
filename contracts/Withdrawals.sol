@@ -82,6 +82,9 @@ abstract contract Withdrawals is Deposits {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        
+        uint256 currentBal = _ethBalances[tokenId];
+        if (currentBal < amountETH) revert NoETHBalance();
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -137,6 +140,10 @@ abstract contract Withdrawals is Deposits {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        
+        mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
+        uint256 bal = balMap[tokenAddress];
+        if (bal < amount) revert InsufficientTokenBalance();
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -194,6 +201,9 @@ abstract contract Withdrawals is Deposits {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        
+        bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
+        if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -262,6 +272,26 @@ abstract contract Withdrawals is Deposits {
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length
         ) revert MismatchedInputs();
+        
+        // Check ETH balance
+        if (amountETH > 0) {
+            uint256 currentBal = _ethBalances[tokenId];
+            if (currentBal < amountETH) revert NoETHBalance();
+        }
+        
+        // Check ERC-20 balances
+        mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
+        for (uint256 i; i < tokenAddresses.length; ) {
+            if (balMap[tokenAddresses[i]] < tokenAmounts[i]) revert InsufficientTokenBalance();
+            unchecked { ++i; }
+        }
+        
+        // Check NFT ownership
+        for (uint256 i; i < nftContracts.length; ) {
+            bytes32 key = keccak256(abi.encodePacked(nftContracts[i], nftTokenIds[i]));
+            if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
+            unchecked { ++i; }
+        }
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -596,9 +626,7 @@ abstract contract Withdrawals is Deposits {
      * @param recipient Address to receive the ETH
      */
     function _withdrawETH(uint256 tokenId, uint256 amountETH, address recipient) internal {
-        uint256 currentBal = _ethBalances[tokenId];
-        if (currentBal < amountETH) revert NoETHBalance();
-        _ethBalances[tokenId] = currentBal - amountETH;
+        _ethBalances[tokenId] -= amountETH;
         
         (bool success, ) = payable(recipient).call{value: amountETH}('');
         if (!success) revert EthTransferFailed();
@@ -618,11 +646,9 @@ abstract contract Withdrawals is Deposits {
         address recipient
     ) internal {
         mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
-        uint256 bal = balMap[tokenAddress];
         
-        if (bal < amount) revert InsufficientTokenBalance();
         unchecked {
-            balMap[tokenAddress] = bal - amount;
+            balMap[tokenAddress] -= amount;
         }
         
         if (balMap[tokenAddress] == 0) {
@@ -647,7 +673,6 @@ abstract contract Withdrawals is Deposits {
         address recipient
     ) internal {
         bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
-        if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
         
         delete _lockboxNftData[tokenId][key];
         _removeNFTKey(tokenId, key);
