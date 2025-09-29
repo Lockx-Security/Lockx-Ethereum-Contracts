@@ -509,14 +509,15 @@ abstract contract Withdrawals is Deposits {
         uint256 actualAmountIn = balanceInBefore - balanceInAfter;
         uint256 amountOut = balanceOutAfter - balanceOutBefore;
 
-        // 6) Calculate fee and validate slippage
+        // 6) Validate slippage
+        if (amountOut < minAmountOut) revert SlippageExceeded();
+        if (actualAmountIn > amountIn) revert RouterOverspent(); // Router took more than authorized
+        
+        // 7) Calculate fee
         uint256 feeAmount = (amountOut * SWAP_FEE_BP + FEE_DIVISOR - 1) / FEE_DIVISOR;
         uint256 userAmount = amountOut - feeAmount;
-        
-        if (userAmount < minAmountOut) revert SlippageExceeded();
-        if (actualAmountIn > amountIn) revert RouterOverspent(); // Router took more than authorized
 
-        // 7) Update accounting with actual amounts (handles fee-on-transfer)
+        // 8) Update accounting with actual amounts (handles fee-on-transfer)
         // Deduct actual input amount
         if (tokenIn == address(0)) {
             _ethBalances[tokenId] -= actualAmountIn;
