@@ -31,6 +31,7 @@ abstract contract Withdrawals is Deposits {
     /* ───────── Treasury Constants ───────── */
     uint256 public constant TREASURY_LOCKBOX_ID = 0;
     uint256 public constant SWAP_FEE_BP = 20; // 0.2% fee
+    uint256 public constant SWAP_FEE_BP = 10;
     uint256 private constant FEE_DIVISOR = 10000;
 
 
@@ -51,6 +52,7 @@ abstract contract Withdrawals is Deposits {
     error RouterOverspent();
     error InsufficientOutput();
     error DuplicateEntry();
+    error UnsortedArray();
     error InvalidRecipient();
     error UnauthorizedRouter();
     error UnauthorizedSelector();
@@ -60,6 +62,22 @@ abstract contract Withdrawals is Deposits {
     mapping(bytes32 => uint256) private _seenEpoch;
     uint256 private _currentEpoch = 1;
 
+    /* ───────── Static router allowlist (mainnet) ───────── */
+    function _isAllowedRouter(address target) private pure returns (bool) {
+        return
+            // Uniswap V3 SwapRouter02
+            target == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
+            // Uniswap Universal Router
+            target == 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B ||
+            // 1inch Aggregation Router v6
+            target == 0x111111125421cA6dc452d289314280a0f8842A65 ||
+            // 0x Exchange Proxy
+            target == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
+            // Paraswap Augustus
+            target == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
+            // CowSwap GPv2 Settlement
+            target == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+    }
 
     /* ─────────────────── Lockbox withdrawals ───────────────────── */
 
@@ -90,7 +108,9 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
+        if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -151,7 +171,9 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
+        if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -224,6 +246,7 @@ abstract contract Withdrawals is Deposits {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -277,6 +300,9 @@ abstract contract Withdrawals is Deposits {
      * - `block.timestamp` must be ≤ `signatureExpiry`.
      * - `tokenAddresses.length` must equal `tokenAmounts.length`.
      * - `nftContracts.length` must equal `nftTokenIds.length`.
+     * - `tokenAddresses` must be sorted in strictly ascending order (no duplicates).
+     * - NFT pairs `(nftContract, nftTokenId)` must be sorted in strictly ascending lexicographic order
+     *   by `(nftContract, nftTokenId)` (no duplicates).
      * - Lockbox must have ≥ `amountETH` ETH and sufficient balances for each asset.
      */
     function batchWithdraw(
@@ -294,11 +320,13 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
+        if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         if (
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length
         ) revert MismatchedInputs();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify
         bytes memory data = abi.encode(
@@ -331,56 +359,60 @@ abstract contract Withdrawals is Deposits {
             if (!success) revert EthTransferFailed();
         }
 
-        // — ERC-20s —
-        mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
-        
-        // Use epoch-based O(n) duplicate detection
-        uint256 epoch = ++_currentEpoch;
-        
+        // — ERC-20s — enforce strictly increasing addresses (no duplicates)
+        mapping(address => uint256) storage lockboxTokenBalances = _erc20Balances[tokenId];
+        address previousTokenAddress;
+        bool hasPreviousTokenAddress;
         for (uint256 i; i < tokenAddresses.length; ) {
-            address tok = tokenAddresses[i];
-            uint256 amt = tokenAmounts[i];
-            
-            // Check for duplicates in O(1) using epoch
-            bytes32 tokenKey = keccak256(abi.encode(tok));
-            if (_seenEpoch[tokenKey] == epoch) revert DuplicateEntry();
-            _seenEpoch[tokenKey] = epoch;
-            
-            uint256 bal = balMap[tok];
+            address tokenAddress = tokenAddresses[i];
+            uint256 tokenAmount = tokenAmounts[i];
 
-            if (bal < amt) revert InsufficientTokenBalance();
+            if (hasPreviousTokenAddress) {
+                if (uint256(uint160(tokenAddress)) <= uint256(uint160(previousTokenAddress))) revert UnsortedArray();
+            } else {
+                hasPreviousTokenAddress = true;
+            }
+
+            uint256 currentBalance = lockboxTokenBalances[tokenAddress];
+            if (currentBalance < tokenAmount) revert InsufficientTokenBalance();
             unchecked {
-                balMap[tok] = bal - amt;
+                lockboxTokenBalances[tokenAddress] = currentBalance - tokenAmount;
             }
 
-            if (balMap[tok] == 0) {
-                delete balMap[tok];
-                _removeERC20Token(tokenId, tok);
+            if (lockboxTokenBalances[tokenAddress] == 0) {
+                delete lockboxTokenBalances[tokenAddress];
+                _removeERC20Token(tokenId, tokenAddress);
             }
 
-            IERC20(tok).safeTransfer(recipient, amt);
-            unchecked {
-                ++i;
-            }
+            IERC20(tokenAddress).safeTransfer(recipient, tokenAmount);
+            previousTokenAddress = tokenAddress;
+            unchecked { ++i; }
         }
 
-        // — ERC-721s —        
+        // — ERC-721s — enforce strictly increasing lexicographic order by (contract, tokenId)
+        address previousNftContract;
+        uint256 previousNftTokenId;
+        bool hasPreviousNft;
         for (uint256 i; i < nftContracts.length; ) {
-            bytes32 key = keccak256(abi.encodePacked(nftContracts[i], nftTokenIds[i]));
-            
-            // Check for duplicates in O(1) using epoch
-            if (_seenEpoch[key] == epoch) revert DuplicateEntry();
-            _seenEpoch[key] = epoch;
-            
+            address nftContract = nftContracts[i];
+            uint256 nftTokenId = nftTokenIds[i];
+
+            if (hasPreviousNft) {
+                if (nftContract < previousNftContract || (nftContract == previousNftContract && nftTokenId <= previousNftTokenId)) revert UnsortedArray();
+            } else {
+                hasPreviousNft = true;
+            }
+
+            bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
             if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
 
             delete _lockboxNftData[tokenId][key];
             _removeNFTKey(tokenId, key);
 
-            IERC721(nftContracts[i]).safeTransferFrom(address(this), recipient, nftTokenIds[i]);
-            unchecked {
-                ++i;
-            }
+            IERC721(nftContract).safeTransferFrom(address(this), recipient, nftTokenId);
+            previousNftContract = nftContract;
+            previousNftTokenId = nftTokenId;
+            unchecked { ++i; }
         }
 
         emit Withdrawn(tokenId, referenceId);
@@ -655,7 +687,7 @@ abstract contract Withdrawals is Deposits {
             }
         }
     }
-
+    
     /**
      * @dev Internal helper to credit tokens to a lockbox.
      * @param tokenId The lockbox token ID.
