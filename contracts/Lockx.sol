@@ -112,6 +112,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /**
      * @notice Mint a new Lockbox and deposit ERC20 tokens.
+     * @dev Warning: Rebasing tokens are supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param tokenAddress The ERC20 token contract address to deposit.
@@ -185,6 +188,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /**
      * @notice Mint a new Lockbox and perform a batch deposit of ETH, ERC20s, and ERC721s.
+     * @dev Warning: Rebasing tokens are not supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param amountETH The amount of ETH to deposit.
