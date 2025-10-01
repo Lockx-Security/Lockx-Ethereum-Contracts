@@ -43,8 +43,10 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error TransfersDisabled();
     error UseDepositETH();
     error FallbackNotAllowed();
+    error DirectETHTransferNotAllowed();
     error SelfMintOnly();
     error LockboxNotEmpty();
+    error DuplicateKey();
 
 
     /* ───────────────────────── Metadata storage ────────────────────────── */
@@ -63,8 +65,16 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /**
      * @dev Deploys the contract and initializes the EIP-712 domain used for
      *      signature authorization in SignatureVerification.
+     *      Creates the treasury lockbox (tokenId=0) and assigns it to the deployer.
      */
-    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {}
+    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {
+        // Mint the treasury lockbox (tokenId = 0) to the deployer
+        uint256 treasuryTokenId = _nextId++;
+        initialize(treasuryTokenId, msg.sender); // Use deployer address as initial treasury key (can be rotated later)
+        _mint(msg.sender, treasuryTokenId);
+        emit Locked(treasuryTokenId);
+        emit Minted(treasuryTokenId, bytes32(0));
+    }
 
 
     /* ───────────────────────── Minting + wrapping flows ───────────────────────── */
@@ -92,7 +102,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
 
         // 3) Interactions
@@ -104,6 +114,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /**
      * @notice Mint a new Lockbox and deposit ERC20 tokens.
+     * @dev Warning: Rebasing tokens are supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param tokenAddress The ERC20 token contract address to deposit.
@@ -130,7 +143,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -165,7 +178,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -177,6 +190,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /**
      * @notice Mint a new Lockbox and perform a batch deposit of ETH, ERC20s, and ERC721s.
+     * @dev Warning: Rebasing tokens are not supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param amountETH The amount of ETH to deposit.
@@ -210,10 +226,15 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             nftContracts.length != nftTokenIds.length
         ) revert ArrayLengthMismatch();
         if (msg.value != amountETH) revert EthValueMismatch();
+        
+        // Prevent empty lockbox creation - at least one asset must be provided
+        if (amountETH == 0 && tokenAddresses.length == 0 && nftContracts.length == 0) {
+            revert ZeroAmount();
+        }
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -267,12 +288,11 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         if (ownerOf(tokenId) != msg.sender) revert NotOwner();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         bytes memory data = abi.encode(
-            tokenId,
             newMetadataURI,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -334,11 +354,15 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
+        _verifyReferenceId(tokenId, referenceId);
+        
+        // Check that the new key is different from the current key
+        if (_getActiveLockboxPublicKey(tokenId) == newPublicKey) revert DuplicateKey();
+
+
         bytes memory data = abi.encode(
-            tokenId,
             newPublicKey,
             referenceId,
-            msg.sender,
             signatureExpiry
         );
         verifySignature(
@@ -380,8 +404,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
-        bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
+        bytes memory data = abi.encode(referenceId, signatureExpiry);
         verifySignature(
             tokenId,
             messageHash,
@@ -462,11 +487,15 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /* ───────────────────────── Fallback handlers ───────────────────────── */
     
     /**
-     * @notice Receive ETH from swaps and other legitimate sources.
-     * @dev Empty by design - accounting handled by calling functions.
+     * @notice Receive ETH only from allowed routers.
+     * @dev Prevents orphaned ETH from direct transfers.
+     *      Legitimate ETH comes through deposit functions routers.
      */
     receive() external payable {
-        // Accept ETH transfers - accounting handled by caller
+        // Only accept ETH from allowed routers
+        if (!_isAllowedRouter(msg.sender)) {
+            revert DirectETHTransferNotAllowed();
+        }
     }
     
     fallback() external {
