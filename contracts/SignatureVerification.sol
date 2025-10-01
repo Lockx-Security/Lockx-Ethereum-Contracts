@@ -202,5 +202,13 @@ contract SignatureVerification is EIP712 {
      */
     function _getReferenceId(uint256 tokenId) internal view returns (bytes32) {
         return _tokenAuth[tokenId].referenceId;
+
+     * @dev Internal function to get the current active key for a Lockbox.
+     * @param tokenId The ID of the Lockbox.
+     * @return The currently active Lockbox public key.
+     */
+    function _getActiveLockboxPublicKey(uint256 tokenId) internal view returns (address) {
+        return _tokenAuth[tokenId].activeLockboxPublicKey;
+
     }
 }
