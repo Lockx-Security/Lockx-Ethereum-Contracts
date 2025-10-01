@@ -24,7 +24,8 @@ abstract contract Withdrawals is Deposits {
 
     /* ───────── Treasury Constants ───────── */
     uint256 public constant TREASURY_LOCKBOX_ID = 0;
-    uint256 public constant SWAP_FEE_BP = 20; // 0.2% fee
+    uint256 public constant SWAP_FEE_BP = 10;
+    uint256 private constant FEE_DIVISOR = 10000;
 
 
     /* ───────── Events ───────── */
@@ -45,11 +46,29 @@ abstract contract Withdrawals is Deposits {
     error DuplicateEntry();
     error InvalidRecipient();
     error UnauthorizedRouter();
+    error UnauthorizedSelector();
 
 
     /* ───────── Storage for O(n) duplicate detection ───────── */
     mapping(bytes32 => uint256) private _seenEpoch;
     uint256 private _currentEpoch = 1;
+
+    /* ───────── Static router allowlist (mainnet) ───────── */
+    function _isAllowedRouter(address target) private pure returns (bool) {
+        return
+            // Uniswap V3 SwapRouter02
+            target == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
+            // Uniswap Universal Router
+            target == 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B ||
+            // 1inch Aggregation Router v6
+            target == 0x111111125421cA6dc452d289314280a0f8842A65 ||
+            // 0x Exchange Proxy
+            target == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
+            // Paraswap Augustus
+            target == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
+            // CowSwap GPv2 Settlement
+            target == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+    }
 
 
     /* ─────────────────── Lockbox withdrawals ───────────────────── */
@@ -81,6 +100,7 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
+        if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         // 1) Verify
@@ -142,6 +162,7 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
+        if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         // 1) Verify
@@ -285,6 +306,7 @@ abstract contract Withdrawals is Deposits {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (recipient == address(0)) revert ZeroAddress();
+        if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         if (
             tokenAddresses.length != tokenAmounts.length ||
@@ -419,12 +441,11 @@ abstract contract Withdrawals is Deposits {
         if (target == address(0)) revert ZeroAddress();
         if (amountIn == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
-        
-        // Only allow hardcoded immutable routers
-        if (!_isAllowedRouter(target)) {
-            revert UnauthorizedRouter();
-        }
 
+        // Validate router and calldata selector
+        if (!_isAllowedRouter(target)) revert UnauthorizedRouter();
+        if (!_isAllowedSelector(data)) revert UnauthorizedSelector();
+        
         // 1) Verify signature
         bytes memory authData = abi.encode(
             tokenId,
@@ -508,14 +529,15 @@ abstract contract Withdrawals is Deposits {
         uint256 actualAmountIn = balanceInBefore - balanceInAfter;
         uint256 amountOut = balanceOutAfter - balanceOutBefore;
 
-        // 6) Calculate fee and validate slippage
-        uint256 feeAmount = (amountOut * SWAP_FEE_BP) / 10000;
-        uint256 userAmount = amountOut - feeAmount;
-        
-        if (userAmount < minAmountOut) revert SlippageExceeded();
+        // 6) Validate slippage
+        if (amountOut < minAmountOut) revert SlippageExceeded();
         if (actualAmountIn > amountIn) revert RouterOverspent(); // Router took more than authorized
+        
+        // 7) Calculate fee
+        uint256 feeAmount = (amountOut * SWAP_FEE_BP + FEE_DIVISOR - 1) / FEE_DIVISOR;
+        uint256 userAmount = amountOut - feeAmount;
 
-        // 7) Update accounting with actual amounts (handles fee-on-transfer)
+        // 8) Update accounting with actual amounts (handles fee-on-transfer)
         // Deduct actual input amount
         if (tokenIn == address(0)) {
             _ethBalances[tokenId] -= actualAmountIn;
@@ -635,49 +657,41 @@ abstract contract Withdrawals is Deposits {
             }
         }
     }
-
+    
     /**
-     * @dev Check if a router is in the immutable allowlist.
-     * @param router The router address to check.
-     * @return bool True if the router is allowed.
+     * @dev Check if the calldata selector is allowed for swap operations.
+     * Prevents arbitrary function calls by whitelisting safe swap selectors.
+     * @param data The calldata to validate
+     * @return bool True if the selector is allowed for swaps
      */
-    function _isAllowedRouter(address router) internal pure returns (bool) {
+    function _isAllowedSelector(bytes calldata data) private pure returns (bool) {
+        if (data.length < 4) return false;
+        
+        bytes4 selector = bytes4(data[:4]);
+        
         return
-            // Uniswap Universal Router (standard - supports V2/V3/V4)
-            router == 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD ||
-            // Uniswap V4 Universal Router (V4-specific)
-            router == 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af ||
-            // 1inch v6 Aggregation Router (latest)
-            router == 0x111111125421cA6dc452d289314280a0f8842A65 ||
-            // 0x Exchange Proxy
-            router == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
-            // Paraswap v5 Augustus Swapper
-            router == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
-            // Cowswap GPv2Settlement
-            router == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
-    }
-
-    /**
-     * @notice Get list of all allowed routers (for transparency).
-     * @return address[] Array of allowed router addresses.
-     */
-    function getAllowedRouters() external pure returns (address[] memory) {
-        address[] memory routers = new address[](6);
-        routers[0] = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD; // Uniswap Universal Router
-        routers[1] = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af; // Uniswap V4 Universal Router
-        routers[2] = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
-        routers[3] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x
-        routers[4] = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57; // Paraswap
-        routers[5] = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41; // Cowswap
-        return routers;
-    }
-
-    /**
-     * @notice Check if a router is allowed (public helper).
-     * @param router The router address to check.
-     * @return bool True if the router is allowed.
-     */
-    function isAllowedRouter(address router) external pure returns (bool) {
-        return _isAllowedRouter(router);
+            // Uniswap V3 Router
+            selector == 0x04e45aaf || // exactInputSingle(address,address,uint24,address,uint256,uint256,uint160)
+            selector == 0x5023b4df || // exactOutputSingle(address,address,uint24,address,uint256,uint256,uint160)  
+            selector == 0xc04b8d59 || // exactInput
+            selector == 0xf28c0498 || // exactOutput
+            
+            // Uniswap Universal Router
+            selector == 0x3593564c || // execute(bytes,bytes[],uint256)
+            selector == 0x24856bc3 || // execute(bytes,bytes[])
+            
+            // 1inch v6 (AggregationRouterV6.swap(address,(..),bytes))
+            selector == 0x6b1ef56f || // swap(address,(...),bytes)
+            
+            // 0x Protocol (Exchange Proxy)
+            selector == 0x415565b0 || // transformERC20
+            selector == 0xd9627aa4 || // sellToUniswap
+            
+            // Paraswap Augustus
+            selector == 0x54e3f31b || // simpleSwap
+            selector == 0xa94e78ef || // multiSwap
+            
+            // CowSwap GPv2 Settlement
+            selector == 0x13d79a0b;   // settle
     }
 }

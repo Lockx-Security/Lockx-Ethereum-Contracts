@@ -64,8 +64,16 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /**
      * @dev Deploys the contract and initializes the EIP-712 domain used for
      *      signature authorization in SignatureVerification.
+     *      Creates the treasury lockbox (tokenId=0) and assigns it to the deployer.
      */
-    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {}
+    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {
+        // Mint the treasury lockbox (tokenId = 0) to the deployer
+        uint256 treasuryTokenId = _nextId++;
+        initialize(treasuryTokenId, msg.sender); // Use deployer address as initial treasury key (can be rotated later)
+        _mint(msg.sender, treasuryTokenId);
+        emit Locked(treasuryTokenId);
+        emit Minted(treasuryTokenId, bytes32(0));
+    }
 
 
     /* ───────────────────────── Minting + wrapping flows ───────────────────────── */
@@ -105,6 +113,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /**
      * @notice Mint a new Lockbox and deposit ERC20 tokens.
+     * @dev Warning: Rebasing tokens are supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param tokenAddress The ERC20 token contract address to deposit.
@@ -178,6 +189,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
     /**
      * @notice Mint a new Lockbox and perform a batch deposit of ETH, ERC20s, and ERC721s.
+     * @dev Warning: Rebasing tokens are not supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param amountETH The amount of ETH to deposit.
@@ -211,6 +225,11 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             nftContracts.length != nftTokenIds.length
         ) revert ArrayLengthMismatch();
         if (msg.value != amountETH) revert EthValueMismatch();
+        
+        // Prevent empty lockbox creation - at least one asset must be provided
+        if (amountETH == 0 && tokenAddresses.length == 0 && nftContracts.length == 0) {
+            revert ZeroAmount();
+        }
 
         // 2) Effects
         uint256 tokenId = _nextId++;
