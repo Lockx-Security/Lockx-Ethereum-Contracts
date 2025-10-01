@@ -102,7 +102,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
 
         // 3) Interactions
@@ -143,7 +143,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -178,7 +178,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -234,7 +234,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
+        initialize(tokenId, lockboxPublicKey, referenceId);
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -288,6 +288,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (_ownerOf(tokenId) == address(0)) revert NonexistentToken();
         if (ownerOf(tokenId) != msg.sender) revert NotOwner();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         bytes memory data = abi.encode(
             tokenId,
@@ -354,9 +355,12 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+
+        _verifyReferenceId(tokenId, referenceId);
         
         // Check that the new key is different from the current key
         if (_getActiveLockboxPublicKey(tokenId) == newPublicKey) revert DuplicateKey();
+
 
         bytes memory data = abi.encode(
             tokenId,
@@ -404,6 +408,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     ) external nonReentrant {
         _requireOwnsLockbox(tokenId);
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        _verifyReferenceId(tokenId, referenceId);
 
         bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
         verifySignature(
