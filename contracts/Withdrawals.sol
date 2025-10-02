@@ -691,10 +691,10 @@ abstract contract Withdrawals is Deposits {
             }
         }
         nftContracts = new nftBalances[](count);
-        uint256 idx;
+        uint256 index;
         for (uint256 i; i < nftList.length; ) {
             if (_lockboxNftData[tokenId][nftList[i]].nftContract != address(0)) {
-                nftContracts[idx++] = _lockboxNftData[tokenId][nftList[i]];
+                nftContracts[index++] = _lockboxNftData[tokenId][nftList[i]];
             }
             unchecked {
                 ++i;
