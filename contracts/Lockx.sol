@@ -41,7 +41,6 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error DefaultURIAlreadySet();
     error NoURI();
     error TransfersDisabled();
-    error UseDepositETH();
     error FallbackNotAllowed();
     error DirectETHTransferNotAllowed();
     error SelfMintOnly();
@@ -102,6 +101,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
         
         // Deposit ETH
+
         _depositETH(tokenId, msg.value);
     }
 
@@ -134,7 +134,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey, referenceId);
+        _initialize(tokenId, lockboxPublicKey);
+        
         _mint(to, tokenId);
         
         // Create lockbox using helper
@@ -164,6 +165,12 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     ) external nonReentrant {
         // Check NFT contract is valid
         if (nftContract == address(0)) revert ZeroTokenAddress();
+
+        // 2) Effects
+        uint256 tokenId = _nextId++;
+        _initialize(tokenId, lockboxPublicKey);
+
+        _mint(to, tokenId);
         
         // Create lockbox using helper
         uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
@@ -211,7 +218,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         
         // Create lockbox using helper
         uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
-        
+
         // Batch deposit
         _batchDeposit(tokenId, amountETH, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
     }
@@ -267,7 +274,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -322,8 +329,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         address newPublicKey,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         _verifyReferenceId(tokenId, referenceId);
@@ -337,7 +343,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -373,13 +379,13 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         bytes memory signature,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         _verifyReferenceId(tokenId, referenceId);
 
-        bytes memory data = abi.encode(referenceId, signatureExpiry);
-        verifySignature(
+        bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
+        _verifySignature(
+
             tokenId,
             messageHash,
             signature,

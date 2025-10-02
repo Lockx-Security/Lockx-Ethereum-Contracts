@@ -105,8 +105,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -126,7 +125,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -167,8 +166,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -187,7 +185,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -228,8 +226,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -247,7 +244,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -299,8 +296,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -342,7 +338,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -458,8 +454,7 @@ abstract contract Withdrawals is Deposits {
         bytes32 referenceId,
         uint256 signatureExpiry,
         address recipient
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         if (amountSpecified == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
@@ -481,7 +476,7 @@ abstract contract Withdrawals is Deposits {
             signatureExpiry,
             recipient
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -522,25 +517,14 @@ abstract contract Withdrawals is Deposits {
         }
 
         // 4) Execute swap with approval
-        uint256 approvalAmount;
-        uint256 ethValue;
-        
-        if (swapMode == SwapMode.EXACT_IN) {
-            approvalAmount = amountSpecified;
-            ethValue = (tokenIn == address(0)) ? amountSpecified : 0;
-        } else {
-            // For EXACT_OUT, approve the maximum we're willing to spend
-            approvalAmount = amountLimit;
-            ethValue = (tokenIn == address(0)) ? amountLimit : 0;
-        }
-        
         if (tokenIn != address(0)) {
-            IERC20(tokenIn).forceApprove(target, approvalAmount);
+            IERC20(tokenIn).forceApprove(target, amountIn);
+
         }
         
         (bool success,) = target.call{value: ethValue}(data);
         
-        // Clean up approval
+        // Clean up approval  
         if (tokenIn != address(0)) {
             IERC20(tokenIn).approve(target, 0);
         }
@@ -675,10 +659,10 @@ abstract contract Withdrawals is Deposits {
             }
         }
         nftContracts = new nftBalances[](count);
-        uint256 idx;
+        uint256 index;
         for (uint256 i; i < nftList.length; ) {
             if (_lockboxNftData[tokenId][nftList[i]].nftContract != address(0)) {
-                nftContracts[idx++] = _lockboxNftData[tokenId][nftList[i]];
+                nftContracts[index++] = _lockboxNftData[tokenId][nftList[i]];
             }
             unchecked {
                 ++i;
