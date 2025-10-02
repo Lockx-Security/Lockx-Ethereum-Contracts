@@ -538,25 +538,14 @@ abstract contract Withdrawals is Deposits {
         }
 
         // 4) Execute swap with approval
-        uint256 approvalAmount;
-        uint256 ethValue;
-        
-        if (swapMode == SwapMode.EXACT_IN) {
-            approvalAmount = amountSpecified;
-            ethValue = (tokenIn == address(0)) ? amountSpecified : 0;
-        } else {
-            // For EXACT_OUT, approve the maximum we're willing to spend
-            approvalAmount = amountLimit;
-            ethValue = (tokenIn == address(0)) ? amountLimit : 0;
-        }
-        
         if (tokenIn != address(0)) {
-            IERC20(tokenIn).forceApprove(target, approvalAmount);
+            IERC20(tokenIn).forceApprove(target, amountIn);
+
         }
         
         (bool success,) = target.call{value: ethValue}(data);
         
-        // Clean up approval
+        // Clean up approval  
         if (tokenIn != address(0)) {
             IERC20(tokenIn).approve(target, 0);
         }
