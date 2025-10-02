@@ -84,7 +84,6 @@ abstract contract Withdrawals is Deposits {
     /*
      * @notice Withdraw ETH from a Lockbox, authorized via EIP-712 signature.
      * @param tokenId         The ID of the Lockbox.
-     * @param messageHash     The EIP-712 digest that was signed.
      * @param signature       The EIP-712 signature by the active Lockbox key.
      * @param amountETH       The amount of ETH to withdraw.
      * @param recipient       The address receiving the ETH.
@@ -99,7 +98,6 @@ abstract contract Withdrawals is Deposits {
      */
     function withdrawETH(
         uint256 tokenId,
-        bytes32 messageHash,
         bytes memory signature,
         uint256 amountETH,
         address recipient,
@@ -127,7 +125,6 @@ abstract contract Withdrawals is Deposits {
         );
         _verifySignature(
             tokenId,
-            messageHash,
             signature,
             address(0),
             OperationType.WITHDRAW_ETH,
@@ -143,7 +140,6 @@ abstract contract Withdrawals is Deposits {
     /*
      * @notice Withdraw an ERC-20 token from a Lockbox, authorized via EIP-712 signature.
      * @param tokenId         The ID of the Lockbox.
-     * @param messageHash     The EIP-712 digest that was signed.
      * @param signature       The EIP-712 signature by the active Lockbox key.
      * @param tokenAddress    The ERC-20 token address to withdraw.
      * @param amount          The amount of tokens to withdraw.
@@ -159,7 +155,6 @@ abstract contract Withdrawals is Deposits {
      */
     function withdrawERC20(
         uint256 tokenId,
-        bytes32 messageHash,
         bytes memory signature,
         address tokenAddress,
         uint256 amount,
@@ -187,7 +182,6 @@ abstract contract Withdrawals is Deposits {
         );
         _verifySignature(
             tokenId,
-            messageHash,
             signature,
             address(0),
             OperationType.WITHDRAW_ERC20,
@@ -203,7 +197,6 @@ abstract contract Withdrawals is Deposits {
     /*
      * @notice Withdraw an ERC-721 token from a Lockbox, authorized via EIP-712 signature.
      * @param tokenId         The ID of the Lockbox.
-     * @param messageHash     The EIP-712 digest that was signed.
      * @param signature       The EIP-712 signature by the active Lockbox key.
      * @param nftContract     The ERC-721 contract address to withdraw.
      * @param nftTokenId      The token ID of the ERC-721 to withdraw.
@@ -219,7 +212,6 @@ abstract contract Withdrawals is Deposits {
      */
     function withdrawERC721(
         uint256 tokenId,
-        bytes32 messageHash,
         bytes memory signature,
         address nftContract,
         uint256 nftTokenId,
@@ -246,7 +238,6 @@ abstract contract Withdrawals is Deposits {
         );
         _verifySignature(
             tokenId,
-            messageHash,
             signature,
             address(0),
             OperationType.WITHDRAW_NFT,
@@ -262,7 +253,6 @@ abstract contract Withdrawals is Deposits {
     /*
      * @notice Batch withdrawal of ETH, ERC-20s, and ERC-721s with a single signature.
      * @param tokenId         The ID of the Lockbox.
-     * @param messageHash     The EIP-712 digest that was signed.
      * @param signature       The EIP-712 signature by the active Lockbox key.
      * @param amountETH       The amount of ETH to withdraw.
      * @param tokenAddresses  The list of ERC-20 token addresses to withdraw.
@@ -286,7 +276,6 @@ abstract contract Withdrawals is Deposits {
      */
     function batchWithdraw(
         uint256 tokenId,
-        bytes32 messageHash,
         bytes memory signature,
         uint256 amountETH,
         address[] calldata tokenAddresses,
@@ -340,7 +329,6 @@ abstract contract Withdrawals is Deposits {
         );
         _verifySignature(
             tokenId,
-            messageHash,
             signature,
             address(0),
             OperationType.BATCH_WITHDRAW,
@@ -417,7 +405,6 @@ abstract contract Withdrawals is Deposits {
     /*
      * @notice Execute an asset swap within a Lockbox, authorized via EIP-712 signature.
      * @param tokenId         The ID of the Lockbox.
-     * @param messageHash     The EIP-712 digest that was signed.
      * @param signature       The EIP-712 signature by the active Lockbox key.
      * @param tokenIn         The input token address (address(0) for ETH).
      * @param tokenOut        The output token address (address(0) for ETH).
@@ -442,7 +429,6 @@ abstract contract Withdrawals is Deposits {
      */
     function swapInLockbox(
         uint256 tokenId,
-        bytes32 messageHash,
         bytes memory signature,
         address tokenIn,
         address tokenOut,
@@ -478,7 +464,6 @@ abstract contract Withdrawals is Deposits {
         );
         _verifySignature(
             tokenId,
-            messageHash,
             signature,
             address(0),
             OperationType.SWAP_ASSETS,

@@ -31,7 +31,6 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     error ZeroAddress();
     error ZeroAmount();
     error MismatchedInputs();
-    error ETHMismatch();
 
 
     /* ───────── Storage ───────── */
@@ -151,7 +150,6 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      *      balances at deposit/withdrawal only and does not account for supply changes.
      *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param tokenId           The ID of the Lockbox.
-     * @param amountETH         ETH amount (`msg.value` must match).
      * @param tokenAddresses    ERC-20 token addresses to deposit.
      * @param tokenAmounts      Corresponding ERC-20 amounts.
      * @param nftContracts      ERC-721 contract addresses to deposit.
@@ -160,30 +158,30 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      *
      * Requirements:
      * - Caller must own the Lockbox.
-     * - At least one asset type must be deposited (ETH, ERC-20, or ERC-721).
-     * - `msg.value` must equal `amountETH`.
+     * - At least one asset type must be deposited (ETH via msg.value, ERC-20, or ERC-721).
      * - `tokenAddresses` and `tokenAmounts` arrays must have equal length.
      * - `nftContracts` and `nftTokenIds` arrays must have equal length.
      */
     function batchDeposit(
         uint256 tokenId,
-        uint256 amountETH,
         address[] calldata tokenAddresses,
         uint256[] calldata tokenAmounts,
         address[] calldata nftContracts,
         uint256[] calldata nftTokenIds,
         bytes32 referenceId
-    ) external payable nonReentrant onlyLockboxOwner(tokenId) {
-        if (amountETH == 0 && tokenAddresses.length == 0 && nftContracts.length == 0)
+    ) external payable nonReentrant {
+        if (msg.value == 0 && tokenAddresses.length == 0 && nftContracts.length == 0)
             revert ZeroAmount();
-        if (msg.value != amountETH) revert ETHMismatch();
+
+        _requireOwnsLockbox(tokenId);
+
         if (
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length
         ) revert MismatchedInputs();
         _verifyReferenceId(tokenId, referenceId);
 
-        _batchDeposit(tokenId, amountETH, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
+        _batchDeposit(tokenId, msg.value, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
         emit Deposited(tokenId, referenceId);
     }
 

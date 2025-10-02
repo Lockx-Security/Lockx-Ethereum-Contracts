@@ -51,7 +51,6 @@ contract SignatureVerification is EIP712 {
 
     /* ─────────────────── Errors ────────────────────── */
     error NotOwner();
-    error InvalidMessageHash();
     error InvalidSignature();
     error AlreadyInitialized();
     error ZeroKey();
@@ -105,21 +104,18 @@ contract SignatureVerification is EIP712 {
     /**
      * @notice Verifies an EIP‑712 signature for a specific operation.
      * @param tokenId The ID of the Lockbox.
-     * @param messageHash The EIP‑712 digest that was signed.
      * @param signature The Lockbox private key signature to verify.
      * @param newLockboxPublicKey The new Lockbox public key (if rotating the key).
      * @param opType The operation being authorized.
      * @param data Encoded parameters for the specific operation.
      *
      * Requirements:
-     * - The EIP-712 message digest must match `messageHash`.
      * - The signature must be valid for the current, active Lockbox public key.
      * - On successful verification, the nonce increments.
      * - If `opType` is `ROTATE_KEY`, the Lockbox public key is updated to `newLockboxPublicKey`.
      */
     function _verifySignature(
         uint256 tokenId,
-        bytes32 messageHash,
         bytes memory signature,
         address newLockboxPublicKey,
         OperationType opType,
@@ -127,16 +123,10 @@ contract SignatureVerification is EIP712 {
     ) internal {
         TokenAuth storage tokenAuth = _tokenAuth[tokenId];
 
-        // Compute the hash of the operation data.
-        bytes32 dataHash = keccak256(data);
         bytes32 structHash = keccak256(
-            abi.encode(OPERATION_TYPEHASH, tokenId, tokenAuth.nonce, uint8(opType), dataHash)
+            abi.encode(OPERATION_TYPEHASH, tokenId, tokenAuth.nonce, uint8(opType), keccak256(data))
         );
         bytes32 expectedHash = _hashTypedDataV4(structHash);
-
-        if (messageHash != expectedHash) {
-            revert InvalidMessageHash();
-        }
 
         address signer = expectedHash.recover(signature);
         if (signer != tokenAuth.activeLockboxPublicKey) {
