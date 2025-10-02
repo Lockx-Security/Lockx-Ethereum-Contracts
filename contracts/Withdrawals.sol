@@ -109,6 +109,9 @@ abstract contract Withdrawals is Deposits {
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        
+        uint256 currentBal = _ethBalances[tokenId];
+        if (currentBal < amountETH) revert NoETHBalance();
 
         uint256 currentBal = _ethBalances[tokenId];
         if (currentBal < amountETH) revert NoETHBalance();
@@ -131,12 +134,8 @@ abstract contract Withdrawals is Deposits {
             data
         );
 
-        // 2) Effects
-        _ethBalances[tokenId] = currentBal - amountETH;
-
-        // 3) Interaction
-        (bool success, ) = payable(recipient).call{value: amountETH}('');
-        if (!success) revert EthTransferFailed();
+        // 2) Effects + Interaction
+        _withdrawETH(tokenId, amountETH, recipient);
 
         emit Withdrawn(tokenId, referenceId);
     }
@@ -195,19 +194,8 @@ abstract contract Withdrawals is Deposits {
             data
         );
 
-        // 2) Effects
-        unchecked {
-            balMap[tokenAddress] = bal - amount;
-        }
-
-        if (balMap[tokenAddress] == 0) {
-            // Full storage refund for setting slot from non-zero → zero
-            delete balMap[tokenAddress];
-            _removeERC20Token(tokenId, tokenAddress);
-        }
-
-        // 3) Interaction
-        IERC20(tokenAddress).safeTransfer(recipient, amount);
+        // 2) Effects + Interaction
+        _withdrawERC20(tokenId, tokenAddress, amount, recipient);
 
         emit Withdrawn(tokenId, referenceId);
     }
@@ -265,12 +253,8 @@ abstract contract Withdrawals is Deposits {
             data
         );
 
-        // 2) Effects
-        delete _lockboxNftData[tokenId][key];
-        _removeNFTKey(tokenId, key);
-
-        // 3) Interaction
-        IERC721(nftContract).safeTransferFrom(address(this), recipient, nftTokenId);
+        // 2) Effects + Interaction
+        _withdrawERC721(tokenId, nftContract, nftTokenId, recipient);
 
         emit Withdrawn(tokenId, referenceId);
     }
@@ -705,6 +689,88 @@ abstract contract Withdrawals is Deposits {
         }
     }
 
+    /* ─────────────────── Internal helpers ────────────────────── */
+    
+    /**
+     * @dev Internal helper to credit tokens to a lockbox
+     * @param tokenId The lockbox token ID
+     * @param token The token address (address(0) for ETH)
+     * @param amount Amount to credit
+     */
+    function _creditToLockbox(uint256 tokenId, address token, uint256 amount) internal {
+        if (token == address(0)) {
+            _ethBalances[tokenId] += amount;
+        } else {
+            // Register token if new
+            if (_erc20Index[tokenId][token] == 0) {
+                _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length + 1;
+                _erc20TokenAddresses[tokenId].push(token);
+            }
+            _erc20Balances[tokenId][token] += amount;
+        }
+    }
+    
+    /**
+     * @dev Internal helper to withdraw ETH from a lockbox
+     * @param tokenId The lockbox token ID
+     * @param amountETH Amount of ETH to withdraw
+     * @param recipient Address to receive the ETH
+     */
+    function _withdrawETH(uint256 tokenId, uint256 amountETH, address recipient) internal {
+        _ethBalances[tokenId] -= amountETH;
+        
+        (bool success, ) = payable(recipient).call{value: amountETH}('');
+        if (!success) revert EthTransferFailed();
+    }
+    
+    /**
+     * @dev Internal helper to withdraw ERC20 tokens from a lockbox
+     * @param tokenId The lockbox token ID
+     * @param tokenAddress The ERC20 token address
+     * @param amount Amount of tokens to withdraw
+     * @param recipient Address to receive the tokens
+     */
+    function _withdrawERC20(
+        uint256 tokenId,
+        address tokenAddress,
+        uint256 amount,
+        address recipient
+    ) internal {
+        mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
+        
+        unchecked {
+            balMap[tokenAddress] -= amount;
+        }
+        
+        if (balMap[tokenAddress] == 0) {
+            delete balMap[tokenAddress];
+            _removeERC20Token(tokenId, tokenAddress);
+        }
+        
+        IERC20(tokenAddress).safeTransfer(recipient, amount);
+    }
+    
+    /**
+     * @dev Internal helper to withdraw an ERC721 NFT from a lockbox
+     * @param tokenId The lockbox token ID
+     * @param nftContract The ERC721 contract address
+     * @param nftTokenId The NFT token ID
+     * @param recipient Address to receive the NFT
+     */
+    function _withdrawERC721(
+        uint256 tokenId,
+        address nftContract,
+        uint256 nftTokenId,
+        address recipient
+    ) internal {
+        bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
+        
+        delete _lockboxNftData[tokenId][key];
+        _removeNFTKey(tokenId, key);
+        
+        IERC721(nftContract).safeTransferFrom(address(this), recipient, nftTokenId);
+    }
+    
     /**
      * @dev Check if a router is in the immutable allowlist.
      * @param router The router address to check.

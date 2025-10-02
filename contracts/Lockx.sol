@@ -94,22 +94,15 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         address lockboxPublicKey,
         bytes32 referenceId
     ) external payable nonReentrant {
-        // 1) Checks
-        if (to != msg.sender) revert SelfMintOnly();
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
+        // Check ETH amount is non-zero
         if (msg.value == 0) revert ZeroAmount();
 
-        // 2) Effects
-        uint256 tokenId = _nextId++;
-        _initialize(tokenId, lockboxPublicKey);
+        // Create lockbox using helper
+        uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
+        
+        // Deposit ETH
 
-        _mint(to, tokenId);
-
-        // 3) Interactions
         _depositETH(tokenId, msg.value);
-
-        emit Locked(tokenId);
-        emit Minted(tokenId, referenceId);
     }
 
     /**
@@ -135,9 +128,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 amount,
         bytes32 referenceId
     ) external nonReentrant {
-        // 1) Checks
-        if (to != msg.sender) revert SelfMintOnly();
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
+        // Check ERC20 token and amount are valid
         if (tokenAddress == address(0)) revert ZeroTokenAddress();
         if (amount == 0) revert ZeroAmount();
 
@@ -147,11 +138,11 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         
         _mint(to, tokenId);
         
-        // 3) Interactions
+        // Create lockbox using helper
+        uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
+        
+        // Deposit ERC20
         _depositERC20(tokenId, tokenAddress, amount);
-
-        emit Locked(tokenId);
-        emit Minted(tokenId, referenceId);
     }
 
     /**
@@ -172,9 +163,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 externalNftTokenId,
         bytes32 referenceId
     ) external nonReentrant {
-        // 1) Checks
-        if (to != msg.sender) revert SelfMintOnly();
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
+        // Check NFT contract is valid
         if (nftContract == address(0)) revert ZeroTokenAddress();
 
         // 2) Effects
@@ -183,11 +172,11 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         _mint(to, tokenId);
         
-        // 3) Interactions
+        // Create lockbox using helper
+        uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
+        
+        // Deposit NFT
         _depositERC721(tokenId, nftContract, externalNftTokenId);
-
-        emit Locked(tokenId);
-        emit Minted(tokenId, referenceId);
     }
 
     /**
@@ -220,31 +209,18 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256[] calldata nftTokenIds,
         bytes32 referenceId
     ) external payable nonReentrant {
-        // 1) Checks
-        if (to != msg.sender) revert SelfMintOnly();
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
+        // Check batch parameters are valid
         if (
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length
         ) revert ArrayLengthMismatch();
         if (msg.value != amountETH) revert EthValueMismatch();
         
-        // Prevent empty lockbox creation - at least one asset must be provided
-        if (amountETH == 0 && tokenAddresses.length == 0 && nftContracts.length == 0) {
-            revert ZeroAmount();
-        }
+        // Create lockbox using helper
+        uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
 
-        // 2) Effects
-        uint256 tokenId = _nextId++;
-        _initialize(tokenId, lockboxPublicKey);
-
-        _mint(to, tokenId);
-        
-        // 3) Interactions
+        // Batch deposit
         _batchDeposit(tokenId, amountETH, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
-
-        emit Locked(tokenId);
-        emit Minted(tokenId, referenceId);
     }
 
 
@@ -420,6 +396,33 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         _finalizeBurn(tokenId);
         emit LockboxBurned(tokenId, referenceId);
+    }
+    
+    /**
+     * @dev Internal helper to create a new Lockbox
+     * @param to The recipient of the newly minted Lockbox  
+     * @param lockboxPublicKey The public key used for off-chain signature verification
+     * @param referenceId An external reference ID for off-chain tracking
+     * @return tokenId The newly minted token ID
+     */
+    function _createLockbox(
+        address to,
+        address lockboxPublicKey,
+        bytes32 referenceId
+    ) internal returns (uint256) {
+        // 1) Checks
+        if (to != msg.sender) revert SelfMintOnly();
+        if (lockboxPublicKey == address(0)) revert ZeroKey();
+        
+        // 2) Effects
+        uint256 tokenId = _nextId++;
+        initialize(tokenId, lockboxPublicKey);
+        _mint(to, tokenId);
+        
+        emit Locked(tokenId);
+        emit Minted(tokenId, referenceId);
+        
+        return tokenId;
     }
 
     /**
