@@ -101,7 +101,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey, referenceId);
+        _initialize(tokenId, lockboxPublicKey);
+
         _mint(to, tokenId);
 
         // 3) Interactions
@@ -142,7 +143,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey, referenceId);
+        _initialize(tokenId, lockboxPublicKey);
+        
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -177,7 +179,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey, referenceId);
+        _initialize(tokenId, lockboxPublicKey);
+
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -233,7 +236,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
 
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey, referenceId);
+        _initialize(tokenId, lockboxPublicKey);
+
         _mint(to, tokenId);
         
         // 3) Interactions
@@ -294,7 +298,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -364,7 +368,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -405,8 +409,9 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         _verifyReferenceId(tokenId, referenceId);
 
-        bytes memory data = abi.encode(referenceId, signatureExpiry);
-        verifySignature(
+        bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
+        _verifySignature(
+
             tokenId,
             messageHash,
             signature,

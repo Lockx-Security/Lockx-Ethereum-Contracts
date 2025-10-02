@@ -123,7 +123,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -188,7 +188,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -259,7 +259,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -358,7 +358,7 @@ abstract contract Withdrawals is Deposits {
             referenceId,
             signatureExpiry
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
@@ -497,7 +497,7 @@ abstract contract Withdrawals is Deposits {
             signatureExpiry,
             recipient
         );
-        verifySignature(
+        _verifySignature(
             tokenId,
             messageHash,
             signature,
