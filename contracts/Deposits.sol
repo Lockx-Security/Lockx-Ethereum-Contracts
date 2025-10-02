@@ -53,9 +53,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
     mapping(uint256 => mapping(bytes32 => uint256)) internal _nftIndex;
 
 
-    /* ───────── Guards ───────── */
-    function _requireOwnsLockbox(uint256 tokenId) internal view {
+    /* ───────── Modifiers ───────── */
+    modifier onlyLockboxOwner(uint256 tokenId) {
         if (_erc721.ownerOf(tokenId) != msg.sender) revert NotOwner();
+        _;
     }
 
 
@@ -82,9 +83,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * - Caller must own the Lockbox.
      * - `msg.value` must be > 0.
      */
-    function depositETH(uint256 tokenId, bytes32 referenceId) external payable nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    function depositETH(uint256 tokenId, bytes32 referenceId) external payable nonReentrant onlyLockboxOwner(tokenId) {
         if (msg.value == 0) revert ZeroAmount();
+        _verifyReferenceId(tokenId, referenceId);
 
         _ethBalances[tokenId] += msg.value;
         emit Deposited(tokenId, referenceId);
@@ -92,6 +93,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
 
     /*
      * @notice Deposit ERC-20 tokens into a Lockbox.
+     * @dev WARNING: Rebasing tokens (e.g., stETH, AMPL) are NOT supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param tokenId      The ID of the Lockbox.
      * @param tokenAddress The ERC-20 token contract address.
      * @param amount       The amount of tokens to deposit.
@@ -107,10 +111,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         address tokenAddress,
         uint256 amount,
         bytes32 referenceId
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (tokenAddress == address(0)) revert ZeroAddress();
         if (amount == 0) revert ZeroAmount();
+        _verifyReferenceId(tokenId, referenceId);
 
         _depositERC20(tokenId, tokenAddress, amount);
         emit Deposited(tokenId, referenceId);
@@ -132,9 +136,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         address nftContract,
         uint256 nftTokenId,
         bytes32 referenceId
-    ) external nonReentrant {
-        _requireOwnsLockbox(tokenId);
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
         if (nftContract == address(0)) revert ZeroAddress();
+        _verifyReferenceId(tokenId, referenceId);
 
         _depositERC721(tokenId, nftContract, nftTokenId);
         emit Deposited(tokenId, referenceId);
@@ -142,6 +146,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
 
     /*
      * @notice Batch-deposit ETH, multiple ERC-20s, and multiple ERC-721s.
+     * @dev WARNING: Rebasing tokens (e.g., stETH, AMPL) are NOT supported. The contract tracks
+     *      balances at deposit/withdrawal only and does not account for supply changes.
+     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
      * @param tokenId           The ID of the Lockbox.
      * @param tokenAddresses    ERC-20 token addresses to deposit.
      * @param tokenAmounts      Corresponding ERC-20 amounts.
@@ -167,10 +174,12 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
             revert ZeroAmount();
 
         _requireOwnsLockbox(tokenId);
+
         if (
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length
         ) revert MismatchedInputs();
+        _verifyReferenceId(tokenId, referenceId);
 
         _batchDeposit(tokenId, msg.value, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
         emit Deposited(tokenId, referenceId);
@@ -198,10 +207,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         uint256 received = t.balanceOf(address(this)) - before;
         if (received == 0) revert ZeroAmount();
 
-        // Register new token with index
-        if (_erc20Index[tokenId][token] == 0) {
-            _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length + 1;
+        // Register new token
+        if (_erc20Balances[tokenId][token] == 0) {
             _erc20TokenAddresses[tokenId].push(token);
+            _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length - 1;
         }
 
         _erc20Balances[tokenId][token] += received;
@@ -214,10 +223,10 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         // nftContract is already validated in the public functions before calling this
         bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
 
-        // Check if NFT is new by seeing if nftContract is zero
+        // Register new NFT key
         if (_lockboxNftData[tokenId][key].nftContract == address(0)) {
-            _nftIndex[tokenId][key] = _nftKeys[tokenId].length + 1;
             _nftKeys[tokenId].push(key);
+            _nftIndex[tokenId][key] = _nftKeys[tokenId].length - 1;
         }
         _lockboxNftData[tokenId][key] = nftBalances(nftContract, nftTokenId);
 
@@ -261,14 +270,18 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @dev Remove an ERC-20 token address from the tracking array.
      */
     function _removeERC20Token(uint256 tokenId, address token) internal {
-        uint256 idx = _erc20Index[tokenId][token];
-        if (idx == 0) return;
-
         uint256 arrayLength = _erc20TokenAddresses[tokenId].length;
-        if (idx != arrayLength) {
-            address lastToken = _erc20TokenAddresses[tokenId][arrayLength - 1];
-            _erc20TokenAddresses[tokenId][idx - 1] = lastToken;
-            _erc20Index[tokenId][lastToken] = idx;
+        if (arrayLength == 0) return;
+
+        uint256 index = _erc20Index[tokenId][token];
+        if (index >= arrayLength) return;
+        if (_erc20TokenAddresses[tokenId][index] != token) return;
+
+        uint256 lastIndex = arrayLength - 1;
+        if (index != lastIndex) {
+            address lastToken = _erc20TokenAddresses[tokenId][lastIndex];
+            _erc20TokenAddresses[tokenId][index] = lastToken;
+            _erc20Index[tokenId][lastToken] = index;
         }
         _erc20TokenAddresses[tokenId].pop();
         delete _erc20Index[tokenId][token];
@@ -278,14 +291,18 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
      * @dev Remove an ERC-721 key from the tracking array.
      */
     function _removeNFTKey(uint256 tokenId, bytes32 key) internal {
-        uint256 idx = _nftIndex[tokenId][key];
-        if (idx == 0) return;
-        
         uint256 arrayLength = _nftKeys[tokenId].length;
-        if (idx != arrayLength) {
-            bytes32 lastKey = _nftKeys[tokenId][arrayLength - 1];
-            _nftKeys[tokenId][idx - 1] = lastKey;
-            _nftIndex[tokenId][lastKey] = idx;
+        if (arrayLength == 0) return;
+
+        uint256 index = _nftIndex[tokenId][key];
+        if (index >= arrayLength) return;
+        if (_nftKeys[tokenId][index] != key) return;
+
+        uint256 lastIndex = arrayLength - 1;
+        if (index != lastIndex) {
+            bytes32 lastKey = _nftKeys[tokenId][lastIndex];
+            _nftKeys[tokenId][index] = lastKey;
+            _nftIndex[tokenId][lastKey] = index;
         }
         _nftKeys[tokenId].pop();
         delete _nftIndex[tokenId][key];
