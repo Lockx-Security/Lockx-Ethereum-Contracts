@@ -41,7 +41,6 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error DefaultURIAlreadySet();
     error NoURI();
     error TransfersDisabled();
-    error UseDepositETH();
     error FallbackNotAllowed();
     error DirectETHTransferNotAllowed();
     error SelfMintOnly();
