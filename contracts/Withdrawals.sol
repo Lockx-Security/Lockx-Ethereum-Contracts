@@ -30,7 +30,6 @@ abstract contract Withdrawals is Deposits {
 
     /* ───────── Treasury Constants ───────── */
     uint256 public constant TREASURY_LOCKBOX_ID = 0;
-    uint256 public constant SWAP_FEE_BP = 20; // 0.2% fee
     uint256 public constant SWAP_FEE_BP = 10;
     uint256 private constant FEE_DIVISOR = 10000;
 
@@ -58,27 +57,6 @@ abstract contract Withdrawals is Deposits {
     error UnauthorizedSelector();
 
 
-    /* ───────── Storage for O(n) duplicate detection ───────── */
-    mapping(bytes32 => uint256) private _seenEpoch;
-    uint256 private _currentEpoch = 1;
-
-    /* ───────── Static router allowlist (mainnet) ───────── */
-    function _isAllowedRouter(address target) private pure returns (bool) {
-        return
-            // Uniswap V3 SwapRouter02
-            target == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
-            // Uniswap Universal Router
-            target == 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B ||
-            // 1inch Aggregation Router v6
-            target == 0x111111125421cA6dc452d289314280a0f8842A65 ||
-            // 0x Exchange Proxy
-            target == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
-            // Paraswap Augustus
-            target == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
-            // CowSwap GPv2 Settlement
-            target == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
-    }
-
     /* ─────────────────── Lockbox withdrawals ───────────────────── */
 
     /*
@@ -104,19 +82,17 @@ abstract contract Withdrawals is Deposits {
         bytes32 referenceId,
         uint256 signatureExpiry
     ) external nonReentrant onlyLockboxOwner(tokenId) {
+        // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         
+        // Check balance before signature verification
         uint256 currentBal = _ethBalances[tokenId];
         if (currentBal < amountETH) revert NoETHBalance();
-
-        uint256 currentBal = _ethBalances[tokenId];
-        if (currentBal < amountETH) revert NoETHBalance();
-        
         _verifyReferenceId(tokenId, referenceId);
 
-        // 1) Verify
+        // 2) Verify
         bytes memory data = abi.encode(
             amountETH,
             recipient,
@@ -131,7 +107,7 @@ abstract contract Withdrawals is Deposits {
             data
         );
 
-        // 2) Effects + Interaction
+        // 3) Effects + Interaction
         _withdrawETH(tokenId, amountETH, recipient);
 
         emit Withdrawn(tokenId, referenceId);
@@ -162,17 +138,19 @@ abstract contract Withdrawals is Deposits {
         bytes32 referenceId,
         uint256 signatureExpiry
     ) external nonReentrant onlyLockboxOwner(tokenId) {
+        // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         
+        // Check balance before signature verification
         mapping(address => uint256) storage balMap = _erc20Balances[tokenId];
         uint256 bal = balMap[tokenAddress];
         if (bal < amount) revert InsufficientTokenBalance();
 
         _verifyReferenceId(tokenId, referenceId);
 
-        // 1) Verify
+        // 2) Verify
         bytes memory data = abi.encode(
             tokenAddress,
             amount,
@@ -188,7 +166,7 @@ abstract contract Withdrawals is Deposits {
             data
         );
 
-        // 2) Effects + Interaction
+        // 3) Effects + Interaction
         _withdrawERC20(tokenId, tokenAddress, amount, recipient);
 
         emit Withdrawn(tokenId, referenceId);
@@ -219,16 +197,17 @@ abstract contract Withdrawals is Deposits {
         bytes32 referenceId,
         uint256 signatureExpiry
     ) external nonReentrant onlyLockboxOwner(tokenId) {
+        // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         
+        // Check NFT ownership before signature verification
         bytes32 key = keccak256(abi.encodePacked(nftContract, nftTokenId));
         if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
-
         _verifyReferenceId(tokenId, referenceId);
 
-        // 1) Verify
+        // 2) Verify
         bytes memory data = abi.encode(
             nftContract,
             nftTokenId,
@@ -244,7 +223,7 @@ abstract contract Withdrawals is Deposits {
             data
         );
 
-        // 2) Effects + Interaction
+        // 3) Effects + Interaction
         _withdrawERC721(tokenId, nftContract, nftTokenId, recipient);
 
         emit Withdrawn(tokenId, referenceId);
@@ -286,6 +265,7 @@ abstract contract Withdrawals is Deposits {
         bytes32 referenceId,
         uint256 signatureExpiry
     ) external nonReentrant onlyLockboxOwner(tokenId) {
+        // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -313,10 +293,9 @@ abstract contract Withdrawals is Deposits {
             if (_lockboxNftData[tokenId][key].nftContract == address(0)) revert NFTNotFound();
             unchecked { ++i; }
         }
-
         _verifyReferenceId(tokenId, referenceId);
 
-        // 1) Verify
+        // 2) Verify
         bytes memory data = abi.encode(
             amountETH,
             tokenAddresses,
@@ -335,12 +314,9 @@ abstract contract Withdrawals is Deposits {
             data
         );
 
-        // 2/3) Effects + Interactions for each asset type
+        // 3) Effects + Interactions for each asset type
         if (amountETH > 0) {
-            uint256 currentBal = _ethBalances[tokenId];
-            _ethBalances[tokenId] = currentBal - amountETH;
-            (bool success, ) = payable(recipient).call{value: amountETH}('');
-            if (!success) revert EthTransferFailed();
+            _withdrawETH(tokenId, amountETH, recipient);
         }
 
         // — ERC-20s — enforce strictly increasing addresses (no duplicates)
@@ -448,6 +424,7 @@ abstract contract Withdrawals is Deposits {
         // Validate router and calldata selector (also handles zero address)
         if (!_isAllowedRouter(target)) revert UnauthorizedRouter();
         if (!_isAllowedSelector(data)) revert UnauthorizedSelector();
+        _verifyReferenceId(tokenId, referenceId);
 
         // 1) Verify signature
         bytes memory authData = abi.encode(
@@ -502,9 +479,20 @@ abstract contract Withdrawals is Deposits {
         }
 
         // 4) Execute swap with approval
+        uint256 approvalAmount;
+        uint256 ethValue;
+        
+        if (swapMode == SwapMode.EXACT_IN) {
+            approvalAmount = amountSpecified;
+            ethValue = (tokenIn == address(0)) ? amountSpecified : 0;
+        } else {
+            // For EXACT_OUT, approve the maximum we're willing to spend
+            approvalAmount = amountLimit;
+            ethValue = (tokenIn == address(0)) ? amountLimit : 0;
+        }
+        
         if (tokenIn != address(0)) {
-            IERC20(tokenIn).forceApprove(target, amountIn);
-
+            IERC20(tokenIn).forceApprove(target, approvalAmount);
         }
         
         (bool success,) = target.call{value: ethValue}(data);
@@ -664,14 +652,18 @@ abstract contract Withdrawals is Deposits {
      * @param token The token address (address(0) for ETH)
      * @param amount Amount to credit
      */
-    function _creditToLockbox(uint256 tokenId, address token, uint256 amount) internal {
+    function _creditToLockbox(
+        uint256 tokenId, 
+        address token, 
+        uint256 amount
+    ) internal {
         if (token == address(0)) {
             _ethBalances[tokenId] += amount;
         } else {
-            // Register token if new
-            if (_erc20Index[tokenId][token] == 0) {
-                _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length + 1;
+            // Register token if new for lockbox
+            if (_erc20Balances[tokenId][token] == 0) {
                 _erc20TokenAddresses[tokenId].push(token);
+                _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length - 1;
             }
             _erc20Balances[tokenId][token] += amount;
         }
@@ -683,7 +675,11 @@ abstract contract Withdrawals is Deposits {
      * @param amountETH Amount of ETH to withdraw
      * @param recipient Address to receive the ETH
      */
-    function _withdrawETH(uint256 tokenId, uint256 amountETH, address recipient) internal {
+    function _withdrawETH(
+        uint256 tokenId,
+        uint256 amountETH,
+        address recipient
+    ) internal {
         _ethBalances[tokenId] -= amountETH;
         
         (bool success, ) = payable(recipient).call{value: amountETH}('');
@@ -743,19 +739,19 @@ abstract contract Withdrawals is Deposits {
      * @param router The router address to check.
      * @return bool True if the router is allowed.
      */
-    function _isAllowedRouter(address router) private pure returns (bool) {
+    function _isAllowedRouter(address router) internal pure returns (bool) {
         return
-            // Uniswap Universal Router (standard - supports V2/V3/V4)
-            router == 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD ||
-            // Uniswap V4 Universal Router (V4-specific)
-            router == 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af ||
-            // 1inch v6 Aggregation Router (latest)
+            // Uniswap V3 SwapRouter02
+            router == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
+            // Uniswap Universal Router
+            router == 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B ||
+            // 1inch Aggregation Router v6
             router == 0x111111125421cA6dc452d289314280a0f8842A65 ||
             // 0x Exchange Proxy
             router == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
-            // Paraswap v5 Augustus Swapper
+            // Paraswap Augustus
             router == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
-            // Cowswap GPv2Settlement
+            // CowSwap GPv2 Settlement
             router == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
     }
 
@@ -772,8 +768,8 @@ abstract contract Withdrawals is Deposits {
         
         return
             // Uniswap V3 Router
-            selector == 0x04e45aaf || // exactInputSingle(address,address,uint24,address,uint256,uint256,uint160)
-            selector == 0x5023b4df || // exactOutputSingle(address,address,uint24,address,uint256,uint256,uint160)  
+            selector == 0x04e45aaf || // exactInputSingle
+            selector == 0x5023b4df || // exactOutputSingle
             selector == 0xc04b8d59 || // exactInput
             selector == 0xf28c0498 || // exactOutput
             
@@ -781,7 +777,7 @@ abstract contract Withdrawals is Deposits {
             selector == 0x3593564c || // execute(bytes,bytes[],uint256)
             selector == 0x24856bc3 || // execute(bytes,bytes[])
             
-            // 1inch v6 (AggregationRouterV6.swap(address,(..),bytes))
+            // 1inch v6
             selector == 0x6b1ef56f || // swap(address,(...),bytes)
             
             // 0x Protocol (Exchange Proxy)
@@ -796,14 +792,15 @@ abstract contract Withdrawals is Deposits {
             selector == 0x13d79a0b;   // settle
     }
 
+
     /**
      * @notice Get list of all allowed routers (for transparency).
      * @return address[] Array of allowed router addresses.
      */
     function getAllowedRouters() external pure returns (address[] memory) {
         address[] memory routers = new address[](6);
-        routers[0] = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD; // Uniswap Universal Router
-        routers[1] = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af; // Uniswap V4 Universal Router
+        routers[0] = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45; // Uniswap V3 SwapRouter02
+        routers[1] = 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B; // Uniswap Universal Router
         routers[2] = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
         routers[3] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x
         routers[4] = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57; // Paraswap

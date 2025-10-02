@@ -37,13 +37,11 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /* ─────────── Custom errors ───────── */
     error ZeroTokenAddress();
     error ArrayLengthMismatch();
-    error EthValueMismatch();
     error DefaultURIAlreadySet();
     error NoURI();
     error TransfersDisabled();
     error FallbackNotAllowed();
     error DirectETHTransferNotAllowed();
-    error SelfMintOnly();
     error LockboxNotEmpty();
     error DuplicateKey();
 
@@ -69,7 +67,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {
         // Mint the treasury lockbox (tokenId = 0) to the deployer
         uint256 treasuryTokenId = _nextId++;
-        initialize(treasuryTokenId, msg.sender); // Use deployer address as initial treasury key (can be rotated later)
+        _initialize(treasuryTokenId, msg.sender, bytes32(0)); // Use deployer address as initial treasury key (can be rotated later)
         _mint(msg.sender, treasuryTokenId);
         emit Locked(treasuryTokenId);
         emit Minted(treasuryTokenId, bytes32(0));
@@ -91,24 +89,14 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         address lockboxPublicKey,
         bytes32 referenceId
     ) external payable nonReentrant {
-        // 1) Checks
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
         if (msg.value == 0) revert ZeroAmount();
-
-        // 2) Effects
-        uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
-        _mint(msg.sender, tokenId);
-
+        
+        uint256 tokenId = _createLockbox(lockboxPublicKey, referenceId);
         _depositETH(tokenId, msg.value);
     }
 
     /**
      * @notice Mint a new Lockbox and deposit ERC20 tokens.
-     * @dev Warning: Rebasing tokens are supported. The contract tracks
-     *      balances at deposit/withdrawal only and does not account for supply changes.
-     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
-     * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param tokenAddress The ERC20 token contract address to deposit.
      * @param amount The amount of ERC20 tokens to deposit.
@@ -125,21 +113,10 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 amount,
         bytes32 referenceId
     ) external nonReentrant {
-        // 1) Checks
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
-
         if (tokenAddress == address(0)) revert ZeroTokenAddress();
         if (amount == 0) revert ZeroAmount();
-
-        // 2) Effects
-        uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
-        _mint(msg.sender, tokenId);
         
-        // Create lockbox using helper
-        uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
-        
-        // Deposit ERC20
+        uint256 tokenId = _createLockbox(lockboxPublicKey, referenceId);
         _depositERC20(tokenId, tokenAddress, amount);
     }
 
@@ -159,29 +136,14 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256 externalNftTokenId,
         bytes32 referenceId
     ) external nonReentrant {
-        // 1) Checks
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
         if (nftContract == address(0)) revert ZeroTokenAddress();
-
-        // 2) Effects
-        uint256 tokenId = _nextId++;
-
-        _initialize(tokenId, lockboxPublicKey);
-        _mint(msg.sender, tokenId);
-
-        // Create lockbox using helper
-        uint256 tokenId = _createLockbox(to, lockboxPublicKey, referenceId);
         
-        // Deposit NFT
+        uint256 tokenId = _createLockbox(lockboxPublicKey, referenceId);
         _depositERC721(tokenId, nftContract, externalNftTokenId);
     }
 
     /**
      * @notice Mint a new Lockbox and perform a batch deposit of ETH, ERC20s, and ERC721s.
-     * @dev Warning: Rebasing tokens are not supported. The contract tracks
-     *      balances at deposit/withdrawal only and does not account for supply changes.
-     *      Using rebasing tokens may result in funds being locked or incorrect accounting.
-     * @param to The recipient of the newly minted Lockbox.
      * @param lockboxPublicKey The public key used for off-chain signature verification.
      * @param tokenAddresses ERC20 token contract addresses to deposit.
      * @param tokenAmounts Corresponding amounts of each ERC20 to deposit.
@@ -203,24 +165,18 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         uint256[] calldata nftTokenIds,
         bytes32 referenceId
     ) external payable nonReentrant {
-        // 1) Checks
-        if (lockboxPublicKey == address(0)) revert ZeroKey();
-
         if (
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length
         ) revert ArrayLengthMismatch();
-
-        // 2) Effects
-        uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
-        _mint(msg.sender, tokenId);
         
-        // 3) Interactions
+        // Prevent empty lockbox creation - at least one asset must be provided
+        if (msg.value == 0 && tokenAddresses.length == 0 && nftContracts.length == 0) {
+            revert ZeroAmount();
+        }
+        
+        uint256 tokenId = _createLockbox(lockboxPublicKey, referenceId);
         _batchDeposit(tokenId, msg.value, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
-
-        // Batch deposit
-        _batchDeposit(tokenId, amountETH, tokenAddresses, tokenAmounts, nftContracts, nftTokenIds);
     }
 
 
@@ -374,9 +330,8 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         _verifyReferenceId(tokenId, referenceId);
 
-        bytes memory data = abi.encode(tokenId, referenceId, msg.sender, signatureExpiry);
+        bytes memory data = abi.encode(referenceId, signatureExpiry);
         _verifySignature(
-
             tokenId,
             signature,
             address(0),
@@ -390,25 +345,22 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     
     /**
      * @dev Internal helper to create a new Lockbox
-     * @param to The recipient of the newly minted Lockbox  
      * @param lockboxPublicKey The public key used for off-chain signature verification
      * @param referenceId An external reference ID for off-chain tracking
      * @return tokenId The newly minted token ID
      */
     function _createLockbox(
-        address to,
         address lockboxPublicKey,
         bytes32 referenceId
     ) internal returns (uint256) {
         // 1) Checks
-        if (to != msg.sender) revert SelfMintOnly();
         if (lockboxPublicKey == address(0)) revert ZeroKey();
         
         // 2) Effects
         uint256 tokenId = _nextId++;
-        initialize(tokenId, lockboxPublicKey);
-        _mint(to, tokenId);
-        
+        _initialize(tokenId, lockboxPublicKey, referenceId);
+        _mint(msg.sender, tokenId);
+
         emit Locked(tokenId);
         emit Minted(tokenId, referenceId);
         
@@ -484,7 +436,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /**
      * @notice Receive ETH only from allowed routers.
      * @dev Prevents orphaned ETH from direct transfers.
-     *      Legitimate ETH comes through deposit functions routers.
+     *      Legitimate ETH comes through deposit functions and routers.
      */
     receive() external payable {
         // Only accept ETH from allowed routers

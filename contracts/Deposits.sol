@@ -169,12 +169,9 @@ abstract contract Deposits is SignatureVerification, IERC721Receiver, Reentrancy
         address[] calldata nftContracts,
         uint256[] calldata nftTokenIds,
         bytes32 referenceId
-    ) external payable nonReentrant {
+    ) external payable nonReentrant onlyLockboxOwner(tokenId) {
         if (msg.value == 0 && tokenAddresses.length == 0 && nftContracts.length == 0)
             revert ZeroAmount();
-
-        _requireOwnsLockbox(tokenId);
-
         if (
             tokenAddresses.length != tokenAmounts.length ||
             nftContracts.length != nftTokenIds.length

@@ -81,15 +81,14 @@ contract SignatureVerification is EIP712 {
      * @param lockboxPublicKey The public key that will sign operations for this Lockbox.
      * @param referenceId The off-chain tracking identifier for this Lockbox.
      */
-    function _initialize(uint256 tokenId, address lockboxPublicKey) internal {
-
+    function _initialize(uint256 tokenId, address lockboxPublicKey, bytes32 referenceId) internal {
         if (_tokenAuth[tokenId].activeLockboxPublicKey != address(0)) {
             revert AlreadyInitialized();
         }
 
         _tokenAuth[tokenId].activeLockboxPublicKey = lockboxPublicKey;
         _tokenAuth[tokenId].nonce = 0;
-
+        _tokenAuth[tokenId].referenceId = referenceId;
     }
 
     /**
@@ -193,13 +192,14 @@ contract SignatureVerification is EIP712 {
      */
     function _getReferenceId(uint256 tokenId) internal view returns (bytes32) {
         return _tokenAuth[tokenId].referenceId;
-
+    }
+    
+    /**
      * @dev Internal function to get the current active key for a Lockbox.
      * @param tokenId The ID of the Lockbox.
      * @return The currently active Lockbox public key.
      */
     function _getActiveLockboxPublicKey(uint256 tokenId) internal view returns (address) {
         return _tokenAuth[tokenId].activeLockboxPublicKey;
-
     }
 }
