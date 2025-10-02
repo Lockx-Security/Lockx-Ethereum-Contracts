@@ -654,25 +654,7 @@ abstract contract Withdrawals is Deposits {
             }
         }
     }
-    
-    /**
-     * @dev Internal helper to credit tokens to a lockbox.
-     * @param tokenId The lockbox token ID.
-     * @param token The token address (address(0) for ETH).
-     * @param amount Amount to credit.
-     */
-    function _creditToLockbox(uint256 tokenId, address token, uint256 amount) internal {
-        if (token == address(0)) {
-            _ethBalances[tokenId] += amount;
-        } else {
-            // Register token if new
-            if (_erc20Balances[tokenId][token] == 0) {
-                _erc20TokenAddresses[tokenId].push(token);
-                _erc20Index[tokenId][token] = _erc20TokenAddresses[tokenId].length - 1;
-            }
-            _erc20Balances[tokenId][token] += amount;
-        }
-    }
+
 
     /* ─────────────────── Internal helpers ────────────────────── */
     
