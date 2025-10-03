@@ -5,6 +5,17 @@ All notable changes to the Lockx smart contracts project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.1] - 2025-10-03
+
+### Changed
+- Swap slippage validation moved to net‑of‑fee semantics
+  - EXACT_IN: validate `userAmount (actualOut − fee) ≥ amountLimit`; `actualIn ≤ amountSpecified` unchanged.
+  - EXACT_OUT: validate `userAmount ≥ amountSpecified`; `actualIn ≤ amountLimit` unchanged.
+  - Rationale: align with auditor recommendation; match user expectations that slippage bounds apply to post‑fee proceeds.
+
+### Docs
+- Updated README swap flow to reflect net‑of‑fee slippage checks.
+
 ## [5.0.0] - 2025-08-29
 
 ### Changed
@@ -23,6 +34,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Simplified security model**: Router whitelist provides clearer security boundaries
 - **Reduced attack surface**: Only pre-approved DEX contracts can be called
 - **Zero breaking changes**: All existing functionality preserved
+
+## [5.1.0] - 2025-10-02
+
+Post‑audit consolidation release. Incorporates and documents fixes addressing the OpenZeppelin security audit (contracts/lockx-audit-report.pdf, dated 2025‑09‑30).
+
+### Security
+- C‑01 Treasury ownership hardening (Resolved)
+  - Treasury lockbox `tokenId = 0` is minted in the constructor to the deployer, preventing first‑minter capture of treasury funds.
+  - See PR #15.
+- M‑01 Router calldata restriction (Resolved)
+  - Swap calls now enforce BOTH an immutable router allowlist and a strict function‑selector allowlist to prevent arbitrary function execution on routers.
+  - See PR #9.
+- L‑01 Consistent recipient validation (Resolved)
+  - `withdrawETH`, `withdrawERC20`, and `batchWithdraw` now revert on `recipient == address(0)` and `recipient == address(this)` to prevent misdirected transfers.
+  - See PR #23.
+- Orphaned ETH on direct transfers (Resolved)
+  - Direct sends revert unless `msg.sender` is an allowlisted router during swaps; eliminates orphaned ETH. Error: `DirectETHTransferNotAllowed`.
+  - Implemented via `receive()` and `fallback()` in `Lockx`.
+
+### Documentation & Protocol Behavior
+- M‑02 Rebasing tokens unsupported (Resolved)
+  - Explicit NatSpec warnings and README notes clarify that rebasing tokens are not supported for deposits/swaps; accounting is point‑in‑time.
+  - See PR #13.
+- Unverified `referenceId` could mislead off‑chain integrators (Resolved)
+  - All deposit/withdraw/swap/metadata/burn paths verify the provided `referenceId` matches the per‑token stored value.
+  - Centralized in `_verifyReferenceId` and called by public entry points.
+- Potentially misleading event emission (Accepted/Documented)
+  - Kept minimal events (`Deposited`, `Withdrawn`, `SwapExecuted`, etc.) without amounts for privacy/gas. Clarified semantics in README; off‑chain indexers should compute deltas from state where needed.
+
+### Robustness & Gas
+- Deterministic pre‑checks before signature verification (Resolved)
+  - Input/state validations (ownership, expiry, balances, array lengths, recipient checks) run before signature verification for clearer errors and reduced gas waste.
+  - See PR #23.
+- Code de‑duplication (Resolved)
+  - Withdraw paths share internal helpers; batch logic reuses single‑asset helpers to reduce surface area and improve maintainability.
+  - See PR #24.
+- Allowance handling simplification (Resolved)
+  - Simplified swap allowance flows: set allowance to the precise amount before call and reset to zero afterward; removed redundant branching around zero‑first tokens.
+  - See PR #25.
+- Insufficient input validation enables empty lockboxes (Resolved)
+  - All create flows require at least one asset: ETH via `msg.value` > 0, ERC‑20 `amount > 0`, or a concrete ERC‑721 `safeTransferFrom` that must succeed.
+  - Batch creation enforces non‑empty input set.
+- Inefficient O(n) duplicate detection (Resolved)
+  - Batch withdraw requires strictly sorted inputs and detects duplicates in O(1) per element (previous O(n²) patterns removed).
+- Lack of exact token‑out support in swaps (Resolved)
+  - Added `SwapMode.EXACT_OUT` with input cap and output target validation.
+- Swap fee rounding favored users (Resolved)
+  - Fee now uses ceil division: `(actualOut * SWAP_FEE_BP + FEE_DIVISOR - 1) / FEE_DIVISOR` to avoid systematic short‑collection.
+- Redundant zero‑address check in swaps (Resolved)
+  - Zero address is used to represent ETH; swap input validation now focuses on `tokenIn != tokenOut`, mode, and router/selector validity.
+
+### API/Structure Cleanups
+- Signed message minimalism (Resolved)
+  - Removed redundant fields in signed data; signatures bind to `tokenId`, `nonce`, `opType`, and `dataHash` only.
+  - See PR #22.
+- Unnecessary parameters removed (Resolved)
+  - Lockbox creation functions no longer accept unused `to`/`amountETH` style parameters; ETH uses `msg.value` exclusively.
+  - See PR #16.
+- Unused error removed (Resolved)
+  - Removed dead error definitions for clarity.
+  - See PR #17.
+- Redundant existence checks removed (Resolved)
+  - Eliminated extra token existence checks where OZ `ownerOf` already enforces.
+  - See PR #18.
+- Access control as modifier (Resolved)
+  - Ownership gating expressed as a dedicated modifier for readability and consistency.
+  - See PR #19.
+- Consistent internal naming & indexing (Resolved)
+  - Internal functions uniformly prefixed with `_`; nonces and indices standardized to zero‑based where applicable.
+  - See PR #20 and #21.
+
+### Tooling & Tests
+- Added concise Hardhat test suite for core flows (deposits, withdrawals, batch ops, key rotation, burn, soulbound, multi‑user isolation).
+  - Files: `test/lockx.core.spec.ts`, `test/lockx.multiuser.spec.ts`, mocks under `contracts/mocks/`.
+- Added developer ergonomics
+  - `hardhat.config.ts`, `tsconfig.json`; README updated with Overview + Build & Run instructions.
+
+— EIP‑712 domain remains at version `5`.
 
 ---
 

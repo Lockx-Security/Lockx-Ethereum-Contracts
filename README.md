@@ -37,6 +37,7 @@ Where to look in code
 ## Table of Contents
 
 - [Overview](#overview)
+- [Build & Run](#build--run)
 - [Contract Architecture](#contract-architecture)
 - [Inheritance & Modules](#inheritance--modules)
 - [Authorization Model (EIP‑712)](#authorization-model-eip-712)
@@ -53,6 +54,34 @@ Where to look in code
 - [Operational Notes](#operational-notes)
 - [Router Selector Allowlist](#router-selector-allowlist)
 - [Usage Examples](#usage-examples)
+- [Security & Audits](#security--audits)
+
+## Build & Run
+
+Prerequisites
+- Node.js 18+ and npm
+- Foundry (forge/cast) optional for Foundry flows
+
+Setup
+- `npm install`
+
+Build
+- Hardhat: `npm run build`
+- Foundry: `npm run build:foundry` (or `forge build`)
+
+Test
+- Hardhat: `npx hardhat test`
+- Foundry: `forge test`
+
+Gas report
+- `npm run gas:report` → writes `reports/gas-report.txt`
+
+Lint/format (optional)
+- Solhint: `npx solhint 'contracts/**/*.sol'`
+- Prettier: `npx prettier --write .`
+
+Notes
+- Compiler tuning is described in `compiler_config.json` (viaIR, 10k runs).
 
 ## Contract Architecture
 
@@ -163,10 +192,11 @@ Swaps (owner‑only; signature‑gated; non‑reentrant)
   2) Check balances (EXACT_IN uses `amountSpecified`; EXACT_OUT uses `amountLimit`).
   3) Measure pre‑swap in/out balances of the contract for accurate deltas (handles fee‑on‑transfer).
   4) Approve `target` for ERC‑20 inputs (or pass ETH value), perform low‑level `call`, then reset approval.
-  5) Compute `actualAmountIn` and `actualAmountOut` by deltas; validate slippage:
-     - EXACT_IN: require `actualOut ≥ amountLimit`, `actualIn ≤ amountSpecified`.
-     - EXACT_OUT: require `actualIn ≤ amountLimit`, `actualOut ≥ amountSpecified`.
-  6) Apply swap fee `SWAP_FEE_BP = 10` (0.10%) and credit fee to treasury lockbox `tokenId = 0`.
+  5) Compute `actualAmountIn` and `actualAmountOut` by deltas; compute fee and userAmount (net‑of‑fee).
+  6) Validate slippage AFTER fee:
+     - EXACT_IN: require `userAmount ≥ amountLimit`, `actualIn ≤ amountSpecified`.
+     - EXACT_OUT: require `actualIn ≤ amountLimit`, `userAmount ≥ amountSpecified`.
+  7) Credit fee to treasury lockbox `tokenId = 0` and deliver `userAmount` to recipient or credit lockbox.
   7) Credit net output either to the same lockbox accounting or transfer to an external `recipient` if provided.
 
 View helpers
@@ -493,3 +523,8 @@ Notes
 - The EIP‑712 signer must be the active lockbox key (`getActiveLockboxPublicKeyForToken`).
 - Use the correct `nonce` from `getNonce(tokenId)` at the moment of signing.
 - `referenceId` must match the per‑token value assigned at mint; otherwise calls revert.
+
+## Security & Audits
+
+- Audit: OpenZeppelin (2025‑09‑30). See `contracts/lockx-audit-report.pdf`.
+- Post‑audit fixes and statuses are summarized in `CHANGELOG.md` under version 5.1.0.

@@ -426,7 +426,23 @@ abstract contract Withdrawals is Deposits {
         if (!_isAllowedSelector(data)) revert UnauthorizedSelector();
         _verifyReferenceId(tokenId, referenceId);
 
-        // 1) Verify signature
+        // 1) For EXACT_IN/EXACT_OUT, check balance sufficiency upfront (deterministic pre-check)
+        if (swapMode == SwapMode.EXACT_IN) {
+            if (tokenIn == address(0)) {
+                if (_ethBalances[tokenId] < amountSpecified) revert NoETHBalance();
+            } else {
+                if (_erc20Balances[tokenId][tokenIn] < amountSpecified) revert InsufficientTokenBalance();
+            }
+        } else {
+            // For EXACT_OUT, check maximum input allowed
+            if (tokenIn == address(0)) {
+                if (_ethBalances[tokenId] < amountLimit) revert NoETHBalance();
+            } else {
+                if (_erc20Balances[tokenId][tokenIn] < amountLimit) revert InsufficientTokenBalance();
+            }
+        }
+
+        // 2) Verify signature
         bytes memory authData = abi.encode(
             tokenIn,
             tokenOut,
@@ -446,22 +462,6 @@ abstract contract Withdrawals is Deposits {
             OperationType.SWAP_ASSETS,
             authData
         );
-
-        // 2) For EXACT_IN, check balance sufficiency upfront
-        if (swapMode == SwapMode.EXACT_IN) {
-            if (tokenIn == address(0)) {
-                if (_ethBalances[tokenId] < amountSpecified) revert NoETHBalance();
-            } else {
-                if (_erc20Balances[tokenId][tokenIn] < amountSpecified) revert InsufficientTokenBalance();
-            }
-        } else {
-            // For EXACT_OUT, check maximum input allowed
-            if (tokenIn == address(0)) {
-                if (_ethBalances[tokenId] < amountLimit) revert NoETHBalance();
-            } else {
-                if (_erc20Balances[tokenId][tokenIn] < amountLimit) revert InsufficientTokenBalance();
-            }
-        }
 
         // 3) Measure balances before swap
         uint256 balanceInBefore;
@@ -523,24 +523,24 @@ abstract contract Withdrawals is Deposits {
         uint256 actualAmountIn = balanceInBefore - balanceInAfter;
         uint256 actualAmountOut = balanceOutAfter - balanceOutBefore;
 
-        // 6) Validate swap based on mode
+        // 6) Calculate fee first and derive userAmount (net-of-fee)
+        uint256 feeAmount = (actualAmountOut * SWAP_FEE_BP + FEE_DIVISOR - 1) / FEE_DIVISOR;
+        uint256 userAmount = actualAmountOut - feeAmount;
+
+        // 7) Validate swap based on mode using net-of-fee output for slippage
         if (swapMode == SwapMode.EXACT_IN) {
-            // For EXACT_IN: verify we got at least minimum output
-            if (actualAmountOut < amountLimit) revert SlippageExceeded();
+            // For EXACT_IN: verify user receives at least the minimum output after fees
+            if (userAmount < amountLimit) revert SlippageExceeded();
             // Router shouldn't take more than specified
             if (actualAmountIn > amountSpecified) revert RouterOverspent();
         } else {
             // For EXACT_OUT: verify we didn't spend more than maximum
             if (actualAmountIn > amountLimit) revert SlippageExceeded();
-            // We should get at least the specified output
-            if (actualAmountOut < amountSpecified) revert InsufficientOutput();
+            // User should get at least the specified output after fees
+            if (userAmount < amountSpecified) revert InsufficientOutput();
         }
-        
-        // 6) Calculate fee and validate slippage
-        uint256 feeAmount = (actualAmountOut * SWAP_FEE_BP + FEE_DIVISOR - 1) / FEE_DIVISOR;
-        uint256 userAmount = actualAmountOut - feeAmount;
 
-        // 7) Update accounting with actual amounts (handles fee-on-transfer)
+        // 8) Update accounting with actual amounts (handles fee-on-transfer)
         // Deduct actual input amount
         if (tokenIn == address(0)) {
             _ethBalances[tokenId] -= actualAmountIn;
