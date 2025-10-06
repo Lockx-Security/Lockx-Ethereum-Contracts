@@ -5,6 +5,31 @@ All notable changes to the Lockx smart contracts project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.3] - 2025-10-06
+
+### Changed
+- **Uniswap router upgrade to v4**: Replaced legacy Uniswap routers with latest v4 Universal Router
+  - **Removed**: Uniswap V3 SwapRouter02 (`0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45`)
+  - **Removed**: Uniswap Universal Router v3 (`0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B`)
+  - **Added**: Uniswap v4 Universal Router (`0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af`)
+  - **Function selectors**: Only `execute(bytes,bytes[],uint256)` (`0x3593564c`) and `execute(bytes,bytes[])` (`0x24856bc3`)
+  - Verified against official Uniswap v4 docs and Etherscan
+  - Reduces allowed router count from 6 to 5 total routers
+
+### Docs
+- Updated router documentation to reflect Uniswap v4 integration
+
+## [5.1.2] - 2025-10-06
+
+### Fixed
+- **1inch v6 function selector correction**: Updated incorrect function selector in swap validation
+  - Changed from `0x6b1ef56f` to correct `0x07ed2379` for 1inch v6 `swap(address,(...),bytes)` function
+  - All other DEX router selectors verified as correct (0x Protocol, Paraswap, CowSwap)
+  - Ensures proper validation of 1inch v6 swap calls through the contract
+
+### Docs
+- Added AI assistance acknowledgment for code review and documentation
+
 ## [5.1.1] - 2025-10-03
 
 ### Changed
@@ -725,3 +750,7 @@ For applications integrating with these contracts:
 - Multi-asset deposit/withdrawal functionality with batch operations
 - EIP-712 signature verification (v1) for secure transactions
 - Comprehensive test suite with Hardhat and Foundry frameworks 
+
+---
+
+**Note**: Claude AI was used for commenting and documentation, and contract verification to ensure code quality and accuracy.

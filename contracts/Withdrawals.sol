@@ -741,10 +741,8 @@ abstract contract Withdrawals is Deposits {
      */
     function _isAllowedRouter(address router) internal pure returns (bool) {
         return
-            // Uniswap V3 SwapRouter02
-            router == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
-            // Uniswap Universal Router
-            router == 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B ||
+            // Uniswap v4 Router
+            router == 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af ||
             // 1inch Aggregation Router v6
             router == 0x111111125421cA6dc452d289314280a0f8842A65 ||
             // 0x Exchange Proxy
@@ -767,18 +765,12 @@ abstract contract Withdrawals is Deposits {
         bytes4 selector = bytes4(data[:4]);
         
         return
-            // Uniswap V3 Router
-            selector == 0x04e45aaf || // exactInputSingle
-            selector == 0x5023b4df || // exactOutputSingle
-            selector == 0xc04b8d59 || // exactInput
-            selector == 0xf28c0498 || // exactOutput
-            
-            // Uniswap Universal Router
+            // Uniswap v4 Router
             selector == 0x3593564c || // execute(bytes,bytes[],uint256)
             selector == 0x24856bc3 || // execute(bytes,bytes[])
             
             // 1inch v6
-            selector == 0x6b1ef56f || // swap(address,(...),bytes)
+            selector == 0x07ed2379 || // swap(address,(...),bytes)
             
             // 0x Protocol (Exchange Proxy)
             selector == 0x415565b0 || // transformERC20
@@ -798,13 +790,12 @@ abstract contract Withdrawals is Deposits {
      * @return address[] Array of allowed router addresses.
      */
     function getAllowedRouters() external pure returns (address[] memory) {
-        address[] memory routers = new address[](6);
-        routers[0] = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45; // Uniswap V3 SwapRouter02
-        routers[1] = 0xEf1c6E67703c7BD7107eed8303Fbe6EC2554BF6B; // Uniswap Universal Router
-        routers[2] = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
-        routers[3] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x
-        routers[4] = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57; // Paraswap
-        routers[5] = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41; // Cowswap
+        address[] memory routers = new address[](5);
+        routers[0] = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af; // Uniswap v4 Router
+        routers[1] = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
+        routers[2] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x
+        routers[3] = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57; // Paraswap
+        routers[4] = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41; // Cowswap
         return routers;
     }
 

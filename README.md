@@ -528,3 +528,7 @@ Notes
 
 - Audit: OpenZeppelin (2025‑09‑30). See `contracts/lockx-audit-report.pdf`.
 - Post‑audit fixes and statuses are summarized in `CHANGELOG.md` under version 5.1.0.
+
+---
+
+**Note**: Claude AI was used for commenting and documentation, and contract verification to ensure code quality and accuracy.
