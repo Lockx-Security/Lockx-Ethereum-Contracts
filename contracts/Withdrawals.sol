@@ -37,6 +37,7 @@ abstract contract Withdrawals is Deposits {
     /* ───────── Events ───────── */
     event Withdrawn(uint256 indexed tokenId, bytes32 indexed referenceId);
     event SwapExecuted(uint256 indexed tokenId, bytes32 indexed referenceId);
+    event RailgunTransferExecuted(uint256 indexed tokenId, bytes32 indexed referenceId);
     
 
     /* ───────── Errors ───────── */
@@ -53,8 +54,9 @@ abstract contract Withdrawals is Deposits {
     error DuplicateEntry();
     error UnsortedArray();
     error InvalidRecipient();
-    error UnauthorizedRouter();
+    error UnauthorizedTarget();
     error UnauthorizedSelector();
+    error RailgunCallFailed();
 
 
     /* ─────────────────── Lockbox withdrawals ───────────────────── */
@@ -378,6 +380,121 @@ abstract contract Withdrawals is Deposits {
         emit Withdrawn(tokenId, referenceId);
     }
 
+        /*
+     * @notice Execute a private transfer via RAILGUN from a Lockbox, authorized via EIP-712 signature.
+     * @param tokenId         The ID of the Lockbox.
+     * @param signature       The EIP-712 signature by the active Lockbox key.
+     * @param tokenAddress    The token address to transfer (address(0) for ETH).
+     * @param amount          The maximum amount to spend from the lockbox.
+     * @param target          The RAILGUN relay/contract address to execute against.
+     * @param railgunData     The pre-built calldata for RAILGUN execution.
+     * @param referenceId     External reference ID for off-chain tracking.
+     * @param signatureExpiry UNIX timestamp after which the signature is invalid.
+     *
+     * Mirrors the audited swap structure: pre-check balances, sign target+calldata hash,
+     * measure actual spend, guard overspend, and update accounting by actuals.
+     */
+    function railgunTransferInLockbox(
+        uint256 tokenId,
+        bytes memory signature,
+        address tokenAddress,
+        uint256 amount,
+        address target,
+        bytes calldata railgunData,
+        bytes32 referenceId,
+        uint256 signatureExpiry
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
+        if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        if (amount == 0) revert ZeroAmount();
+
+        // Validate target/relay and calldata selector (also handles zero address)
+        if (!_isAllowedTarget(target)) revert UnauthorizedTarget();
+        if (!_isAllowedSelector(railgunData)) revert UnauthorizedSelector();
+        _verifyReferenceId(tokenId, referenceId);
+
+        // 1) Check balance sufficiency upfront (deterministic pre-check)
+        if (tokenAddress == address(0)) {
+            if (_ethBalances[tokenId] < amount) revert NoETHBalance();
+        } else {
+            if (_erc20Balances[tokenId][tokenAddress] < amount) revert InsufficientTokenBalance();
+        }
+
+        // 2) Verify signature
+        bytes memory authData = abi.encode(
+            tokenAddress,
+            amount,
+            target,
+            keccak256(railgunData),
+            referenceId,
+            signatureExpiry
+        );
+        _verifySignature(
+            tokenId,
+            signature,
+            address(0),
+            OperationType.RAILGUN_TRANSFER,
+            authData
+        );
+
+        // 3) Measure balances before transfer
+        uint256 balanceInBefore;
+        if (tokenAddress == address(0)) {
+            balanceInBefore = address(this).balance;
+        } else {
+            balanceInBefore = IERC20(tokenAddress).balanceOf(address(this));
+        }
+
+        // 4) Execute transfer with approval/value
+        uint256 ethValue;
+        if (tokenAddress == address(0)) {
+            ethValue = amount;
+        } else {
+            IERC20(tokenAddress).forceApprove(target, amount);
+            ethValue = 0;
+        }
+
+        (bool success,) = target.call{value: ethValue}(railgunData);
+
+        // Clean up approval  
+        if (tokenAddress != address(0)) {
+            IERC20(tokenAddress).approve(target, 0);
+        }
+
+        if (!success) revert RailgunCallFailed();
+
+        // 5) Measure actual amount spent
+        uint256 balanceInAfter;
+        if (tokenAddress == address(0)) {
+            balanceInAfter = address(this).balance;
+        } else {
+            balanceInAfter = IERC20(tokenAddress).balanceOf(address(this));
+        }
+
+        // Calculate actual amount in (handles fee-on-transfer tokens)
+        uint256 actualAmountIn = balanceInBefore - balanceInAfter;
+
+        // 6) Validate spend against authorized amount
+        if (actualAmountIn > amount) revert RouterOverspent();
+
+        // 7) Update accounting with actual amounts
+        if (tokenAddress == address(0)) {
+            _ethBalances[tokenId] -= actualAmountIn;
+        } else {
+            _erc20Balances[tokenId][tokenAddress] -= actualAmountIn;
+
+            // Clean up if balance is now 0
+            if (_erc20Balances[tokenId][tokenAddress] == 0) {
+                delete _erc20Balances[tokenId][tokenAddress];
+                _removeERC20Token(tokenId, tokenAddress);
+            }
+        }
+
+        emit RailgunTransferExecuted(tokenId, referenceId);
+    }
+
+
+    /* ─────────────────── Lockbox swaps ───────────────────── */
+
     /*
      * @notice Execute an asset swap within a Lockbox, authorized via EIP-712 signature.
      * @param tokenId         The ID of the Lockbox.
@@ -387,7 +504,7 @@ abstract contract Withdrawals is Deposits {
      * @param swapMode        Whether this is EXACT_IN or EXACT_OUT swap.
      * @param amountSpecified For EXACT_IN: input amount. For EXACT_OUT: desired output amount.
      * @param amountLimit     For EXACT_IN: min output. For EXACT_OUT: max input allowed.
-     * @param target          The router/aggregator contract address to execute swap.
+     * @param target          The target/aggregator contract address to execute swap.
      * @param data            The pre-built calldata for the swap execution.
      * @param referenceId     External reference ID for off-chain tracking.
      * @param signatureExpiry UNIX timestamp after which the signature is invalid.
@@ -421,8 +538,8 @@ abstract contract Withdrawals is Deposits {
         if (amountSpecified == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
 
-        // Validate router and calldata selector (also handles zero address)
-        if (!_isAllowedRouter(target)) revert UnauthorizedRouter();
+        // Validate target and calldata selector (also handles zero address)
+        if (!_isAllowedTarget(target)) revert UnauthorizedTarget();
         if (!_isAllowedSelector(data)) revert UnauthorizedSelector();
         _verifyReferenceId(tokenId, referenceId);
 
@@ -735,22 +852,28 @@ abstract contract Withdrawals is Deposits {
     }
     
     /**
-     * @dev Check if a router is in the immutable allowlist.
-     * @param router The router address to check.
-     * @return bool True if the router is allowed.
+     * @dev Check if a target is in the immutable allowlist.
+     * @param target The target/executor address to check.
+     * @return bool True if the target is allowed.
      */
-    function _isAllowedRouter(address router) internal pure returns (bool) {
+    function _isAllowedTarget(address target) internal pure returns (bool) {
         return
             // Uniswap v4 Router
-            router == 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af ||
+            target == 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af ||
+            // Uniswap v3 SwapRouter 
+            target == 0xE592427A0AEce92De3Edee1F18E0157C05861564 || 
+            // Uniswap v3 SwapRouter02
+            target == 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45 ||
             // 1inch Aggregation Router v6
-            router == 0x111111125421cA6dc452d289314280a0f8842A65 ||
+            target == 0x111111125421cA6dc452d289314280a0f8842A65 ||
             // 0x Exchange Proxy
-            router == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
+            target == 0xDef1C0ded9bec7F1a1670819833240f027b25EfF ||
             // Paraswap Augustus
-            router == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
+            target == 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57 ||
             // CowSwap GPv2 Settlement
-            router == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41;
+            target == 0x9008D19f58AAbD9eD0D60971565AA8510560ab41 ||
+            // RAILGUN Smart Wallet Proxy (mainnet)
+            target == 0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9;
     }
 
     /**
@@ -769,6 +892,13 @@ abstract contract Withdrawals is Deposits {
             selector == 0x3593564c || // execute(bytes,bytes[],uint256)
             selector == 0x24856bc3 || // execute(bytes,bytes[])
             
+            // Uniswap v3 SwapRouter 
+            selector == 0x414bf389 || // exactInputSingle((address,address,uint24,address,uint256,uint256,uint256,uint160)) 
+            selector == 0xc04b8d59 || // exactInput((bytes,address,uint256,uint256,uint256)) // Uniswap v3 SwapRouter02 
+            selector == 0x04e45aaf || // exactInputSingle((address,address,uint24,address,uint256,uint256,uint160)) 
+            selector == 0x5023b4df || // exactOutputSingle((address,address,uint24,address,uint256,uint256,uint160)) 
+            selector == 0xac9650d8 || // multicall(bytes[]) 
+            selector == 0x49404b7c || // unwrapWETH9(uint256,address)
             // 1inch v6
             selector == 0x07ed2379 || // swap(address,(...),bytes)
             
@@ -781,30 +911,36 @@ abstract contract Withdrawals is Deposits {
             selector == 0xa94e78ef || // multiSwap
             
             // CowSwap GPv2 Settlement
-            selector == 0x13d79a0b;   // settle
+            selector == 0x13d79a0b ||  // settle
+            
+            // RAILGUN Smart Wallet
+            selector == 0xcf934ee4; // transact((Transaction,BoundParams)[])
     }
 
 
     /**
-     * @notice Get list of all allowed routers (for transparency).
-     * @return address[] Array of allowed router addresses.
+     * @notice Get list of all allowed targets (for transparency).
+     * @return address[] Array of allowed target addresses.
      */
-    function getAllowedRouters() external pure returns (address[] memory) {
-        address[] memory routers = new address[](5);
-        routers[0] = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af; // Uniswap v4 Router
-        routers[1] = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
-        routers[2] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x
-        routers[3] = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57; // Paraswap
-        routers[4] = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41; // Cowswap
-        return routers;
+    function getAllowedTargets() external pure returns (address[] memory) {
+        address[] memory targets = new address[](8);
+        targets[0] = 0x66a9893cC07D91D95644AEDD05D03f95e1dBA8Af; // Uniswap v4 Router
+        targets[1] = 0xE592427A0AEce92De3Edee1F18E0157C05861564; // Uniswap v3 SwapRouter 
+        targets[2] = 0x68b3465833fb72A70ecDF485E0e4C7bD8665Fc45; // Uniswap v3 SwapRouter02
+        targets[3] = 0x111111125421cA6dc452d289314280a0f8842A65; // 1inch v6
+        targets[4] = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF; // 0x
+        targets[5] = 0xDEF171Fe48CF0115B1d80b88dc8eAB59176FEe57; // Paraswap
+        targets[6] = 0x9008D19f58AAbD9eD0D60971565AA8510560ab41; // Cowswap
+        targets[7] = 0xFA7093CDD9EE6932B4eb2c9e1cde7CE00B1FA4b9; // RAILGUN Smart Wallet Proxy
+        return targets;
     }
 
     /**
-     * @notice Check if a router is allowed (public helper).
-     * @param router The router address to check.
-     * @return bool True if the router is allowed.
+     * @notice Check if a target is allowed (public helper).
+     * @param target The target address to check.
+     * @return bool True if the target is allowed.
      */
-    function isAllowedRouter(address router) external pure returns (bool) {
-        return _isAllowedRouter(router);
+    function isAllowedTarget(address target) external pure returns (bool) {
+        return _isAllowedTarget(target);
     }
 }

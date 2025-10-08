@@ -434,13 +434,13 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     /* ───────────────────────── Fallback handlers ───────────────────────── */
     
     /**
-     * @notice Receive ETH only from allowed routers.
+     * @notice Receive ETH only from allowed targets.
      * @dev Prevents orphaned ETH from direct transfers.
-     *      Legitimate ETH comes through deposit functions and routers.
+     *      Legitimate ETH comes through deposit functions and targets.
      */
     receive() external payable {
-        // Only accept ETH from allowed routers
-        if (!_isAllowedRouter(msg.sender)) {
+        // Only accept ETH from allowed targets
+        if (!_isAllowedTarget(msg.sender)) {
             revert DirectETHTransferNotAllowed();
         }
     }

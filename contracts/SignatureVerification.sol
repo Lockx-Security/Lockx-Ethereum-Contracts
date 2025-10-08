@@ -28,7 +28,8 @@ contract SignatureVerification is EIP712 {
         BURN_LOCKBOX,
         SET_TOKEN_URI,
         BATCH_WITHDRAW,
-        SWAP_ASSETS
+        SWAP_ASSETS,
+        RAILGUN_TRANSFER
     }
 
     /// @dev Gas-cheap pointer to the Lockbox ERC-721 (set once in constructor).
