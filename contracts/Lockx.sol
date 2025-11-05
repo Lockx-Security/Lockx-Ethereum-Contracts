@@ -8,7 +8,6 @@ pragma solidity ^0.8.30;
 
 import '@openzeppelin/contracts/token/ERC721/ERC721.sol';
 import '@openzeppelin/contracts/utils/ReentrancyGuard.sol';
-import '@openzeppelin/contracts/access/Ownable.sol';
 import '@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol';
 import '@openzeppelin/contracts/utils/Strings.sol';
 import './Withdrawals.sol';
@@ -29,7 +28,7 @@ interface IERC5192 {
  *      Implements ERC-5192 (soulbound standard) for non-transferability.
  *      Inherits the Withdrawals smart contract which inherits Deposits and SignatureVerification contracts.
  */
-contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
+contract Lockx is ERC721, Withdrawals, IERC5192 {
     /// @dev Next token ID to mint (auto-incremented per mint).
     uint256 private _nextId;
 
@@ -44,6 +43,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
     error DirectETHTransferNotAllowed();
     error LockboxNotEmpty();
     error DuplicateKey();
+    error LockboxListed();
 
 
     /* ───────────────────────── Metadata storage ────────────────────────── */
@@ -64,7 +64,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
      *      signature authorization in SignatureVerification.
      *      Creates the treasury lockbox (tokenId=0) and assigns it to the deployer.
      */
-    constructor() ERC721('Lockx.io', 'Lockbox') Ownable(msg.sender) SignatureVerification(address(this)) {
+    constructor() ERC721('Lockx.io', 'Lockbox') SignatureVerification(address(this)) {
         // Mint the treasury lockbox (tokenId = 0) to the deployer
         uint256 treasuryTokenId = _nextId++;
         _initialize(treasuryTokenId, msg.sender, bytes32(0)); // Use deployer address as initial treasury key (can be rotated later)
@@ -216,7 +216,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         string memory newMetadataURI,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant {
+    ) external nonReentrant notListingLocked(tokenId) {
         // 1) Checks
         if (ownerOf(tokenId) != msg.sender) revert NotOwner();
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
@@ -279,7 +279,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         address newPublicKey,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant onlyLockboxOwner(tokenId) {
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
 
         _verifyReferenceId(tokenId, referenceId);
@@ -326,7 +326,7 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         bytes memory signature,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant onlyLockboxOwner(tokenId) {
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         _verifyReferenceId(tokenId, referenceId);
 
@@ -406,16 +406,63 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         return true;
     }
 
-    /// Override _update to enforce soulbound behavior (prevent transfers) and cleanup metadata on burn.
+    /// @dev Marketplace integration
+    mapping(uint256 => bool) public listingLocked;
+    
+    /// @dev Track authorized transfers (bypass signature requirement)
+    mapping(bytes32 => bool) private _authorizedTransfers;
+    
+    /// @dev Simple marketplace functionality
+    struct LockboxListing {
+        address seller;           // Who is selling
+        address paymentToken;     // Token address (address(0) = ETH)
+        uint256 price;            // Price in the payment token
+        uint256 expiry;           // When listing expires
+        bool active;              // Whether listing is active
+        string description;       // Human readable description
+    }
+    
+    mapping(uint256 => LockboxListing) public listings;
+    uint256 public constant LOCKX_FEE_BP = 10; // 0.1% in basis points (hardcoded for all operations)
+    uint256 private constant FEE_DIVISOR = 10000;
+    
+    /**
+     * @dev Override to provide the unified Lockx fee for all operations
+     */
+    function _getLockxFee() internal view override returns (uint256) {
+        return LOCKX_FEE_BP;
+    }
+
+    /// @dev Modifier to prevent operations on listed lockboxes
+    modifier notListingLocked(uint256 tokenId) {
+        if (listingLocked[tokenId]) revert LockboxListed();
+        _;
+    }
+
+
+    /// Override _update to cleanup metadata on burn and handle transfers
     function _update(address to, uint256 tokenId, address auth) internal override returns (address) {
         address from = _ownerOf(tokenId);
+        
+        // Allow minting (from == address(0)) and burning (to == address(0))
         if (from != address(0) && to != address(0)) {
-            revert TransfersDisabled();
+            // Check if this transfer is authorized
+            bytes32 transferId = keccak256(abi.encodePacked(tokenId, from, to, block.number));
+            if (!_authorizedTransfers[transferId]) {
+                revert("Unauthorized transfer - use authorizedTransfer()");
+            }
+            
+            // Additional check: prevent transfers of listed lockboxes (except marketplace)
+            if (listingLocked[tokenId]) {
+                revert LockboxListed();
+            }
         }
         
         // Clear custom metadata on burn (when to == address(0))
         if (to == address(0)) {
             delete _tokenMetadataURIs[tokenId];
+            delete listingLocked[tokenId];
+            delete _authorizedTransfers[keccak256(abi.encodePacked(tokenId, from, to, block.number))];
         }
         
         return super._update(to, tokenId, auth);
@@ -428,6 +475,198 @@ contract Lockx is ERC721, Ownable, Withdrawals, IERC5192 {
         if (interfaceId == type(IERC721Receiver).interfaceId) return true;
         // everything else (ERC-721, ERC-165)
         return super.supportsInterface(interfaceId);
+    }
+
+
+    /* ───────────────────────── Secure Transfer Functions ───────────────────────── */
+    
+    /**
+     * @notice Transfer a lockbox with lockbox key authorization
+     * @param tokenId The lockbox token ID to transfer
+     * @param to The recipient address
+     * @param signature The lockbox key signature authorizing the transfer
+     * @param signatureExpiry UNIX timestamp after which the signature is invalid
+     * @param newLockboxKey Optional new lockbox key for the recipient (address(0) to keep current key)
+     */
+    function authorizedTransfer(
+        uint256 tokenId,
+        address to,
+        bytes memory signature,
+        uint256 signatureExpiry,
+        address newLockboxKey
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
+        if (to == address(0)) revert ZeroAddress();
+        if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        
+        // Verify signature
+        bytes memory data = abi.encode(to, signatureExpiry, newLockboxKey);
+        _verifySignature(tokenId, signature, newLockboxKey, OperationType.TRANSFER_LOCKBOX, data);
+        
+        // Authorize this specific transfer
+        bytes32 transferId = keccak256(abi.encodePacked(tokenId, msg.sender, to, block.number));
+        _authorizedTransfers[transferId] = true;
+        
+        // Execute transfer
+        _transfer(msg.sender, to, tokenId);
+        
+        // Clean up authorization
+        delete _authorizedTransfers[transferId];
+    }
+    
+    /**
+     * @notice Safe transfer with lockbox key authorization
+     */
+    function authorizedSafeTransfer(
+        uint256 tokenId,
+        address to,
+        bytes memory signature,
+        uint256 signatureExpiry,
+        address newLockboxKey,
+        bytes memory data
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
+        if (to == address(0)) revert ZeroAddress();
+        if (block.timestamp > signatureExpiry) revert SignatureExpired();
+        
+        // Verify signature
+        bytes memory authData = abi.encode(to, signatureExpiry, newLockboxKey, keccak256(data));
+        _verifySignature(tokenId, signature, newLockboxKey, OperationType.TRANSFER_LOCKBOX, authData);
+        
+        // Authorize this specific transfer
+        bytes32 transferId = keccak256(abi.encodePacked(tokenId, msg.sender, to, block.number));
+        _authorizedTransfers[transferId] = true;
+        
+        // Execute safe transfer
+        _safeTransfer(msg.sender, to, tokenId, data);
+        
+        // Clean up authorization
+        delete _authorizedTransfers[transferId];
+    }
+
+    /* ───────────────────────── Marketplace Functions ───────────────────────── */
+    
+    /**
+     * @notice List a lockbox for sale
+     * @param tokenId The lockbox token ID to list
+     * @param paymentToken Token address for payment (address(0) = ETH)
+     * @param price Price in the payment token
+     * @param expiry Timestamp when listing expires
+     * @param description Human readable description
+     */
+    function listLockbox(
+        uint256 tokenId,
+        address paymentToken,
+        uint256 price,
+        uint256 expiry,
+        string calldata description
+    ) external nonReentrant onlyLockboxOwner(tokenId) {
+        if (listings[tokenId].active) revert("Already listed");
+        if (expiry <= block.timestamp) revert("Invalid expiry");
+        if (price == 0) revert ZeroAmount();
+
+        // Create listing and lock lockbox
+        LockboxListing storage listing = listings[tokenId];
+        listing.seller = msg.sender;
+        listing.paymentToken = paymentToken;
+        listing.price = price;
+        listing.expiry = expiry;
+        listing.active = true;
+        listing.description = description;
+        
+        listingLocked[tokenId] = true;
+        emit Locked(tokenId); // Reuse existing event
+    }
+
+    /**
+     * @notice Buy a listed lockbox
+     * @param tokenId The lockbox token ID to purchase
+     */
+    function buyLockbox(uint256 tokenId) external payable nonReentrant {
+        LockboxListing storage listing = listings[tokenId];
+        
+        if (!listing.active) revert("Not listed");
+        if (block.timestamp >= listing.expiry) revert("Listing expired");
+        
+        address seller = listing.seller;
+        address paymentToken = listing.paymentToken;
+        uint256 price = listing.price;
+        
+        // Calculate fees
+        uint256 fee = (price * LOCKX_FEE_BP) / FEE_DIVISOR;
+        uint256 sellerAmount = price - fee;
+        
+        if (paymentToken == address(0)) {
+            // ETH payment
+            if (msg.value < price) revert("Insufficient ETH");
+            
+            // Pay seller
+            if (sellerAmount > 0) {
+                (bool success, ) = payable(seller).call{value: sellerAmount}("");
+                if (!success) revert EthTransferFailed();
+            }
+            
+            // Pay fee to treasury lockbox
+            if (fee > 0) {
+                _depositETH(TREASURY_LOCKBOX_ID, fee);
+            }
+            
+            // Refund excess ETH
+            if (msg.value > price) {
+                (bool success, ) = payable(msg.sender).call{value: msg.value - price}("");
+                if (!success) revert EthTransferFailed();
+            }
+        } else {
+            // ERC20 payment
+            if (msg.value > 0) {
+                // Refund any ETH sent by mistake
+                (bool success, ) = payable(msg.sender).call{value: msg.value}("");
+                if (!success) revert EthTransferFailed();
+            }
+            
+            // Pay seller
+            if (sellerAmount > 0) {
+                IERC20(paymentToken).transferFrom(msg.sender, seller, sellerAmount);
+            }
+            
+            // Pay fee to treasury lockbox
+            if (fee > 0) {
+                IERC20(paymentToken).transferFrom(msg.sender, address(this), fee);
+                _depositERC20(TREASURY_LOCKBOX_ID, paymentToken, fee);
+            }
+        }
+        
+        // Authorize marketplace transfer and rotate key
+        bytes32 transferId = keccak256(abi.encodePacked(tokenId, seller, msg.sender, block.number));
+        _authorizedTransfers[transferId] = true;
+        _forceUpdateAuth(tokenId, msg.sender); // Set buyer as new lockbox key
+        _transfer(seller, msg.sender, tokenId);
+        delete _authorizedTransfers[transferId];
+        
+        // Clean up listing
+        listing.active = false;
+        listingLocked[tokenId] = false;
+    }
+    
+    /**
+     * @notice Cancel a listing
+     * @param tokenId The lockbox token ID to cancel listing for
+     */
+    function cancelListing(uint256 tokenId) external nonReentrant {
+        LockboxListing storage listing = listings[tokenId];
+        
+        if (!listing.active) revert("Not listed");
+        if (listing.seller != msg.sender) revert NotOwner();
+        
+        listing.active = false;
+        listingLocked[tokenId] = false;
+    }
+    
+    /**
+     * @notice Check if a lockbox is currently listed
+     * @param tokenId The lockbox token ID to check
+     * @return isListed Whether the lockbox is actively listed
+     */
+    function isListedForSale(uint256 tokenId) external view returns (bool) {
+        return listings[tokenId].active && block.timestamp < listings[tokenId].expiry;
     }
 
 

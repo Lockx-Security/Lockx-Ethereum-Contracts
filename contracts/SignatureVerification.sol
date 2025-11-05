@@ -28,7 +28,8 @@ contract SignatureVerification is EIP712 {
         BURN_LOCKBOX,
         SET_TOKEN_URI,
         BATCH_WITHDRAW,
-        SWAP_ASSETS
+        SWAP_ASSETS,
+        TRANSFER_LOCKBOX
     }
 
     /// @dev Gas-cheap pointer to the Lockbox ERC-721 (set once in constructor).
@@ -143,6 +144,16 @@ contract SignatureVerification is EIP712 {
 
     function _purgeAuth(uint256 tokenId) internal {
         delete _tokenAuth[tokenId];
+    }
+
+    /**
+     * @dev Force update lockbox key and nonce (for marketplace use)
+     * @param tokenId The ID of the Lockbox
+     * @param newLockboxKey The new lockbox public key
+     */
+    function _forceUpdateAuth(uint256 tokenId, address newLockboxKey) internal {
+        _tokenAuth[tokenId].activeLockboxPublicKey = newLockboxKey;
+        _tokenAuth[tokenId].nonce++;
     }
 
 

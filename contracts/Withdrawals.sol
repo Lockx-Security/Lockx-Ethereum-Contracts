@@ -30,8 +30,12 @@ abstract contract Withdrawals is Deposits {
 
     /* ───────── Treasury Constants ───────── */
     uint256 public constant TREASURY_LOCKBOX_ID = 0;
-    uint256 public constant SWAP_FEE_BP = 10;
     uint256 private constant FEE_DIVISOR = 10000;
+    
+    /**
+     * @dev Virtual function to get the Lockx fee from the implementing contract
+     */
+    function _getLockxFee() internal view virtual returns (uint256);
 
 
     /* ───────── Events ───────── */
@@ -81,7 +85,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant onlyLockboxOwner(tokenId) {
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
         // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
@@ -137,7 +141,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant onlyLockboxOwner(tokenId) {
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
         // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
@@ -196,7 +200,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant onlyLockboxOwner(tokenId) {
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
         // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
@@ -264,7 +268,7 @@ abstract contract Withdrawals is Deposits {
         address recipient,
         bytes32 referenceId,
         uint256 signatureExpiry
-    ) external nonReentrant onlyLockboxOwner(tokenId) {
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
         // 1) Checks
         if (recipient == address(0)) revert ZeroAddress();
         if (recipient == address(this)) revert InvalidRecipient();
@@ -416,7 +420,7 @@ abstract contract Withdrawals is Deposits {
         bytes32 referenceId,
         uint256 signatureExpiry,
         address recipient
-    ) external nonReentrant onlyLockboxOwner(tokenId) {
+    ) external nonReentrant onlyLockboxOwner(tokenId) notListingLocked(tokenId) {
         if (block.timestamp > signatureExpiry) revert SignatureExpired();
         if (amountSpecified == 0) revert ZeroAmount();
         if (tokenIn == tokenOut) revert InvalidSwap();
@@ -524,7 +528,7 @@ abstract contract Withdrawals is Deposits {
         uint256 actualAmountOut = balanceOutAfter - balanceOutBefore;
 
         // 6) Calculate fee first and derive userAmount (net-of-fee)
-        uint256 feeAmount = (actualAmountOut * SWAP_FEE_BP + FEE_DIVISOR - 1) / FEE_DIVISOR;
+        uint256 feeAmount = (actualAmountOut * _getLockxFee() + FEE_DIVISOR - 1) / FEE_DIVISOR;
         uint256 userAmount = actualAmountOut - feeAmount;
 
         // 7) Validate swap based on mode using net-of-fee output for slippage
@@ -587,7 +591,7 @@ abstract contract Withdrawals is Deposits {
      * @return nfts        Array of nftBalances structs representing each ERC-721.
      *
      * Requirements:
-     * - `tokenId` must exist and caller must be its owner.
+     * - `tokenId` must exist.
      */
     struct erc20Balances {
         address tokenAddress;
@@ -605,7 +609,7 @@ abstract contract Withdrawals is Deposits {
             nftBalances[] memory nftContracts
         )
     {
-        if (_erc721.ownerOf(tokenId) != msg.sender) revert NotOwner();
+        if (_erc721.ownerOf(tokenId) == address(0)) revert NonexistentToken();
 
         lockboxETH = _ethBalances[tokenId];
 
